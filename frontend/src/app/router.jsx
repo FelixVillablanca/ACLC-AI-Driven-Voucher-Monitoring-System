@@ -21,7 +21,8 @@ export const router = createBrowserRouter([
       { index: true, path: PATHS.HOME, element: <HomeRedirect /> },
 
       // Public
-      { path: PATHS.LOGIN, lazy: page(() => import('@/pages/SystemStatusPage')) }, // Phase 1: real LoginPage
+      { path: PATHS.LOGIN, lazy: page(() => import('@/features/auth/pages/LoginPage')) }, // Framer p0wwkrh66
+      { path: PATHS.STATUS, lazy: page(() => import('@/pages/SystemStatusPage')) }, // backend health check
 
       // ADMIN area: logged in + admin role only
       {

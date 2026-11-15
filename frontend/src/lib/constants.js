@@ -32,4 +32,5 @@ export const PATHS = Object.freeze({
   ADMIN: '/admin',
   APP: '/app',
   FORBIDDEN: '/403',
+  STATUS: '/status',
 })

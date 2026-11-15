@@ -21,6 +21,9 @@ return Application::configure(basePath: dirname(__DIR__))
 
         // Runs on every /api request
         $middleware->api(prepend: [ForceJsonResponse::class]);
+        // Sanctum SPA login: requests from the React app (SANCTUM_STATEFUL_DOMAINS)
+        // get a session cookie + CSRF protection, so no token is stored in the browser.
+        $middleware->statefulApi();
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

@@ -72,7 +72,7 @@ The Framer MCP server is configured in `.mcp.json` at the project root, so every
 | Frame                                                   | Node id     | Notes                                                                                                                                                                                                              |
 | ------------------------------------------------------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | Admin dashboard: Create user modal (from Quick actions) | `lmhV2DJV1` | Admin layout (240px dark sidebar, 64px top bar, stat cards, recent activity, quick actions) + 760px modal: personal info, 4-role radio cards, company/department selects, company-access checkboxes, invite toggle |
-| Login UI 2 (centered card)                              | `p0wwkrh66` | 420px card on Primary Dark background with glow rings + 4 floating preview cards (approved, AI anomaly, budget, forecast)                                                                                          |
+| Login UI 2 (centered card) **BUILT**                    | `p0wwkrh66` | 420px card on Primary Dark background with glow rings + 4 floating preview cards (approved, AI anomaly, budget, forecast). Code: `features/auth/pages/LoginPage.jsx`                                               |
 | Login UI 3 (hero banner split)                          | `XJ4eU6eCT` | 720px navy hero panel showing `VM-hero-banner.png` (place it in `frontend/src/assets/`; its background is Hero/Navy, so it blends in) + 3 feature columns; 480px white form panel. Uses the Hero palette below     |
 
 Add a row here whenever a new frame is designed.
@@ -305,6 +305,12 @@ Framer frames keep being built frame by frame inside these phases. Tests are wri
   - Demo seeder
   - Success responses use API Resources directly, so there is no ApiResponse helper.
 - [ ] **Phase 1 — Auth, tenancy & audit:** Sanctum login (Login frames), ResolveCompany + global scope, role policies, audit observer, company switcher.
+  - Done 2026-11-15: login/logout/me built from Login UI 2 (`p0wwkrh66`).
+    - Endpoints: `POST /api/v1/auth/login` (throttle 5/min), `GET /auth/me`, `POST /auth/logout`.
+    - "Keep me signed in" = a 30-day remember cookie (`config/auth.php`).
+    - Inactive or pending accounts get 403 `ACCOUNT_INACTIVE`.
+    - After login, the active company is picked automatically (`features/auth/utils.js`).
+    - The old health page moved to `/status`.
 - [ ] **Phase 2 — Admin module:** companies, departments, users (`lmhV2DJV1`), company access, categories, voucher/payee types; pagination + cached lookups.
 - [ ] **Phase 3 — Voucher core:** drafts + line items, secure attachments, numbering, state machine, idempotent submit, cancel, PDF.
 - [ ] **Phase 4 — Approvals & budgets:** inbox, approve/reject/return, step 2 routing, budget locking + alerts, event-driven notifications.

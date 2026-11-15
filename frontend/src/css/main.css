@@ -156,6 +156,10 @@
 @utility text-nav-section  { font-size: 11px; line-height: 1.4; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; }
 @utility text-badge        { font-size: 12px; line-height: 1.2; font-weight: 600; }
 @utility text-display      { font-size: 40px; line-height: 1.1; font-weight: 700; }
+@utility text-auth-link    { font-size: 14px; line-height: 1.4; font-weight: 500; }   /* /Auth/Link   */
+@utility text-auth-button  { font-size: 14px; line-height: 1.4; font-weight: 600; }   /* /Auth/Button */
+@utility text-brand-logo   { font-size: 18px; line-height: 1.3; font-weight: 700; letter-spacing: -0.01em; } /* /Brand Panel/Logo */
+@utility text-brand-small  { font-size: 13px; line-height: 1.5; font-weight: 400; }   /* /Brand Panel/Small */
 
 @layer base {
     * {

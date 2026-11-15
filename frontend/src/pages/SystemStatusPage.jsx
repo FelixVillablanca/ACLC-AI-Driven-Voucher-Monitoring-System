@@ -34,7 +34,7 @@ export default function SystemStatusPage() {
     <main className="flex min-h-screen items-center justify-center p-6">
       <div className="w-full max-w-md rounded-xl border bg-card p-6">
         <h1 className="text-page-title">AI-Driven Voucher Monitoring System</h1>
-        <p className="text-caption mt-1">The login screen is built in Phase 1. Backend connection:</p>
+        <p className="text-caption mt-1">Backend connection check:</p>
 
         <div className="mt-4 rounded-lg border bg-muted">
           {state.status === 'loading' && <LoadingState label="Contacting the backend…" />}

@@ -731,7 +731,7 @@ Free tier today → paid later without a redesign: move MySQL to a managed DB, r
 - **Concepts learned:** Git workflow, layered architecture, 12-factor config, API envelope
 
 ### Phase 1 — Auth, Tenancy & Audit
-- [ ] Sanctum SPA login/logout/me (Login UI frames `p0wwkrh66` / `XJ4eU6eCT`) + login rate limit
+- [x] Sanctum SPA login/logout/me (Login UI 2 `p0wwkrh66`) + login rate limit (done 2026-11-15)
 - [ ] `ResolveCompany` middleware, `CurrentCompany` service, `BelongsToCompany` global scope
 - [ ] Role middleware/policies; admin vs operational route trees
 - [ ] Audit log observer (append-only)

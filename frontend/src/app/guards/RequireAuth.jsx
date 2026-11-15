@@ -1,4 +1,5 @@
 import { Navigate, Outlet, useLocation } from 'react-router-dom'
+import SessionErrorScreen from '@/app/SessionErrorScreen'
 import LoadingState from '@/components/common/LoadingState'
 import { PATHS } from '@/lib/constants'
 import { useAuthStore } from '@/stores/useAuthStore'
@@ -13,6 +14,7 @@ export default function RequireAuth() {
   const location = useLocation()
 
   if (status === 'unknown') return <LoadingState label="Checking your session…" className="min-h-screen" />
+  if (status === 'error') return <SessionErrorScreen />
   if (status !== 'authenticated') return <Navigate to={PATHS.LOGIN} replace state={{ from: location }} />
 
   return <Outlet />

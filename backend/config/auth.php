@@ -41,6 +41,9 @@ return [
         'web' => [
             'driver' => 'session',
             'provider' => 'users',
+            // "Keep me signed in for 30 days" (Login UI 2): the remember-me cookie
+            // lasts 30 days (in minutes) instead of Laravel's default of ~400 days.
+            'remember' => 60 * 24 * 30,
         ],
     ],
 
