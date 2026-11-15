@@ -77,6 +77,34 @@ The Framer MCP server is configured in `.mcp.json` at the project root, so every
 
 Add a row here whenever a new frame is designed.
 
+#### Frame → phase map (Claude decides; the user doesn't track phases)
+
+When the user pastes a frame, decide its phase from what it shows:
+
+| Phase | What the frame shows |
+| ----- | -------------------- |
+| 1 | Login, forgot password, company selection |
+| 2 | Admin screens: users, companies, departments, company access, categories, voucher/payee types, admin dashboard |
+| 3 | Voucher list, create/edit, details, line items, attachments, PDF |
+| 4 | Approval inbox, approve/reject/return, budgets, notifications |
+| 5 | AI suggestions, anomaly panels, forecasts |
+| 6 | Operational dashboards, reports, charts |
+
+If the frame needs foundation from an earlier phase that isn't built yet (for example, an admin frame before auth exists), build that minimal foundation first and explain it simply. Tell the user which phase the frame belongs to.
+
+#### Everyday commands
+
+| Do this | Run (folder) |
+| ------- | ------------ |
+| Start the API | `php artisan serve` (backend), served on :8000 |
+| Start the React app | `npm run dev` (frontend), served on :5173; `/api` is proxied to :8000 |
+| Run all backend tests | `php artisan test` (backend). Uses the `_testing` DB only |
+| Fill the test DB with demo data | `php artisan db:seed --env=testing` (backend) |
+| Tidy PHP code | `vendor/bin/pint` (backend) |
+| Check frontend code | `npm run lint` (frontend) |
+
+Demo logins (DemoDataSeeder; all use the password `password`): `admin@advms.test`, `clerk@advms.test`, `officer@advms.test`, `supervisor@advms.test`.
+
 #### Design tokens → code
 
 | Framer style                  | Value                      | Use                                                                    |
@@ -268,7 +296,14 @@ frontend/src/
 
 Framer frames keep being built frame by frame inside these phases. Tests are written in each phase, covering 6 cases per endpoint: happy path, 422, 401, 403, cross-tenant 404, 409.
 
-- [ ] **Phase 0 — Foundation:** initial git commit, `.env.example`, `/api/v1` skeleton, ForceJson + RequestId middleware, error envelope, test DB, frontend apiClient/router/guards/ErrorBoundary, Pint + ESLint, Conventional Commits.
+- [x] **Phase 0 — Foundation** (done 2026-11-15):
+  - initial git commit, `.env.example`, schema baseline + testing DB
+  - `/api/v1` + `GET /api/v1/health`, the AssignRequestId (global) and ForceJsonResponse (api) middleware
+  - error envelope via `app/Exceptions/ApiErrorRenderer.php`, plus `ApiException` for business rules
+  - frontend `lib/apiClient` + `lib/apiError`, router with guards, ErrorBoundary, toasts, and the common Loading/Error/Empty states
+  - Pint (`pint.json` excludes the archive) and ESLint
+  - Demo seeder
+  - Success responses use API Resources directly, so there is no ApiResponse helper.
 - [ ] **Phase 1 — Auth, tenancy & audit:** Sanctum login (Login frames), ResolveCompany + global scope, role policies, audit observer, company switcher.
 - [ ] **Phase 2 — Admin module:** companies, departments, users (`lmhV2DJV1`), company access, categories, voucher/payee types; pagination + cached lookups.
 - [ ] **Phase 3 — Voucher core:** drafts + line items, secure attachments, numbering, state machine, idempotent submit, cancel, PDF.
