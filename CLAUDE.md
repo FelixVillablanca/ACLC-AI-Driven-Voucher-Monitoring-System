@@ -39,6 +39,15 @@
 - `financial_reports`: (id, company_id, department_id, report_type, period_start, period_end, total_vouchers, total_amount, ai_summary)
 - `audit_logs`: (id, user_id, company_id, action, table_name, record_id, old_values, new_values, ip_address)
 
+## Domain emails to verify to which that domain will be directed to its own page.
+
+Roles:
+
+- Admin: {User}@Administrator.com example: Johndoe@Administrator.com
+- Accounting clerk: {User}@clerk.com
+- Accounting officer: {User}@officer.com
+- Accounting supervisor manager: {User}@supervisor.com
+
 ## AI Architecture Summary
 
 1. **Auto Classification:** TF-IDF + Naive Bayes (Python) analyzes `vouchers.description` on input -> returns suggested category and confidence score.
@@ -81,29 +90,33 @@ Add a row here whenever a new frame is designed.
 
 When the user pastes a frame, decide its phase from what it shows:
 
-| Phase | What the frame shows |
-| ----- | -------------------- |
-| 1 | Login, forgot password, company selection |
-| 2 | Admin screens: users, companies, departments, company access, categories, voucher/payee types, admin dashboard |
-| 3 | Voucher list, create/edit, details, line items, attachments, PDF |
-| 4 | Approval inbox, approve/reject/return, budgets, notifications |
-| 5 | AI suggestions, anomaly panels, forecasts |
-| 6 | Operational dashboards, reports, charts |
+| Phase | What the frame shows                                                                                           |
+| ----- | -------------------------------------------------------------------------------------------------------------- |
+| 1     | Login, forgot password, company selection                                                                      |
+| 2     | Admin screens: users, companies, departments, company access, categories, voucher/payee types, admin dashboard |
+| 3     | Voucher list, create/edit, details, line items, attachments, PDF                                               |
+| 4     | Approval inbox, approve/reject/return, budgets, notifications                                                  |
+| 5     | AI suggestions, anomaly panels, forecasts                                                                      |
+| 6     | Operational dashboards, reports, charts                                                                        |
 
 If the frame needs foundation from an earlier phase that isn't built yet (for example, an admin frame before auth exists), build that minimal foundation first and explain it simply. Tell the user which phase the frame belongs to.
 
 #### Everyday commands
 
-| Do this | Run (folder) |
-| ------- | ------------ |
-| Start the API | `php artisan serve` (backend), served on :8000 |
-| Start the React app | `npm run dev` (frontend), served on :5173; `/api` is proxied to :8000 |
-| Run all backend tests | `php artisan test` (backend). Uses the `_testing` DB only |
-| Fill the test DB with demo data | `php artisan db:seed --env=testing` (backend) |
-| Tidy PHP code | `vendor/bin/pint` (backend) |
-| Check frontend code | `npm run lint` (frontend) |
+| Do this                         | Run (folder)                                                                                                                            |
+| ------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| Start the API                   | `php artisan serve` (backend), served on :8000                                                                                          |
+| Start the React app             | `npm run dev` (frontend), served on :5173; `/api` is proxied to :8000                                                                   |
+| Run all backend tests           | `php artisan test` (backend). Uses the `_testing` DB only                                                                               |
+| Fill the test DB with demo data | `php artisan db:seed --env=testing` (backend). Re-run after `php artisan test`, because tests wipe it                                   |
+| Add your own sample users       | edit `database/seeders/SampleUsersSeeder.php`, then seed as above                                                                       |
+| Run the app on the test DB      | PowerShell: `$env:APP_ENV = "testing"; php artisan serve`. `serve --env=testing` does NOT work. Full guide: `docs/SAMPLE_DATA_GUIDE.md` |
+| Tidy PHP code                   | `vendor/bin/pint` (backend)                                                                                                             |
+| Check frontend code             | `npm run lint` (frontend)                                                                                                               |
 
 Demo logins (DemoDataSeeder; all use the password `password`): `admin@advms.test`, `clerk@advms.test`, `officer@advms.test`, `supervisor@advms.test`.
+
+Sample logins following the domain convention (SampleUsersSeeder; password `password`): `johndoe@administrator.com` (admin), `marialopez@clerk.com` (clerk), `joseramos@officer.com` (officer), `anamendoza@supervisor.com` (supervisor). The email domain is only a naming convention. Access and redirects are decided by `users.role`, never by the domain.
 
 #### Design tokens → code
 

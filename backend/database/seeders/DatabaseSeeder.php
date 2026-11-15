@@ -13,7 +13,8 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         $this->call([
-            DemoDataSeeder::class,
+            DemoDataSeeder::class,    // companies, departments, 4 demo logins
+            SampleUsersSeeder::class, // your own extra users (edit the list in that file)
         ]);
     }
 }
