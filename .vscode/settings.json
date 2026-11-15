@@ -1,0 +1,8 @@
+{
+  // Read .css files as Tailwind CSS, so @theme / @apply / @utility aren't flagged
+  "files.associations": {
+    "*.css": "tailwindcss"
+  },
+  // Tailwind v4: tell the extension where our Tailwind entry file is (frontend lives in a subfolder)
+  "tailwindCSS.experimental.configFile": "frontend/src/css/main.css"
+}

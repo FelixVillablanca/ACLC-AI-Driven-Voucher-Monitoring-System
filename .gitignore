@@ -8,7 +8,8 @@
 .env
 .env.*
 !.env.example
-docs
+docs/Export_csv_sample
+docs/samples
 
 # ── Frontend (React/Vite) ──────────────────────────
 frontend/node_modules/
