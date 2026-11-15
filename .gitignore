@@ -1,0 +1,45 @@
+# ── Secrets / local config ─────────────────────────
+# Framer MCP URL contains id + secret
+.mcp.json
+# Claude Code personal settings (keep shared .claude/ files if you add any later)
+.claude/settings.local.json
+
+# Environment files anywhere in the repo (keep the .example templates)
+.env
+.env.*
+!.env.example
+docs
+
+# ── Frontend (React/Vite) ──────────────────────────
+frontend/node_modules/
+frontend/dist/
+
+# ── Backend (Laravel) ──────────────────────────────
+backend/vendor/
+backend/node_modules/
+# uploaded voucher attachments / generated PDFs (real financial data)
+backend/storage/app/private/*
+backend/storage/app/public/*
+!backend/storage/app/**/.gitignore
+backend/database/schema/*.sql
+
+# ── AI / Python (scikit-learn scripts) ─────────────
+__pycache__/
+*.pyc
+.venv/
+venv/
+# trained models: large, can be rebuilt from training data
+*.pkl
+*.joblib
+
+# ── Database dumps ─────────────────────────────────
+*.sql
+# ...except the official schema snapshot (must come AFTER *.sql)
+!backend/database/schema/*.sql
+*.sqlite
+
+# ── OS / editor ────────────────────────────────────
+.DS_Store
+Thumbs.db
+.idea/
+*.log
