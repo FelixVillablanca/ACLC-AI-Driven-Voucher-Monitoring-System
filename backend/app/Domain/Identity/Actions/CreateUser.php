@@ -88,7 +88,8 @@ class CreateUser
         ]);
 
         $companyName = Company::whereKey($data['company_id'])->value('name');
-        User::where('role', 'admin')->whereKeyNot($admin->id)->pluck('id')->each(fn ($adminId) => Notification::create([
+        // Tell the OTHER Admins of the same company
+        User::where('role', 'admin')->where('company_id', $admin->company_id)->whereKeyNot($admin->id)->pluck('id')->each(fn ($adminId) => Notification::create([
             'recipient_id' => $adminId,
             'type' => 'user_changed',
             'title' => 'New user account created',

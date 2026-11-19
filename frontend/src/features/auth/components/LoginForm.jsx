@@ -1,8 +1,8 @@
 import { useState } from 'react'
-import { useForm } from 'react-hook-form'
+import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import toast from 'react-hot-toast'
-import { ArrowRight, Info, Loader2, Mail, TriangleAlert } from 'lucide-react'
+import { ArrowRight, Info, Loader2, Mail, ShieldCheck, TriangleAlert } from 'lucide-react'
 import { applyFieldErrors } from '@/lib/apiError'
 import { useLogin } from '../hooks/useLogin'
 import { loginSchema } from '../schemas'
@@ -24,6 +24,7 @@ export default function LoginForm({ onSuccess }) {
 
   const {
     register,
+    control,
     handleSubmit,
     setError,
     formState: { errors, isSubmitting },
@@ -32,10 +33,15 @@ export default function LoginForm({ onSuccess }) {
     defaultValues: { email: '', password: '', remember: false },
   })
 
+  // Super Admins can't stay signed in for 30 days (the server ignores it anyway, spec §4.6),
+  // so the checkbox is hidden for @Superadmin.com addresses instead of promising something false.
+  const email = useWatch({ control, name: 'email' })
+  const isSuperAdminEmail = /@superadmin\.com\s*$/i.test(email ?? '')
+
   const onSubmit = async (values) => {
     setFormError(null)
     try {
-      const user = await login(values)
+      const user = await login(isSuperAdminEmail ? { ...values, remember: false } : values)
       onSuccess?.(user)
     } catch (error) {
       if (!applyFieldErrors(error, setError)) setFormError(error)
@@ -103,7 +109,14 @@ export default function LoginForm({ onSuccess }) {
         )}
       </div>
 
-      <RememberMeCheckbox label="Keep me signed in for 30 days" disabled={isSubmitting} {...register('remember')} />
+      {isSuperAdminEmail ? (
+        <p className="text-caption flex items-center gap-2">
+          <ShieldCheck className="size-4 shrink-0 text-primary" aria-hidden="true" />
+          Super Admins are signed out after 15 minutes without activity.
+        </p>
+      ) : (
+        <RememberMeCheckbox label="Keep me signed in for 30 days" disabled={isSubmitting} {...register('remember')} />
+      )}
 
       {/* Errors that don't belong to one field */}
       {formError && (

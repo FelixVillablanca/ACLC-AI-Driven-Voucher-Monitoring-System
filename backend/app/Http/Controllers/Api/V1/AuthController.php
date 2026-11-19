@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Domain\Identity\Actions\AuthenticateUser;
 use App\Http\Controllers\Controller;
+use App\Http\Middleware\EnforceIdleTimeout;
 use App\Http\Requests\Auth\LoginRequest;
 use App\Http\Resources\UserResource;
 use App\Models\User;
@@ -33,6 +34,8 @@ class AuthController extends Controller
         // New session ID after login, so an old (possibly stolen) ID becomes useless.
         // This blocks an attack called "session fixation".
         $request->session()->regenerate();
+        // Start the idle clock fresh (EnforceIdleTimeout), so an old value can't sign them straight out
+        $request->session()->put(EnforceIdleTimeout::SESSION_KEY, now()->timestamp);
 
         return UserResource::make($this->withProfile($user));
     }

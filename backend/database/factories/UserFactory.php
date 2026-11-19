@@ -57,6 +57,12 @@ class UserFactory extends Factory
         return $this->state(fn () => ['role' => 'admin']);
     }
 
+    /** Super Admin: the platform owner, works outside every company. */
+    public function superAdmin(): static
+    {
+        return $this->state(fn () => ['role' => 'super_admin', 'company_id' => null]);
+    }
+
     public function officer(): static
     {
         return $this->state(fn () => ['role' => 'accounting_officer']);

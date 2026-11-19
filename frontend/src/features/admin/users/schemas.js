@@ -9,6 +9,7 @@ import { z } from 'zod'
  *   - Employee ID: the server assigns it (EMP-2026-0001…)
  *   - the email DOMAIN: the server adds it from the role (@Clerk.com…)
  *   - department is OPTIONAL (companies may have none yet)
+ *   - the Admin role: only a Super Admin creates Admin accounts (spec §4.5, 2026-11-20)
  */
 export const createUserSchema = z
   .object({
@@ -26,19 +27,18 @@ export const createUserSchema = z
       .min(12, 'Generate a password.')
       .regex(/[A-Za-z]/, 'The password must contain letters.')
       .regex(/[0-9]/, 'The password must contain numbers.'),
-    role: z.enum(['admin', 'accounting_clerk', 'accounting_officer', 'supervisor_manager'], { error: 'Choose a role.' }),
+    role: z.enum(['accounting_clerk', 'accounting_officer', 'supervisor_manager'], { error: 'Choose a role.' }),
     company_id: z.coerce.number({ error: 'Choose the primary company.' }).int().positive('Choose the primary company.'),
     department_id: z.union([z.literal(''), z.coerce.number().int().positive()]).optional(),
     company_ids: z.array(z.number().int()),
   })
   .superRefine((values, ctx) => {
-    if (values.role !== 'admin' && values.company_ids.length === 0) {
+    if (values.company_ids.length === 0) {
       ctx.addIssue({ code: 'custom', path: ['company_ids'], message: 'Give access to at least one company.' })
     }
   })
 
 export const ROLE_OPTIONS = [
-  { value: 'admin', label: 'Admin', description: 'System setup only. No voucher access.' },
   { value: 'accounting_clerk', label: 'Accounting Clerk', description: 'Creates and submits vouchers.' },
   { value: 'accounting_officer', label: 'Accounting Officer', description: 'Level 1 review and budgets.' },
   { value: 'supervisor_manager', label: 'Supervisor / Manager', description: 'Level 2 final approval.' },

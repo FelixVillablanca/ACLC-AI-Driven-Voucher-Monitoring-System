@@ -2,7 +2,8 @@ import { cn } from '@/lib/utils'
 import { ROLE_OPTIONS } from '../schemas'
 
 /**
- * The 4 role cards (Framer: selected = Primary Faint background + 1.5px Primary border,
+ * The 3 role cards: Clerk, Officer, Supervisor (Framer lmhV2DJV1 showed 4; Admin was removed
+ * on 2026-11-20 because only a Super Admin creates Admin accounts). Framer: selected = Primary Faint background + 1.5px Primary border,
  * filled radio dot). Real radio inputs underneath, so ←/→ keys and screen readers work.
  */
 export default function RoleRadioCards({ value, onChange, error }) {
@@ -15,7 +16,7 @@ export default function RoleRadioCards({ value, onChange, error }) {
         <p className="text-caption">Determines what this user can do in the voucher pipeline</p>
       </div>
 
-      <div className="mt-3 grid grid-cols-1 gap-2.5 sm:grid-cols-2 md:grid-cols-4">
+      <div className="mt-3 grid grid-cols-1 gap-2.5 sm:grid-cols-2 md:grid-cols-3">
         {ROLE_OPTIONS.map((role) => {
           const selected = value === role.value
           return (

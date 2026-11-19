@@ -1,28 +1,33 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { ChevronDown, Info, Loader2, TriangleAlert } from 'lucide-react'
+import { ChevronDown, Loader2, TriangleAlert } from 'lucide-react'
 import { applyFieldErrors } from '@/lib/apiError'
 import { cn } from '@/lib/utils'
 import { createUser } from '../api'
 import { createUserSchema } from '../schemas'
-import { generatePassword, inputClass } from '../utils'
+import EmailNameField from '@/components/common/EmailNameField'
+import FieldShell, { inputClass } from '@/components/common/FieldShell'
+import { generatePassword } from '@/lib/password'
 import CompanyAccessChips from './CompanyAccessChips'
-import EmailNameField from './EmailNameField'
-import FieldShell from './FieldShell'
 import PasswordGenerator from './PasswordGenerator'
 import RoleRadioCards from './RoleRadioCards'
 
-const emptyForm = () => ({
-  first_name: '',
-  last_name: '',
-  email_username: '',
-  password: generatePassword(), // a fresh random password every time the form opens
-  role: 'accounting_clerk',
-  company_id: '',
-  department_id: '',
-  company_ids: [],
-})
+// An Admin runs ONE company (2026-11-20), so that company is filled in already
+const emptyForm = (companies = []) => {
+  const active = companies.filter((c) => c.is_active)
+  const only = active.length === 1 ? active[0].id : ''
+  return {
+    first_name: '',
+    last_name: '',
+    email_username: '',
+    password: generatePassword(), // a fresh random password every time the form opens
+    role: 'accounting_clerk',
+    company_id: only,
+    department_id: '',
+    company_ids: only ? [only] : [],
+  }
+}
 
 /**
  * The Create user form body + footer (Framer lmhV2DJV1).
@@ -38,7 +43,7 @@ export default function CreateUserForm({ companies, employeeIdPreview, onCancel,
     setValue,
     setError,
     formState: { errors, isSubmitting, isDirty },
-  } = useForm({ resolver: zodResolver(createUserSchema), defaultValues: emptyForm() })
+  } = useForm({ resolver: zodResolver(createUserSchema), defaultValues: emptyForm(companies) })
 
   // Tell the modal whether anything was typed (so a stray click outside doesn't lose it).
   // Curly braces on purpose: an effect may only return nothing or a clean-up function.
@@ -46,13 +51,12 @@ export default function CreateUserForm({ companies, employeeIdPreview, onCancel,
     onDirtyChange?.(isDirty)
   }, [isDirty, onDirtyChange])
 
-  // useWatch = "re-draw when these fields change" (e.g. role -> show/hide company access)
+  // useWatch = "re-draw when these fields change" (e.g. role -> the email domain shown)
   const [role, rawCompanyId, companyIds, password, emailUsername] = useWatch({
     control,
     name: ['role', 'company_id', 'company_ids', 'password', 'email_username'],
   })
   const companyId = Number(rawCompanyId) || null
-  const isAdminRole = role === 'admin'
 
   const activeCompanies = companies.filter((c) => c.is_active)
   const departments = useMemo(() => companies.find((c) => c.id === companyId)?.departments ?? [], [companies, companyId])
@@ -74,8 +78,8 @@ export default function CreateUserForm({ companies, employeeIdPreview, onCancel,
     setFormError(null)
     const payload = {
       ...values,
-      department_id: isAdminRole || !values.department_id ? null : values.department_id,
-      company_ids: isAdminRole ? [] : values.company_ids,
+      department_id: values.department_id || null,
+      company_ids: values.company_ids,
     }
     try {
       onCreated(await createUser(payload), values)
@@ -156,22 +160,20 @@ export default function CreateUserForm({ companies, employeeIdPreview, onCancel,
               id="department_id"
               label="Department"
               error={errors.department_id?.message}
-              hint={isAdminRole ? undefined : 'Optional. You can assign one later.'}
+              hint="Optional. You can assign one later."
             >
               <SelectWrap>
                 <select
                   {...fieldProps('department_id')}
                   {...register('department_id')}
-                  disabled={isSubmitting || isAdminRole || !companyId || departments.length === 0}
+                  disabled={isSubmitting || !companyId || departments.length === 0}
                 >
                   <option value="">
-                    {isAdminRole
-                      ? 'Not needed for admins'
-                      : !companyId
-                        ? 'Choose a company first'
-                        : departments.length === 0
-                          ? 'No departments yet'
-                          : 'No department (optional)'}
+                    {!companyId
+                      ? 'Choose a company first'
+                      : departments.length === 0
+                        ? 'No departments yet'
+                        : 'No department (optional)'}
                   </option>
                   {departments.map((d) => (
                     <option key={d.id} value={d.id}>
@@ -183,20 +185,13 @@ export default function CreateUserForm({ companies, employeeIdPreview, onCancel,
             </FieldShell>
           </div>
 
-          {isAdminRole ? (
-            <p className="text-caption flex items-center gap-2 rounded-lg border border-dashed px-3 py-2.5">
-              <Info className="size-4 shrink-0 text-primary" aria-hidden="true" />
-              Admins manage the system setup and don&apos;t work inside a company, so they need no company access.
-            </p>
-          ) : (
-            <CompanyAccessChips
-              companies={companies}
-              selectedIds={companyIds}
-              primaryId={companyId}
-              onToggle={toggleCompany}
-              error={errors.company_ids?.message}
-            />
-          )}
+          <CompanyAccessChips
+            companies={companies}
+            selectedIds={companyIds}
+            primaryId={companyId}
+            onToggle={toggleCompany}
+            error={errors.company_ids?.message}
+          />
         </section>
 
         <PasswordGenerator

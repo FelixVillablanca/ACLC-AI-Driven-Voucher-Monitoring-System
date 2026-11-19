@@ -37,6 +37,13 @@ class AppServiceProvider extends ServiceProvider
             Str::lower((string) $request->input('email')).'|'.$request->ip()
         ));
 
+        // "Set your password" links: 10 tries per minute per computer, so tokens can't be guessed
+        RateLimiter::for('invitation', fn (Request $request) => Limit::perMinute(10)->by('invitation|'.$request->ip()));
+
+        // Super Admin area: stricter, 60 requests per minute per Super Admin (spec §4.6).
+        // A stolen Super Admin session can't be used to scrape or hammer the platform quickly.
+        RateLimiter::for('superadmin', fn (Request $request) => Limit::perMinute(60)->by('superadmin|'.$request->user()?->id));
+
         // Everything else in the API: 120 requests per minute per user (or IP for guests)
         RateLimiter::for('api', fn (Request $request) => Limit::perMinute(120)->by(
             $request->user()?->id ?: $request->ip()

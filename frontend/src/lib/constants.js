@@ -1,6 +1,7 @@
 // Values that never change, kept in ONE place so a typo can't sneak in.
 
 export const ROLES = Object.freeze({
+  SUPER_ADMIN: 'super_admin',
   ADMIN: 'admin',
   CLERK: 'accounting_clerk',
   OFFICER: 'accounting_officer',
@@ -9,6 +10,7 @@ export const ROLES = Object.freeze({
 
 // Short role names for badges/pills (Framer user menu: "Admin")
 export const ROLE_SHORT_LABELS = Object.freeze({
+  super_admin: 'Super Admin',
   admin: 'Admin',
   accounting_clerk: 'Clerk',
   accounting_officer: 'Officer',
@@ -16,6 +18,7 @@ export const ROLE_SHORT_LABELS = Object.freeze({
 })
 
 export const ROLE_LABELS = Object.freeze({
+  [ROLES.SUPER_ADMIN]: 'Super Administrator',
   [ROLES.ADMIN]: 'Administrator',
   [ROLES.CLERK]: 'Accounting Clerk',
   [ROLES.OFFICER]: 'Accounting Officer',
@@ -25,6 +28,7 @@ export const ROLE_LABELS = Object.freeze({
 // Each role's own email domain (CLAUDE.md "Domain emails"). The backend uses the same list
 // (app/Domain/Identity/Support/RoleEmailDomains.php) and builds the real address itself.
 export const ROLE_EMAIL_DOMAINS = Object.freeze({
+  [ROLES.SUPER_ADMIN]: 'Superadmin.com', // made only by `php artisan superadmin:create`
   [ROLES.ADMIN]: 'Administrator.com',
   [ROLES.CLERK]: 'Clerk.com',
   [ROLES.OFFICER]: 'Officer.com',
@@ -46,6 +50,7 @@ export const VOUCHER_STATUS = Object.freeze({
 export const PATHS = Object.freeze({
   HOME: '/',
   LOGIN: '/login',
+  SET_PASSWORD: '/set-password', // link in the invitation email
   ADMIN: '/admin',
   ADMIN_COMPANIES: '/admin/companies',
   ADMIN_DEPARTMENTS: '/admin/departments',
@@ -58,6 +63,18 @@ export const PATHS = Object.freeze({
   ADMIN_CHANGE_PASSWORD: '/admin/change-password',
   ADMIN_HELP: '/admin/help',
   ADMIN_NOTIFICATIONS: '/admin/notifications',
+  // Super Admin console (Framer uH0wO9f5O top nav + account menu)
+  SUPERADMIN: '/superadmin',
+  SUPERADMIN_ADMINS: '/superadmin/admins',
+  SUPERADMIN_COMPANIES: '/superadmin/companies',
+  SUPERADMIN_SETTINGS: '/superadmin/settings',
+  SUPERADMIN_AUDIT_LOGS: '/superadmin/audit-logs',
+  SUPERADMIN_SYSTEM_HEALTH: '/superadmin/system-health',
+  SUPERADMIN_PROFILE: '/superadmin/profile',
+  SUPERADMIN_ACCOUNT: '/superadmin/account',
+  SUPERADMIN_CHANGE_PASSWORD: '/superadmin/change-password',
+  SUPERADMIN_HELP: '/superadmin/help',
+  SUPERADMIN_NOTIFICATIONS: '/superadmin/notifications',
   CLERK: '/clerk',
   OFFICER: '/officer',
   SUPERVISOR: '/supervisor',
@@ -67,6 +84,7 @@ export const PATHS = Object.freeze({
 
 // Each role's own landing page. Only that role may open it (see app/router.jsx).
 export const ROLE_HOME = Object.freeze({
+  [ROLES.SUPER_ADMIN]: PATHS.SUPERADMIN,
   [ROLES.ADMIN]: PATHS.ADMIN,
   [ROLES.CLERK]: PATHS.CLERK,
   [ROLES.OFFICER]: PATHS.OFFICER,

@@ -33,3 +33,16 @@ export async function me() {
 export async function logout() {
   await apiClient.post('/auth/logout')
 }
+
+/** Is this "set your password" link still valid? Returns { first_name, email }; 410 = expired or used. */
+export async function checkInvitation({ email, token }) {
+  await getCsrfCookie()
+  const { data } = await apiClient.post('/auth/invitation/check', { email, token })
+  return data.data
+}
+
+/** Saves the new password from the invitation link (the link then stops working). */
+export async function acceptInvitation({ email, token, password, password_confirmation }) {
+  await getCsrfCookie()
+  await apiClient.post('/auth/invitation/accept', { email, token, password, password_confirmation })
+}

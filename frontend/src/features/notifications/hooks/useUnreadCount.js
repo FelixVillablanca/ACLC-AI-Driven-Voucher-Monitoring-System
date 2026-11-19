@@ -15,8 +15,8 @@ export function useUnreadCount() {
   const [count, setCount] = useState(0)
 
   const refresh = useCallback(
-    () =>
-      getUnreadCount()
+    (background = false) =>
+      getUnreadCount({ background })
         .then(setCount)
         .catch(() => {}),
     [],
@@ -24,8 +24,8 @@ export function useUnreadCount() {
 
   useEffect(() => {
     refresh()
-    const timer = setInterval(refresh, REFRESH_EVERY_MS)
-    const onFocus = () => refresh()
+    const timer = setInterval(() => refresh(true), REFRESH_EVERY_MS) // timer = background
+    const onFocus = () => refresh(true)
     window.addEventListener('focus', onFocus)
     return () => {
       clearInterval(timer)

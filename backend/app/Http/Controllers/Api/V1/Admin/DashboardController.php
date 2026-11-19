@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1\Admin;
 use App\Domain\Reporting\Queries\AdminDashboardSummary;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\AdminDashboardResource;
+use Illuminate\Http\Request;
 
 /**
  * GET /api/v1/admin/dashboard: the numbers for the admin landing page.
@@ -12,8 +13,8 @@ use App\Http\Resources\AdminDashboardResource;
  */
 class DashboardController extends Controller
 {
-    public function __invoke(AdminDashboardSummary $summary): AdminDashboardResource
+    public function __invoke(Request $request, AdminDashboardSummary $summary): AdminDashboardResource
     {
-        return AdminDashboardResource::make($summary->get());
+        return AdminDashboardResource::make($summary->get($request->user()));
     }
 }

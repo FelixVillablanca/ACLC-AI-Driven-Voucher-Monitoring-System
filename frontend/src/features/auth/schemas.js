@@ -14,3 +14,18 @@ export const loginSchema = z.object({
   password: z.string().min(1, 'Enter your password.'),
   remember: z.boolean(),
 })
+
+/** "Set your password" page (invitation link). Same rule as the server: 12+ characters, letters AND numbers. */
+export const setPasswordSchema = z
+  .object({
+    password: z
+      .string()
+      .min(12, 'Use at least 12 characters.')
+      .regex(/[A-Za-z]/, 'Use both letters and numbers.')
+      .regex(/[0-9]/, 'Use both letters and numbers.'),
+    password_confirmation: z.string().min(1, 'Type the password again.'),
+  })
+  .refine((v) => v.password === v.password_confirmation, {
+    path: ['password_confirmation'],
+    message: 'The two passwords don’t match.',
+  })

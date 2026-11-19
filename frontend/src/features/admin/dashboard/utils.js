@@ -1,19 +1,8 @@
 import { formatDistanceToNow } from 'date-fns'
 import { ArrowLeftRight, CircleAlert, Pencil, Plus } from 'lucide-react'
 import { PATHS } from '@/lib/constants'
+import { plural } from '@/lib/formatters'
 
-/** "Good morning" / "Good afternoon" / "Good evening" from the current hour. */
-export function greeting(date = new Date()) {
-  const hour = date.getHours()
-  if (hour < 12) return 'Good morning'
-  if (hour < 18) return 'Good afternoon'
-  return 'Good evening'
-}
-
-/** "1 company" / "3 companies" */
-export function plural(count, one, many) {
-  return `${count} ${count === 1 ? one : many}`
-}
 
 const ENTITY_LABELS = {
   users: 'user',

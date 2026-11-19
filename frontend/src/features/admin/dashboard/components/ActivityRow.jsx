@@ -1,6 +1,6 @@
 import { cn } from '@/lib/utils'
 import { describeActivity } from '../utils'
-import Pill from './Pill'
+import Pill from '@/components/common/Pill'
 
 const CIRCLE = {
   success: 'bg-success-soft text-success',

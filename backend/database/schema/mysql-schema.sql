@@ -457,6 +457,7 @@ CREATE TABLE `users` (
   `first_name` varchar(100) DEFAULT NULL,
   `last_name` varchar(100) DEFAULT NULL,
   `email` varchar(255) NOT NULL,
+  `personal_email` varchar(255) DEFAULT NULL,
   `password` varchar(255) NOT NULL,
   `is_active` tinyint(4) NOT NULL DEFAULT 0,
   `access_status` enum('accepted','pending','rejected') NOT NULL DEFAULT 'pending',
@@ -464,7 +465,8 @@ CREATE TABLE `users` (
   `department_id` bigint(20) unsigned DEFAULT NULL,
   `company_id` bigint(20) unsigned DEFAULT NULL,
   `profile_photo` varchar(500) DEFAULT NULL,
-  `last_login_at` timestamp NULL DEFAULT current_timestamp(),
+  `last_login_at` timestamp NULL DEFAULT NULL,
+  `deactivated_at` timestamp NULL DEFAULT NULL,
   `remember_token` varchar(100) DEFAULT NULL,
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL,
@@ -682,3 +684,6 @@ INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (51,'2026_11_19_000
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (52,'2026_11_19_000004_add_suspension_to_companies_and_fix_is_active',37);
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (53,'2026_11_19_000005_make_catalog_names_unique_per_company',37);
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (54,'2026_11_19_000006_change_voucher_categories_is_active_to_boolean',37);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (55,'2026_11_19_174142_add_deactivated_at_column_in_users_table',38);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (56,'2026_11_20_000001_remove_default_from_users_last_login_at',39);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (57,'2026_11_20_000002_add_personal_email_to_users',40);

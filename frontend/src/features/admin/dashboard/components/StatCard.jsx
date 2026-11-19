@@ -1,5 +1,5 @@
 import { formatNumber } from '@/lib/formatters'
-import Pill from './Pill'
+import Pill from '@/components/common/Pill'
 
 /**
  * One of the 4 stat cards (Framer: label + icon tile, big number, pill + caption).
@@ -14,7 +14,10 @@ export default function StatCard({ label, icon: Icon, value, pill, caption }) {
           <Icon className="size-4" aria-hidden="true" />
         </div>
       </div>
-      <p className="text-stat-value">{formatNumber(value)}</p>
+      {/* Numbers get thousands separators; text (e.g. a company name) is shown as is */}
+      <p className="text-stat-value truncate" title={typeof value === 'string' ? value : undefined}>
+        {typeof value === 'number' ? formatNumber(value) : value}
+      </p>
       <div className="flex min-h-5 flex-wrap items-center gap-1.5">
         {pill && <Pill tone={pill.tone}>{pill.text}</Pill>}
         {caption && <p className="text-caption">{caption}</p>}

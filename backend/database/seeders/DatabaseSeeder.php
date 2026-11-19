@@ -13,6 +13,7 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         $this->call([
+            SystemSettingsSeeder::class, // platform defaults (real starting values, safe on any DB)
             DemoDataSeeder::class,    // companies, departments, 4 demo logins
             SampleUsersSeeder::class, // your own extra users (edit the list in that file)
             SampleNotificationsSeeder::class, // bell-panel samples for every admin

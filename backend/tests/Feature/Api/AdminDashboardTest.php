@@ -11,6 +11,7 @@ use Tests\TestCase;
 
 /**
  * GET /api/v1/admin/dashboard (Framer Nhw7N27tM, admin landing page).
+ * Since 2026-11-20 an Admin runs ONE company: every number is for that company only.
  *
  * Run:  php artisan test --filter=AdminDashboardTest
  */
@@ -18,61 +19,77 @@ class AdminDashboardTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_admin_gets_the_dashboard_numbers(): void
+    public function test_admin_gets_the_numbers_for_their_own_company_only(): void
     {
-        $admin = User::factory()->admin()->create();
-
         $apex = Company::factory()->create(['name' => 'Apex']);
         $north = Company::factory()->create(['name' => 'Northfield']);
-        Company::factory()->create(['name' => 'Sunrise', 'is_active' => false]);
+        $admin = User::factory()->admin()->create(['company_id' => $apex->id]);
 
         Department::factory()->for($apex)->create(['head_user_id' => $admin->id]);
         Department::factory()->for($apex)->create();   // no head
-        Department::factory()->for($north)->create();  // no head
+        Department::factory()->for($north)->create();  // another company: not counted
 
-        DB::table('payee_types')->insert(['name' => 'Supplier', 'company_id' => $apex->id]); // Northfield has none
+        // Apex has no payee types; Northfield has some (but isn't this Admin's business)
+        DB::table('payee_types')->insert(['name' => 'Supplier', 'company_id' => $north->id]);
 
-        $clerk = User::factory()->create();             // accounting_clerk
+        $clerk = User::factory()->create(['company_id' => $apex->id]);
         $clerk->accessibleCompanies()->attach($apex->id, ['granted_status' => 'accepted']);
-        User::factory()->officer()->create();           // no access at all
-        $pending = User::factory()->supervisor()->create();
-        $pending->accessibleCompanies()->attach($north->id, ['granted_status' => 'pending']); // pending != access
+        User::factory()->officer()->create(['company_id' => $apex->id]);      // Apex, but no access row yet
+        User::factory()->officer()->create(['company_id' => $north->id]);     // another company
+        User::factory()->superAdmin()->create(['company_id' => $apex->id]);   // never counted
 
         $this->actingAs($admin)
             ->getJson('/api/v1/admin/dashboard')
             ->assertOk()
-            ->assertJsonPath('data.companies', ['total' => 3, 'active' => 2, 'inactive' => 1])
-            ->assertJsonPath('data.departments', ['total' => 3, 'without_head' => 2, 'companies' => 2])
-            ->assertJsonPath('data.users.total', 4)
-            ->assertJsonPath('data.users.added_this_month', 4)
-            ->assertJsonPath('data.company_access', ['total' => 1, 'users_without_access' => 2])
+            ->assertJsonPath('data.company', ['id' => $apex->id, 'name' => 'Apex', 'is_active' => true])
+            ->assertJsonPath('data.companies', ['total' => 1, 'active' => 1, 'inactive' => 0])
+            ->assertJsonPath('data.departments', ['total' => 2, 'without_head' => 1, 'companies' => 1])
+            ->assertJsonPath('data.users.total', 3)               // admin + clerk + Apex officer
+            ->assertJsonPath('data.company_access', ['total' => 1, 'users_without_access' => 1])
             ->assertJsonPath('data.needs_attention', [
-                ['type' => 'users_without_access', 'count' => 2],
-                ['type' => 'departments_without_head', 'count' => 2],
-                ['type' => 'company_without_payee_types', 'company' => ['id' => $north->id, 'name' => 'Northfield']],
+                ['type' => 'users_without_access', 'count' => 1],
+                ['type' => 'departments_without_head', 'count' => 1],
+                ['type' => 'company_without_payee_types', 'company' => ['id' => $apex->id, 'name' => 'Apex']],
             ])
             ->assertJsonPath('data.recent_activity', []);
     }
 
-    public function test_recent_activity_lists_the_newest_audit_entries(): void
+    public function test_recent_activity_lists_only_this_companys_audit_entries(): void
     {
-        $admin = User::factory()->admin()->create(['first_name' => 'Felix', 'last_name' => 'V']);
         $apex = Company::factory()->create(['name' => 'Apex']);
+        $north = Company::factory()->create(['name' => 'Northfield']);
+        $admin = User::factory()->admin()->create(['first_name' => 'Felix', 'last_name' => 'V', 'company_id' => $apex->id]);
 
         DB::table('audit_logs')->insert([
-            'user_id' => $admin->id, 'company_id' => $apex->id, 'action' => 'created', 'table_name' => 'users',
-            'record_id' => 99, 'new_values' => json_encode(['first_name' => 'Juan', 'last_name' => 'Dela Cruz']),
-            'created_at' => now()->subMinutes(10),
+            ['user_id' => $admin->id, 'company_id' => $apex->id, 'action' => 'created', 'table_name' => 'users',
+                'record_id' => 99, 'new_values' => json_encode(['first_name' => 'Juan', 'last_name' => 'Dela Cruz']),
+                'created_at' => now()->subMinutes(10)],
+            ['user_id' => $admin->id, 'company_id' => $north->id, 'action' => 'created', 'table_name' => 'users',
+                'record_id' => 100, 'new_values' => json_encode(['first_name' => 'Other', 'last_name' => 'Company']),
+                'created_at' => now()->subMinutes(5)],
         ]);
 
         $this->actingAs($admin)
             ->getJson('/api/v1/admin/dashboard')
             ->assertOk()
-            ->assertJsonPath('data.recent_activity.0.action', 'created')
-            ->assertJsonPath('data.recent_activity.0.entity', 'users')
+            ->assertJsonCount(1, 'data.recent_activity')
             ->assertJsonPath('data.recent_activity.0.subject', 'Juan Dela Cruz')
             ->assertJsonPath('data.recent_activity.0.actor', 'Felix V')
             ->assertJsonPath('data.recent_activity.0.company', 'Apex');
+    }
+
+    public function test_an_admin_without_a_company_sees_nothing_from_other_companies(): void
+    {
+        Company::factory()->create();
+        Department::factory()->create();
+        $admin = User::factory()->admin()->create(['company_id' => null]);
+
+        $this->actingAs($admin)
+            ->getJson('/api/v1/admin/dashboard')
+            ->assertOk()
+            ->assertJsonPath('data.company', null)
+            ->assertJsonPath('data.companies.total', 0)
+            ->assertJsonPath('data.departments.total', 0);
     }
 
     public function test_guests_get_401(): void

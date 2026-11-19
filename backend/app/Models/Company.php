@@ -28,6 +28,7 @@ class Company extends Model
         return [
             'is_active' => 'boolean',
             'fiscal_year_start' => 'date',
+            'suspended_at' => 'datetime', // set when a Super Admin suspends the company
         ];
     }
 
@@ -35,6 +36,12 @@ class Company extends Model
     public function departments(): HasMany
     {
         return $this->hasMany(Department::class);
+    }
+
+    /** People whose HOME company this is (users.company_id), e.g. the company's Admin */
+    public function users(): HasMany
+    {
+        return $this->hasMany(User::class);
     }
 
     /** Users who were given access to this company (through user_company_access) */

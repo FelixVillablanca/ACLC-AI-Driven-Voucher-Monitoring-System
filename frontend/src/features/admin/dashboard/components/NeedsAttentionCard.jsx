@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom'
 import { CircleCheck } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { describeAttention } from '../utils'
-import Pill from './Pill'
+import Pill from '@/components/common/Pill'
 
 /** "Needs attention": setup gaps the admin should fix (from the API's needs_attention list). */
 export default function NeedsAttentionCard({ items }) {

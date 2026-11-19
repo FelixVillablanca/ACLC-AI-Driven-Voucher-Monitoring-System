@@ -11,7 +11,8 @@ use Illuminate\Support\Facades\DB;
 /**
  * QUERY CLASS = one class whose only job is to READ and summarise data
  * (it never changes anything). This one builds the numbers for the
- * admin dashboard (Framer Nhw7N27tM), across ALL companies.
+ * admin dashboard (Framer Nhw7N27tM) for the Admin's OWN company only
+ * (since 2026-11-20 each Admin runs exactly one company, users.company_id).
  *
  * Every number is a COUNT done by the database, so it stays fast even with
  * thousands of rows (we never load every row into PHP just to count it).
@@ -20,30 +21,39 @@ class AdminDashboardSummary
 {
     private const OPERATIONAL_ROLES = ['accounting_clerk', 'accounting_officer', 'supervisor_manager'];
 
+    private int $companyId = 0;
+
     /** @return array<string, mixed> */
-    public function get(): array
+    public function get(User $admin): array
     {
+        // An Admin with no company sees zeros (a Super Admin must assign one), never other companies' data
+        $this->companyId = (int) ($admin->company_id ?? 0);
+
         $usersWithoutAccess = $this->operationalUsersWithoutAccess();
-        $departmentsWithoutHead = Department::whereNull('head_user_id')->count();
+        $departments = Department::where('company_id', $this->companyId);
+        $departmentsWithoutHead = (clone $departments)->whereNull('head_user_id')->count();
         $companiesWithoutPayeeTypes = $this->activeCompaniesWithoutPayeeTypes();
+        $company = Company::find($this->companyId);
+        $people = $this->peopleInCompany();
 
         return [
+            'company' => $company ? ['id' => $company->id, 'name' => $company->name, 'is_active' => (bool) $company->is_active] : null,
             'companies' => [
-                'total' => Company::count(),
-                'active' => Company::where('is_active', true)->count(),
-                'inactive' => Company::where(fn ($q) => $q->where('is_active', false)->orWhereNull('is_active'))->count(),
+                'total' => $company ? 1 : 0,
+                'active' => $company?->is_active ? 1 : 0,
+                'inactive' => $company && ! $company->is_active ? 1 : 0,
             ],
             'departments' => [
-                'total' => Department::count(),
+                'total' => (clone $departments)->count(),
                 'without_head' => $departmentsWithoutHead,
-                'companies' => Department::distinct()->count('company_id'),
+                'companies' => (clone $departments)->exists() ? 1 : 0,
             ],
             'users' => [
-                'total' => User::count(),
-                'added_this_month' => User::where('created_at', '>=', now()->startOfMonth())->count(),
+                'total' => (clone $people)->count(),
+                'added_this_month' => (clone $people)->where('created_at', '>=', now()->startOfMonth())->count(),
             ],
             'company_access' => [
-                'total' => DB::table('user_company_access')->where('granted_status', 'accepted')->count(),
+                'total' => DB::table('user_company_access')->where('company_id', $this->companyId)->where('granted_status', 'accepted')->count(),
                 'users_without_access' => $usersWithoutAccess,
             ],
             'needs_attention' => array_values(array_filter([
@@ -58,10 +68,21 @@ class AdminDashboardSummary
         ];
     }
 
-    /** Clerks/officers/supervisors who can't open ANY company yet (so they can't work). */
+    /** Everyone whose home company is this one, or who was given access to it (Super Admins excluded). */
+    private function peopleInCompany()
+    {
+        return User::where('role', '!=', 'super_admin')
+            ->where(fn ($q) => $q->where('company_id', $this->companyId)
+                ->orWhereHas('accessibleCompanies', fn ($c) => $c
+                    ->where('companies.id', $this->companyId)
+                    ->where('user_company_access.granted_status', 'accepted')));
+    }
+
+    /** Clerks/officers/supervisors of THIS company who can't open ANY company yet (so they can't work). */
     private function operationalUsersWithoutAccess(): int
     {
         return User::whereIn('role', self::OPERATIONAL_ROLES)
+            ->where('company_id', $this->companyId)
             ->whereDoesntHave('accessibleCompanies', fn ($q) => $q->where('user_company_access.granted_status', 'accepted'))
             ->count();
     }
@@ -69,7 +90,7 @@ class AdminDashboardSummary
     /** Active companies with no payee types: their clerks can't fill in "payee type" on a voucher. */
     private function activeCompaniesWithoutPayeeTypes()
     {
-        return Company::where('is_active', true)
+        return Company::whereKey($this->companyId)->where('is_active', true)
             ->whereNotExists(fn ($q) => $q->select(DB::raw(1))
                 ->from('payee_types')
                 ->whereColumn('payee_types.company_id', 'companies.id'))
@@ -87,6 +108,7 @@ class AdminDashboardSummary
     private function recentActivity(): array
     {
         return DB::table('audit_logs')
+            ->where('audit_logs.company_id', $this->companyId)
             ->leftJoin('users', 'users.id', '=', 'audit_logs.user_id')
             ->leftJoin('companies', 'companies.id', '=', 'audit_logs.company_id')
             ->orderByDesc('audit_logs.created_at')

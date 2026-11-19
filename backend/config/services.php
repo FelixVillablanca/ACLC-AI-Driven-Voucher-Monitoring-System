@@ -35,4 +35,9 @@ return [
         ],
     ],
 
+    // Python ML microservice (Phase 5). Empty URL = not set up yet; the System health check says so.
+    'ml' => [
+        'url' => env('ML_SERVICE_URL'),
+    ],
+
 ];

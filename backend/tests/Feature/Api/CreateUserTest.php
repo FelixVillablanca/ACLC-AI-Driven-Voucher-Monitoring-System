@@ -33,9 +33,10 @@ class CreateUserTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->admin = User::factory()->admin()->create(['employee_id' => null]);
         $this->apex = Company::factory()->create(['name' => 'Apex Holdings']);
         $this->north = Company::factory()->create(['name' => 'Northwind Trading']);
+        // Since 2026-11-20 an Admin runs ONE company (here: Apex)
+        $this->admin = User::factory()->admin()->create(['employee_id' => null, 'company_id' => $this->apex->id]);
     }
 
     private function payload(array $overrides = []): array
@@ -48,7 +49,7 @@ class CreateUserTest extends TestCase
             'role' => 'accounting_clerk',
             'company_id' => $this->apex->id,
             'department_id' => null,
-            'company_ids' => [$this->apex->id, $this->north->id],
+            'company_ids' => [$this->apex->id],
         ], $overrides);
     }
 
@@ -59,7 +60,8 @@ class CreateUserTest extends TestCase
 
     public function test_admin_creates_a_clerk_with_access_audit_and_notifications(): void
     {
-        $otherAdmin = User::factory()->admin()->create(['employee_id' => null]);
+        $otherAdmin = User::factory()->admin()->create(['employee_id' => null, 'company_id' => $this->apex->id]);
+        $northAdmin = User::factory()->admin()->create(['employee_id' => null, 'company_id' => $this->north->id]);
 
         $this->create()
             ->assertCreated()
@@ -67,17 +69,18 @@ class CreateUserTest extends TestCase
             ->assertJsonPath('data.employee_id', 'EMP-'.now()->year.'-0001')
             ->assertJsonPath('data.role', 'accounting_clerk')
             ->assertJsonPath('data.department', null)                   // department is optional
-            ->assertJsonCount(2, 'data.companies')
+            ->assertJsonCount(1, 'data.companies')
             ->assertJsonMissingPath('meta.temporary_password');         // the admin already has it
 
         $user = User::where('email', 'maria.santos@Clerk.com')->firstOrFail();
         $this->assertTrue(Hash::check(self::PASSWORD, $user->password));
         $this->assertNotSame(self::PASSWORD, $user->password);           // stored hashed, never readable
 
-        $this->assertDatabaseHas('user_company_access', ['user_id' => $user->id, 'company_id' => $this->north->id, 'granted_status' => 'accepted']);
+        $this->assertDatabaseHas('user_company_access', ['user_id' => $user->id, 'company_id' => $this->apex->id, 'granted_status' => 'accepted']);
         $this->assertDatabaseHas('audit_logs', ['action' => 'created', 'table_name' => 'users', 'record_id' => $user->id]);
         $this->assertSame(1, Notification::for($otherAdmin)->where('type', 'user_changed')->count());
         $this->assertSame(0, Notification::for($this->admin)->count());
+        $this->assertSame(0, Notification::for($northAdmin)->count()); // another company's Admin isn't told
     }
 
     public function test_employee_ids_count_up_and_the_client_cannot_choose_one(): void
@@ -146,13 +149,16 @@ class CreateUserTest extends TestCase
             ->assertJsonPath('errors.password.0', 'The password must contain both letters and numbers.');
     }
 
-    public function test_creating_an_admin_needs_no_company_access(): void
+    public function test_an_admin_cannot_create_admin_or_super_admin_accounts(): void
     {
-        $this->create(['role' => 'admin', 'company_ids' => [], 'email_username' => 'jdoe'])
-            ->assertCreated()
-            ->assertJsonPath('data.role', 'admin')
-            ->assertJsonPath('data.email', 'jdoe@Administrator.com')
-            ->assertJsonCount(0, 'data.companies');
+        foreach (['admin', 'super_admin'] as $role) {
+            $this->create(['role' => $role, 'company_ids' => [], 'email_username' => "jdoe.{$role}"])
+                ->assertUnprocessable()
+                ->assertJsonPath('errors.role.0', 'Choose Clerk, Officer or Supervisor. Admin accounts are created by a Super Admin.');
+        }
+
+        $this->assertSame(0, User::whereIn('role', ['super_admin'])->count());
+        $this->assertSame(1, User::where('role', 'admin')->count()); // only the admin doing the test
     }
 
     public function test_required_fields_return_422(): void
@@ -166,7 +172,6 @@ class CreateUserTest extends TestCase
     public function test_the_email_domain_always_comes_from_the_role(): void
     {
         $expected = [
-            'admin' => 'Administrator.com',
             'accounting_clerk' => 'Clerk.com',
             'accounting_officer' => 'Officer.com',
             'supervisor_manager' => 'Supervisor.com',
@@ -196,15 +201,16 @@ class CreateUserTest extends TestCase
             ->assertJsonPath('errors.email_username.0', 'A user with this email already exists.');
     }
 
-    public function test_company_access_must_include_the_primary_company_and_only_active_ones(): void
+    public function test_an_admin_can_only_add_users_to_their_own_company(): void
     {
-        $inactive = Company::factory()->create(['is_active' => false]);
+        $this->create(['company_id' => $this->north->id, 'company_ids' => [$this->north->id]])->assertUnprocessable()
+            ->assertJsonPath('errors.company_id.0', 'You can only add users to your own company.');
 
-        $this->create(['company_ids' => [$this->north->id]])->assertUnprocessable()
-            ->assertJsonPath('errors.company_ids.0', 'Company access must include the primary company.');
+        $this->create(['company_ids' => [$this->apex->id, $this->north->id]])->assertUnprocessable()
+            ->assertJsonValidationErrors(['company_ids.1' => 'You can only give access to your own company.']);
 
-        $this->create(['company_ids' => [$this->apex->id, $inactive->id]])->assertUnprocessable()
-            ->assertJsonValidationErrors(['company_ids.1']);
+        $this->create(['company_ids' => []])->assertUnprocessable()
+            ->assertJsonValidationErrors(['company_ids']);
     }
 
     public function test_nothing_is_saved_when_validation_fails(): void
@@ -215,20 +221,18 @@ class CreateUserTest extends TestCase
         $this->assertSame(0, DB::table('audit_logs')->count());
     }
 
-    public function test_lookup_lists_companies_with_their_departments(): void
+    public function test_lookup_lists_only_the_admins_own_company_with_its_departments(): void
     {
         Department::factory()->for($this->apex)->create(['code' => 'FIN']);
-        Company::factory()->create(['name' => 'Sunrise Logistics', 'is_active' => false]);
+        Department::factory()->for($this->north)->create(['code' => 'OPS']);
 
         $this->actingAs($this->admin)
             ->getJson('/api/v1/admin/lookups/companies')
             ->assertOk()
-            ->assertJsonCount(3, 'data')
+            ->assertJsonCount(1, 'data')
             ->assertJsonPath('data.0.name', 'Apex Holdings')
-            ->assertJsonPath('data.0.departments.0.code', 'FIN')
-            ->assertJsonPath('data.1.departments', [])                 // a company with no departments yet
-            ->assertJsonPath('data.2.name', 'Sunrise Logistics')       // inactive companies come last
-            ->assertJsonPath('data.2.is_active', false);
+            ->assertJsonCount(1, 'data.0.departments')
+            ->assertJsonPath('data.0.departments.0.code', 'FIN');
     }
 
     public function test_guests_get_401_and_non_admins_get_403(): void

@@ -13,9 +13,9 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
 #[Fillable([
-    'employee_id', 'first_name', 'last_name', 'email', 'password',
+    'employee_id', 'first_name', 'last_name', 'email', 'personal_email', 'password',
     'is_active', 'access_status', 'role', 'department_id', 'company_id',
-    'profile_photo', 'last_login_at',
+    'profile_photo', 'last_login_at', 'deactivated_at',
 ])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
@@ -34,6 +34,7 @@ class User extends Authenticatable
             'password' => 'hashed',
             'is_active' => 'boolean',
             'last_login_at' => 'datetime',
+            'deactivated_at' => 'datetime', // when the account was deactivated (NULL = never)
         ];
     }
 

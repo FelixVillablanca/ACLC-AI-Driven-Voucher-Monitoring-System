@@ -32,6 +32,47 @@ export function formatSignInTime(value) {
   return format(date, 'MMM d, yyyy, h:mm a')
 }
 
+const usdFormat = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' })
+
+/** "25" -> "$25.00" (OpenAI bills in US dollars, so its cap and spend are shown in $) */
+export function formatUsd(value) {
+  return usdFormat.format(Number(value ?? 0))
+}
+
+/** Short "how long ago": "just now" / "5 min ago" / "3 h ago" / "yesterday" / "Nov 10" */
+export function formatTimeAgo(value, now = new Date()) {
+  if (!value) return null
+  const date = new Date(value)
+  const minutes = Math.floor((now - date) / 60000)
+  if (minutes < 1) return 'just now'
+  if (minutes < 60) return `${minutes} min ago`
+  if (isToday(date)) return `${Math.floor(minutes / 60)} h ago`
+  if (isYesterday(date)) return 'yesterday'
+  return format(date, date.getFullYear() === now.getFullYear() ? 'MMM d' : 'MMM d, yyyy')
+}
+
+/** Which day: "today" / "yesterday" / "on Nov 10" (e.g. "Added today") */
+export function formatDayAgo(value) {
+  if (!value) return null
+  const date = new Date(value)
+  if (isToday(date)) return 'today'
+  if (isYesterday(date)) return 'yesterday'
+  return `on ${format(date, 'MMM d')}`
+}
+
+/** "Good morning" / "Good afternoon" / "Good evening" from the current hour (landing-page greetings). */
+export function greeting(date = new Date()) {
+  const hour = date.getHours()
+  if (hour < 12) return 'Good morning'
+  if (hour < 18) return 'Good afternoon'
+  return 'Good evening'
+}
+
+/** "1 company" / "3 companies" */
+export function plural(count, one, many) {
+  return `${count} ${count === 1 ? one : many}`
+}
+
 /** "FV" from { first_name: "Felix", last_name: "Villablanca" } (avatar circles) */
 export function formatInitials(user) {
   return `${user?.first_name?.[0] ?? ''}${user?.last_name?.[0] ?? ''}`.toUpperCase() || '?'

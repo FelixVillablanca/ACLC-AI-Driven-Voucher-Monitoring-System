@@ -102,6 +102,15 @@ return [
             'expire' => 60,
             'throttle' => 60,
         ],
+
+        // New-account invitations ("set your password" link for new Admins, 2026-11-20).
+        // Same token table, but the link stays valid for 72 hours instead of 60 minutes.
+        'invites' => [
+            'provider' => 'users',
+            'table' => env('AUTH_PASSWORD_RESET_TOKEN_TABLE', 'password_reset_tokens'),
+            'expire' => 60 * 72,
+            'throttle' => 0,
+        ],
     ],
 
     /*

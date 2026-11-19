@@ -54,6 +54,9 @@ return [
 
     'url' => env('APP_URL', 'http://localhost'),
 
+    // The React app's address. Links inside emails (e.g. "set your password") point here.
+    'frontend_url' => rtrim(env('FRONTEND_URL', 'http://localhost:5173'), '/'),
+
     /*
     |--------------------------------------------------------------------------
     | Application Timezone
@@ -65,7 +68,9 @@ return [
     |
     */
 
-    'timezone' => 'UTC',
+    // Philippine time (UTC+8), the same clock as the MariaDB server, so times written by
+    // Laravel and times written by the database itself (DEFAULT CURRENT_TIMESTAMP) agree.
+    'timezone' => env('APP_TIMEZONE', 'Asia/Manila'),
 
     /*
     |--------------------------------------------------------------------------

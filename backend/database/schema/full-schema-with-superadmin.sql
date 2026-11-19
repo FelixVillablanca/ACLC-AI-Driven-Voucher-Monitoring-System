@@ -494,6 +494,7 @@ CREATE TABLE `users` (
   `company_id` bigint(20) unsigned DEFAULT NULL,
   `profile_photo` varchar(500) DEFAULT NULL,
   `last_login_at` timestamp NULL DEFAULT current_timestamp(),
+  `deactivated_at` timestamp NULL DEFAULT NULL,
   `remember_token` varchar(100) DEFAULT NULL,
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL,

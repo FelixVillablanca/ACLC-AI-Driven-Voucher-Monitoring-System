@@ -2,6 +2,8 @@
 
 use App\Exceptions\ApiErrorRenderer;
 use App\Http\Middleware\AssignRequestId;
+use App\Http\Middleware\EnforceIdleTimeout;
+use App\Http\Middleware\EnsureAccountInGoodStanding;
 use App\Http\Middleware\EnsureUserHasRole;
 use App\Http\Middleware\ForceJsonResponse;
 use Illuminate\Foundation\Application;
@@ -26,7 +28,11 @@ return Application::configure(basePath: dirname(__DIR__))
         // get a session cookie + CSRF protection, so no token is stored in the browser.
         $middleware->statefulApi();
         // Short names for route middleware: ->middleware('role:admin')
-        $middleware->alias(['role' => EnsureUserHasRole::class]);
+        $middleware->alias([
+            'role' => EnsureUserHasRole::class,
+            'account.standing' => EnsureAccountInGoodStanding::class, // deactivated / company suspended -> signed out now
+            'idle.timeout' => EnforceIdleTimeout::class,              // Super Admins: signed out after 15 idle minutes
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

@@ -18,10 +18,15 @@ use Illuminate\Validation\Validator;
  * - The password is generated in the form (letters + numbers) and checked here.
  * - Department is optional (agreed 2026-11-16: companies may have none yet),
  *   but if given it must belong to the primary company.
- * - Admins are outside the voucher workflow: no company access.
+ * - Admins can NOT create Admin accounts (spec §4.5, done 2026-11-20). Only a Super Admin
+ *   can, from the Super Admin console. So the roles here are the 3 operational ones,
+ *   and every new user needs company access.
  */
 class StoreUserRequest extends FormRequest
 {
+    /** The roles an Admin may create. */
+    public const ROLES = ['accounting_clerk', 'accounting_officer', 'supervisor_manager'];
+
     public function authorize(): bool
     {
         return true; // the route's `role:admin` middleware already checked this
@@ -46,8 +51,9 @@ class StoreUserRequest extends FormRequest
     /** @return array<string, array<int, mixed>> */
     public function rules(): array
     {
-        $isAdmin = $this->input('role') === 'admin';
+        // Since 2026-11-20 an Admin runs ONE company: new users can only be put in that company
         $activeCompany = Rule::exists('companies', 'id')->where('is_active', true);
+        $ownCompany = Rule::in([(int) $this->user()?->company_id]);
 
         return [
             'first_name' => ['required', 'string', 'max:100'],
@@ -55,15 +61,15 @@ class StoreUserRequest extends FormRequest
             'email_username' => ['required', 'string', 'max:64', 'regex:'.RoleEmailDomains::USERNAME_PATTERN],
             // At least 12 characters, with at least one letter AND one number
             'password' => ['required', 'string', 'min:12', 'max:64', 'regex:/[A-Za-z]/', 'regex:/[0-9]/'],
-            'role' => ['required', Rule::in(['admin', 'accounting_clerk', 'accounting_officer', 'supervisor_manager'])],
-            'company_id' => ['required', 'integer', $activeCompany],
+            'role' => ['required', Rule::in(self::ROLES)],
+            'company_id' => ['required', 'integer', $activeCompany, $ownCompany],
             'department_id' => [
                 'nullable',
                 'integer',
                 Rule::exists('departments', 'id')->where('company_id', (int) $this->input('company_id')),
             ],
-            'company_ids' => [$isAdmin ? 'nullable' : 'required', 'array', 'max:100'],
-            'company_ids.*' => ['integer', 'distinct', $activeCompany],
+            'company_ids' => ['required', 'array', 'max:100'],
+            'company_ids.*' => ['integer', 'distinct', $activeCompany, $ownCompany],
         ];
     }
 
@@ -79,9 +85,6 @@ class StoreUserRequest extends FormRequest
                 if (User::where('email', $this->email())->exists()) {
                     $validator->errors()->add('email_username', 'A user with this email already exists.');
 
-                    return;
-                }
-                if ($this->input('role') === 'admin') {
                     return;
                 }
                 if (! in_array((int) $this->input('company_id'), array_map('intval', (array) $this->input('company_ids')), true)) {
@@ -104,11 +107,14 @@ class StoreUserRequest extends FormRequest
             'password.min' => 'The password must be at least 12 characters.',
             'password.regex' => 'The password must contain both letters and numbers.',
             'role.required' => 'Choose a role.',
+            'role.in' => 'Choose Clerk, Officer or Supervisor. Admin accounts are created by a Super Admin.',
             'company_id.required' => 'Choose the primary company.',
             'company_id.exists' => 'Choose an active company.',
             'department_id.exists' => 'Choose a department from the primary company.',
             'company_ids.required' => 'Give access to at least one company.',
             'company_ids.*.exists' => 'Only active companies can be selected.',
+            'company_id.in' => 'You can only add users to your own company.',
+            'company_ids.*.in' => 'You can only give access to your own company.',
         ];
     }
 }

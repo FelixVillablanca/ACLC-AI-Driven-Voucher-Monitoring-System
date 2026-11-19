@@ -5,6 +5,7 @@ namespace App\Domain\Identity\Support;
 /**
  * Each role has its OWN email domain (CLAUDE.md "Domain emails", rule set 2026-11-16):
  *
+ *   super_admin         -> {name}@Superadmin.com  (created only by `php artisan superadmin:create`)
  *   admin               -> {name}@Administrator.com
  *   accounting_clerk    -> {name}@Clerk.com
  *   accounting_officer  -> {name}@Officer.com
@@ -20,6 +21,7 @@ namespace App\Domain\Identity\Support;
 final class RoleEmailDomains
 {
     public const DOMAINS = [
+        'super_admin' => 'Superadmin.com',
         'admin' => 'Administrator.com',
         'accounting_clerk' => 'Clerk.com',
         'accounting_officer' => 'Officer.com',

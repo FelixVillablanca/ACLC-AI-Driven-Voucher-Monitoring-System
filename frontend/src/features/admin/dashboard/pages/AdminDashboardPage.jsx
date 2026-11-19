@@ -1,6 +1,6 @@
 import { ArrowLeftRight, Building2, Layers, Users } from 'lucide-react'
 import ErrorState from '@/components/common/ErrorState'
-import { formatDate } from '@/lib/formatters'
+import { formatDate, greeting, plural } from '@/lib/formatters'
 import { useAuthStore } from '@/stores/useAuthStore'
 import DashboardSkeleton from '../components/DashboardSkeleton'
 import NeedsAttentionCard from '../components/NeedsAttentionCard'
@@ -8,7 +8,6 @@ import QuickActionsCard from '../components/QuickActionsCard'
 import RecentActivityCard from '../components/RecentActivityCard'
 import StatCard from '../components/StatCard'
 import { useAdminDashboard } from '../hooks/useAdminDashboard'
-import { greeting, plural } from '../utils'
 
 /**
  * ADMIN LANDING PAGE: Framer "Admin UI Landing Page" (node Nhw7N27tM).
@@ -26,7 +25,11 @@ export default function AdminDashboardPage() {
             {greeting()}
             {firstName ? `, ${firstName}` : ''}
           </h1>
-          <p className="text-body text-muted-foreground">Here&apos;s an overview of your system setup across all companies.</p>
+          <p className="text-body text-muted-foreground">
+            {data?.company
+              ? `Here's an overview of the system setup for ${data.company.name}.`
+              : 'Here’s an overview of your company’s system setup.'}
+          </p>
         </div>
         <p className="text-caption">{formatDate(new Date())}</p>
       </div>
@@ -50,17 +53,18 @@ export default function AdminDashboardPage() {
 }
 
 function DashboardContent({ data }) {
-  const { companies, departments, users, company_access: access } = data
+  const { company, departments, users, company_access: access } = data
 
   return (
     <>
       <div className="grid grid-cols-1 gap-4 @lg:grid-cols-2 @3xl:grid-cols-4">
+        {/* Each Admin runs ONE company (2026-11-20), so this card names it instead of counting */}
         <StatCard
-          label="Companies"
+          label="Your company"
           icon={Building2}
-          value={companies.total}
-          pill={{ tone: 'success', text: `${companies.active} active` }}
-          caption={`${companies.inactive} inactive`}
+          value={company?.name ?? 'Not assigned'}
+          pill={company ? (company.is_active ? { tone: 'success', text: 'Active' } : { tone: 'warning', text: 'Suspended' }) : null}
+          caption={company ? 'You set up this company' : 'Ask a Super Admin to assign one'}
         />
         <StatCard
           label="Departments"

@@ -1,7 +1,8 @@
 <#
 .SYNOPSIS
-  Starts the backend (Laravel API on :8000) and the frontend (React/Vite on :5173)
-  together in ONE terminal. Press Ctrl+C once to stop BOTH.
+  Starts the backend (Laravel API on :8000), the frontend (React/Vite on :5173) and the
+  Laravel scheduler (php artisan schedule:work) together in ONE terminal.
+  Press Ctrl+C once to stop ALL THREE.
 
 .EXAMPLE
   .\dev.ps1              # uses the REAL database (backend/.env)
@@ -66,7 +67,8 @@ Write-Host '  AI-Driven Voucher Monitoring System: dev servers' -ForegroundColor
 Write-Host "  App:      http://localhost:$($ports.frontend)" -ForegroundColor Cyan
 Write-Host "  API:      http://localhost:$($ports.backend)" -ForegroundColor Cyan
 Write-Host "  Database: $database" -ForegroundColor $(if ($Testing) { 'Yellow' } else { 'Cyan' })
-Write-Host '  Press Ctrl+C to stop both.' -ForegroundColor Cyan
+Write-Host '  Scheduler: php artisan schedule:work (runs scheduled tasks every minute)' -ForegroundColor Cyan
+Write-Host '  Press Ctrl+C to stop all three.' -ForegroundColor Cyan
 Write-Host ''
 
 # 2) Start each server as a background job. "2>&1" merges error output so we see everything.
@@ -82,16 +84,27 @@ $frontend = Start-Job -Name frontend -ArgumentList (Join-Path $root 'frontend') 
   npm run dev 2>&1 | ForEach-Object { "$_" }   # port 5173 + strictPort are set in vite.config.js
 }
 
-$colors = @{ backend = 'Magenta'; frontend = 'Green' }
+# The SCHEDULER: Laravel's alarm clock. Every minute it checks routes/console.php and runs whatever
+# is due (today: the health heartbeat; later: the monthly forecast and daily budget checks).
+# Same database as the API, so the Super Admin's Services panel sees it as "On schedule".
+$scheduler = Start-Job -Name scheduler -ArgumentList (Join-Path $root 'backend'), $Testing.IsPresent -ScriptBlock {
+  param($dir, $testing)
+  Set-Location $dir
+  if ($testing) { $env:APP_ENV = 'testing' }
+  php artisan schedule:work 2>&1 | ForEach-Object { "$_" }
+}
+
+$jobs = @($backend, $frontend, $scheduler)
+$colors = @{ backend = 'Magenta'; frontend = 'Green'; scheduler = 'DarkYellow' }
 $started = Get-Date
 
 try {
-  # 3) Show both servers' output, each line labelled [backend] or [frontend]
+  # 3) Show every process's output, each line labelled [backend], [frontend] or [scheduler]
   while ($true) {
-    foreach ($job in $backend, $frontend) {
+    foreach ($job in $jobs) {
       foreach ($line in (Receive-Job $job)) {
         if ("$line".Trim() -eq '') { continue }
-        Write-Host ("[{0}] " -f $job.Name.PadRight(8)) -NoNewline -ForegroundColor $colors[$job.Name]
+        Write-Host ("[{0}] " -f $job.Name.PadRight(9)) -NoNewline -ForegroundColor $colors[$job.Name]
         Write-Host $line
       }
       if ($job.State -ne 'Running') {
@@ -104,14 +117,14 @@ try {
   }
 }
 finally {
-  # 4) Runs on Ctrl+C too: stop both servers and everything they started
+  # 4) Runs on Ctrl+C too: stop all three and everything they started
   Write-Host ''
   Write-Host 'Stopping servers...' -ForegroundColor Cyan
   Get-CimInstance Win32_Process -Filter "ParentProcessId=$PID" |
     Where-Object { $_.Name -eq 'powershell.exe' } |
     ForEach-Object { Stop-ProcessTree $_.ProcessId }
-  Stop-Job $backend, $frontend -ErrorAction SilentlyContinue
-  Remove-Job $backend, $frontend -Force -ErrorAction SilentlyContinue
+  Stop-Job $jobs -ErrorAction SilentlyContinue
+  Remove-Job $jobs -Force -ErrorAction SilentlyContinue
 
   foreach ($name in 'backend', 'frontend') {
     $state = if (Wait-PortFree $ports[$name]) { 'stopped' } else { 'STILL RUNNING (close it manually)' }

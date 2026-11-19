@@ -1,4 +1,5 @@
 import axios from 'axios'
+import toast from 'react-hot-toast'
 import { normalizeApiError } from '@/lib/apiError'
 import { useAuthStore } from '@/stores/useAuthStore'
 import { useCompanyStore } from '@/stores/useCompanyStore'
@@ -18,6 +19,16 @@ export const apiClient = axios.create({
   headers: { Accept: 'application/json' },
 })
 
+/**
+ * Add to a request that the APP makes on a timer (not the person), e.g. polling every minute:
+ *   apiClient.get('/notifications/unread-count', BACKGROUND)
+ * The server then doesn't count it as activity, so the Super Admin idle timeout still works.
+ */
+export const BACKGROUND = Object.freeze({ headers: { 'X-Background-Refresh': '1' } })
+
+/** Codes meaning "the server has signed you out" (the message explains why). */
+const SIGNED_OUT_CODES = ['SESSION_EXPIRED', 'COMPANY_SUSPENDED', 'ACCOUNT_INACTIVE']
+
 // BEFORE every request: attach the active company and a duplicate-guard key
 apiClient.interceptors.request.use((config) => {
   const companyId = useCompanyStore.getState().activeCompanyId
@@ -36,8 +47,19 @@ apiClient.interceptors.response.use(
   (error) => {
     const apiError = normalizeApiError(error)
 
-    // Session expired / not logged in -> forget the user; route guards send them to /login
-    if (apiError.status === 401) useAuthStore.getState().clear()
+    // The login form shows its own errors, so only handle sessions that were already open
+    const isLogin = /\/auth\/(login|invitation\/)/.test(error.config?.url ?? '')
+
+    // Signed out by the server (idle too long, company suspended, account deactivated):
+    // forget the user, and SAY WHY, instead of silently dropping them on the login page.
+    if (!isLogin && SIGNED_OUT_CODES.includes(apiError.code)) {
+      useCompanyStore.getState().clear()
+      useAuthStore.getState().clear()
+      toast.error(apiError.message, { id: 'signed-out', duration: 8000 })
+    } else if (apiError.status === 401) {
+      // Session ended / not logged in -> forget the user; route guards send them to /login
+      useAuthStore.getState().clear()
+    }
 
     return Promise.reject(apiError)
   },

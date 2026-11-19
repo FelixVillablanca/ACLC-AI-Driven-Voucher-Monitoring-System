@@ -1,3 +1,7 @@
+/** Shared input/select look (Framer: 40px tall, 8px radius, Primary border on focus, Danger on error). */
+export const inputClass =
+  'text-body h-10 w-full min-w-0 rounded-lg border bg-card px-3 text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-primary focus:ring-[0.5px] focus:ring-primary aria-invalid:border-danger disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground'
+
 /**
  * Label (+ red * when required) above an input, and the error message below it.
  * The input itself is passed as children.

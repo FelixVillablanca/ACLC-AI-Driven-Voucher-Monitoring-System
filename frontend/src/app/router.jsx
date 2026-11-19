@@ -28,6 +28,19 @@ const ADMIN_NOTIFICATION_LINKS = {
   },
 }
 
+/** Where the Super Admin bell panel's links go. */
+const SUPERADMIN_NOTIFICATION_LINKS = {
+  viewAll: PATHS.SUPERADMIN_NOTIFICATIONS,
+  settings: PATHS.SUPERADMIN_ACCOUNT,
+  categories: {
+    security: PATHS.SUPERADMIN_AUDIT_LOGS,
+    access: PATHS.SUPERADMIN_ADMINS,
+    users: PATHS.SUPERADMIN_ADMINS,
+    departments: PATHS.SUPERADMIN_COMPANIES,
+    companies: PATHS.SUPERADMIN_COMPANIES,
+  },
+}
+
 /** A route for a screen that isn't built yet (shows "coming soon" inside the layout). */
 const comingSoon = (path, title) => ({
   path,
@@ -55,6 +68,7 @@ export const router = createBrowserRouter([
 
       // Public
       { path: PATHS.LOGIN, lazy: page(() => import('@/features/auth/pages/LoginPage')) }, // Framer p0wwkrh66
+      { path: PATHS.SET_PASSWORD, lazy: page(() => import('@/features/auth/pages/SetPasswordPage')) }, // invitation link
       { path: PATHS.STATUS, lazy: page(() => import('@/pages/SystemStatusPage')) }, // backend health check
 
       // ADMIN area: logged in + admin role only
@@ -98,6 +112,49 @@ export const router = createBrowserRouter([
                   comingSoon(PATHS.ADMIN_CHANGE_PASSWORD, 'Change password'),
                   comingSoon(PATHS.ADMIN_HELP, 'Help & support'),
                   comingSoon(PATHS.ADMIN_NOTIFICATIONS, 'All notifications'),
+                ],
+              },
+            ],
+          },
+
+          // SUPER ADMIN area: the platform owner only (no company needed, no vouchers ever)
+          {
+            element: <RequireRole roles={[ROLES.SUPER_ADMIN]} />,
+            children: [
+              {
+                // White top navigation around every Super Admin page (Framer uH0wO9f5O)
+                lazy: async () => {
+                  const [{ default: SuperAdminLayout }, { NotificationBell }, { AddAdminModal }] = await Promise.all([
+                    import('@/components/layout/SuperAdminLayout'),
+                    import('@/features/notifications'),
+                    import('@/features/superadmin/admins'),
+                  ])
+                  return {
+                    Component: () => (
+                      <SuperAdminLayout
+                        onSignOut={signOut}
+                        notifications={<NotificationBell links={SUPERADMIN_NOTIFICATION_LINKS} />}
+                        overlays={<AddAdminModal />}
+                      />
+                    ),
+                  }
+                },
+                children: [
+                  {
+                    path: PATHS.SUPERADMIN,
+                    lazy: page(() => import('@/features/superadmin/dashboard/pages/SuperAdminDashboardPage')),
+                  },
+                  // Designed in Framer, built next (see the frame table in CLAUDE.md)
+                  comingSoon(PATHS.SUPERADMIN_ADMINS, 'Admins'),
+                  comingSoon(PATHS.SUPERADMIN_COMPANIES, 'Companies'),
+                  comingSoon(PATHS.SUPERADMIN_SETTINGS, 'Global settings'),
+                  comingSoon(PATHS.SUPERADMIN_AUDIT_LOGS, 'Audit logs'),
+                  comingSoon(PATHS.SUPERADMIN_SYSTEM_HEALTH, 'System health'),
+                  comingSoon(PATHS.SUPERADMIN_PROFILE, 'My profile'),
+                  comingSoon(PATHS.SUPERADMIN_ACCOUNT, 'Account settings'),
+                  comingSoon(PATHS.SUPERADMIN_CHANGE_PASSWORD, 'Change password'),
+                  comingSoon(PATHS.SUPERADMIN_HELP, 'Help & support'),
+                  comingSoon(PATHS.SUPERADMIN_NOTIFICATIONS, 'All notifications'),
                 ],
               },
             ],

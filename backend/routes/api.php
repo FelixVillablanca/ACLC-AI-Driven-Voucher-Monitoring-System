@@ -5,7 +5,10 @@ use App\Http\Controllers\Api\V1\Admin\LookupController;
 use App\Http\Controllers\Api\V1\Admin\UserController as AdminUserController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\HealthController;
+use App\Http\Controllers\Api\V1\InvitationController;
 use App\Http\Controllers\Api\V1\NotificationController;
+use App\Http\Controllers\Api\V1\SuperAdmin\AdminController as SuperAdminAdminController;
+use App\Http\Controllers\Api\V1\SuperAdmin\DashboardController as SuperAdminDashboardController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -24,8 +27,17 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
         ->middleware('throttle:login')
         ->name('auth.login');
 
+    // Public: the "set your password" link from an invitation email (the token is the proof).
+    // Rate limited (10 per minute per IP, see AppServiceProvider) so nobody can guess tokens.
+    Route::prefix('auth/invitation')->name('auth.invitation.')->middleware('throttle:invitation')->group(function () {
+        Route::post('/check', [InvitationController::class, 'check'])->name('check');
+        Route::post('/accept', [InvitationController::class, 'accept'])->name('accept');
+    });
+
     // Logged-in users only. auth:sanctum = "must have a valid session cookie (or token)"
-    Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
+    // account.standing: a deactivated user, or one whose companies were all suspended, is signed out on the next request.
+    // idle.timeout: Super Admins are signed out after 15 idle minutes (a Global setting).
+    Route::middleware(['auth:sanctum', 'throttle:api', 'account.standing', 'idle.timeout'])->group(function () {
         Route::get('/auth/me', [AuthController::class, 'me'])->name('auth.me');
         Route::post('/auth/logout', [AuthController::class, 'logout'])->name('auth.logout');
 
@@ -43,6 +55,16 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
             Route::get('/lookups/companies', [LookupController::class, 'companies'])->name('lookups.companies');
             Route::get('/users/next-employee-id', [AdminUserController::class, 'nextEmployeeId'])->name('users.next-employee-id');
             Route::post('/users', [AdminUserController::class, 'store'])->name('users.store');
+        });
+
+        // SUPER ADMIN area: the platform owner (docs/System_Flow_Roles_and_UML_Design.docx §4).
+        // Admin accounts, global rules, all audit logs, system health. Never vouchers or money.
+        Route::prefix('superadmin')->name('superadmin.')->middleware(['role:super_admin', 'throttle:superadmin'])->group(function () {
+            Route::get('/dashboard', SuperAdminDashboardController::class)->name('dashboard');
+            Route::get('/admins/form-defaults', [SuperAdminAdminController::class, 'formDefaults'])->name('admins.form-defaults');
+            Route::post('/admins', [SuperAdminAdminController::class, 'store'])->name('admins.store');
+            Route::post('/admins/{user}/invitation', [SuperAdminAdminController::class, 'resendInvitation'])
+                ->whereNumber('user')->name('admins.invitation');
         });
 
         // Next: company-scoped routes (ResolveCompany middleware) go here.
