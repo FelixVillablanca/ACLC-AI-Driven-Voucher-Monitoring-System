@@ -15,6 +15,7 @@ class DatabaseSeeder extends Seeder
         $this->call([
             DemoDataSeeder::class,    // companies, departments, 4 demo logins
             SampleUsersSeeder::class, // your own extra users (edit the list in that file)
+            SampleNotificationsSeeder::class, // bell-panel samples for every admin
         ]);
     }
 }

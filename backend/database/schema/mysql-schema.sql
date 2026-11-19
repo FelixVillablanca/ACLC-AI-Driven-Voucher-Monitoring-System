@@ -29,8 +29,8 @@ DROP TABLE IF EXISTS `audit_logs`;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `audit_logs` (
   `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
-  `user_id` bigint(20) unsigned NOT NULL,
-  `company_id` bigint(20) unsigned NOT NULL,
+  `user_id` bigint(20) unsigned DEFAULT NULL COMMENT 'NULL = done by the system',
+  `company_id` bigint(20) unsigned DEFAULT NULL COMMENT 'NULL = platform-level action (no company)',
   `action` varchar(255) NOT NULL,
   `table_name` varchar(255) NOT NULL,
   `record_id` bigint(20) unsigned DEFAULT NULL,
@@ -43,8 +43,8 @@ CREATE TABLE `audit_logs` (
   PRIMARY KEY (`id`),
   KEY `audit_logs_user_id_foreign` (`user_id`),
   KEY `audit_logs_company_id_foreign` (`company_id`),
-  CONSTRAINT `audit_logs_company_id_foreign` FOREIGN KEY (`company_id`) REFERENCES `companies` (`id`) ON DELETE CASCADE,
-  CONSTRAINT `audit_logs_user_id_foreign` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
+  CONSTRAINT `audit_logs_company_id_foreign` FOREIGN KEY (`company_id`) REFERENCES `companies` (`id`),
+  CONSTRAINT `audit_logs_user_id_foreign` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `budget_allocations`;
@@ -106,10 +106,15 @@ CREATE TABLE `companies` (
   `logo` varchar(500) DEFAULT NULL,
   `fiscal_year_start` date DEFAULT NULL,
   `tin_number` varchar(50) DEFAULT NULL,
-  `is_active` tinyint(4) DEFAULT NULL,
+  `is_active` tinyint(1) NOT NULL DEFAULT 1,
+  `suspended_at` timestamp NULL DEFAULT NULL COMMENT 'Set when a Super Admin suspends the company',
+  `suspended_by` bigint(20) unsigned DEFAULT NULL,
+  `suspension_reason` text DEFAULT NULL COMMENT 'Required when suspending',
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL,
-  PRIMARY KEY (`id`)
+  PRIMARY KEY (`id`),
+  KEY `companies_suspended_by_foreign` (`suspended_by`),
+  CONSTRAINT `companies_suspended_by_foreign` FOREIGN KEY (`suspended_by`) REFERENCES `users` (`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `departments`;
@@ -122,7 +127,7 @@ CREATE TABLE `departments` (
   `code` varchar(20) NOT NULL,
   `description` text DEFAULT NULL,
   `head_user_id` bigint(20) unsigned DEFAULT NULL,
-  `is_active` tinyint(4) DEFAULT NULL,
+  `is_active` tinyint(1) NOT NULL DEFAULT 1,
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL,
   PRIMARY KEY (`id`),
@@ -255,7 +260,7 @@ CREATE TABLE `notifications` (
   `is_read` tinyint(4) NOT NULL DEFAULT 0 COMMENT '0 = unread, 1 = read',
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL,
-  `type` enum('voucher_approved','voucher_rejected','voucher_pending','anomaly_flagged','budget_alert') NOT NULL,
+  `type` enum('voucher_approved','voucher_rejected','voucher_pending','anomaly_flagged','budget_alert','security_alert','access_changed','user_changed','department_alert','company_changed') NOT NULL,
   PRIMARY KEY (`id`),
   KEY `notifications_recipient_id_foreign` (`recipient_id`),
   KEY `notifications_voucher_id_foreign` (`voucher_id`),
@@ -284,7 +289,7 @@ CREATE TABLE `payee_types` (
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `payee_types_name_unique` (`name`),
+  UNIQUE KEY `payee_types_company_id_name_unique` (`company_id`,`name`),
   KEY `payee_types_company_id_foreign` (`company_id`),
   KEY `payee_types_created_by_foreign` (`created_by`),
   CONSTRAINT `payee_types_company_id_foreign` FOREIGN KEY (`company_id`) REFERENCES `companies` (`id`) ON DELETE CASCADE,
@@ -364,6 +369,25 @@ CREATE TABLE `sessions` (
   KEY `sessions_last_activity_index` (`last_activity`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
+DROP TABLE IF EXISTS `system_settings`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `system_settings` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `key` varchar(100) NOT NULL COMMENT 'e.g. approval.high_value_threshold, ai.anomaly_sensitivity, openai.monthly_cap',
+  `value` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL COMMENT 'JSON so numbers, booleans and text all fit' CHECK (json_valid(`value`)),
+  `group` varchar(50) NOT NULL DEFAULT 'general' COMMENT 'approval, ai, openai, security, backups (the Global settings sections)',
+  `description` varchar(255) DEFAULT NULL,
+  `updated_by` bigint(20) unsigned DEFAULT NULL COMMENT 'Super Admin who last changed it',
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `system_settings_key_unique` (`key`),
+  KEY `system_settings_group_index` (`group`),
+  KEY `system_settings_updated_by_foreign` (`updated_by`),
+  CONSTRAINT `system_settings_updated_by_foreign` FOREIGN KEY (`updated_by`) REFERENCES `users` (`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `telescope_entries`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -436,7 +460,7 @@ CREATE TABLE `users` (
   `password` varchar(255) NOT NULL,
   `is_active` tinyint(4) NOT NULL DEFAULT 0,
   `access_status` enum('accepted','pending','rejected') NOT NULL DEFAULT 'pending',
-  `role` enum('admin','accounting_clerk','accounting_officer','supervisor_manager') NOT NULL,
+  `role` enum('super_admin','admin','accounting_clerk','accounting_officer','supervisor_manager') NOT NULL,
   `department_id` bigint(20) unsigned DEFAULT NULL,
   `company_id` bigint(20) unsigned DEFAULT NULL,
   `profile_photo` varchar(500) DEFAULT NULL,
@@ -446,6 +470,7 @@ CREATE TABLE `users` (
   `updated_at` timestamp NULL DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `users_email_unique` (`email`),
+  UNIQUE KEY `users_employee_id_unique` (`employee_id`),
   KEY `users_department_id_foreign` (`department_id`),
   KEY `users_company_id_foreign` (`company_id`),
   CONSTRAINT `users_company_id_foreign` FOREIGN KEY (`company_id`) REFERENCES `companies` (`id`) ON DELETE SET NULL,
@@ -468,7 +493,7 @@ CREATE TABLE `voucher_approvals` (
   PRIMARY KEY (`id`),
   KEY `voucher_approvals_voucher_id_foreign` (`voucher_id`),
   KEY `voucher_approvals_approver_id_foreign` (`approver_id`),
-  CONSTRAINT `voucher_approvals_approver_id_foreign` FOREIGN KEY (`approver_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `voucher_approvals_approver_id_foreign` FOREIGN KEY (`approver_id`) REFERENCES `users` (`id`),
   CONSTRAINT `voucher_approvals_voucher_id_foreign` FOREIGN KEY (`voucher_id`) REFERENCES `vouchers` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
@@ -501,11 +526,11 @@ CREATE TABLE `voucher_categories` (
   `name` varchar(100) NOT NULL,
   `code` varchar(20) DEFAULT NULL,
   `description` text DEFAULT NULL,
-  `is_active` enum('activated','notActivated') NOT NULL DEFAULT 'notActivated',
+  `is_active` tinyint(1) NOT NULL DEFAULT 1,
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `voucher_categories_code_unique` (`code`),
+  UNIQUE KEY `voucher_categories_company_id_code_unique` (`company_id`,`code`),
   KEY `voucher_categories_company_id_foreign` (`company_id`),
   CONSTRAINT `voucher_categories_company_id_foreign` FOREIGN KEY (`company_id`) REFERENCES `companies` (`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -540,7 +565,7 @@ CREATE TABLE `voucher_types` (
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `voucher_types_name_unique` (`name`),
+  UNIQUE KEY `voucher_types_company_id_name_unique` (`company_id`,`name`),
   KEY `voucher_types_company_id_foreign` (`company_id`),
   KEY `voucher_types_created_by_foreign` (`created_by`),
   CONSTRAINT `voucher_types_company_id_foreign` FOREIGN KEY (`company_id`) REFERENCES `companies` (`id`) ON DELETE CASCADE,
@@ -649,3 +674,11 @@ INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (43,'2026_11_06_084
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (44,'2026_11_14_111734_edit_role_at_time_type_enum_values_in_voucher_approvals_table',32);
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (45,'2026_11_14_111920_add_the_updated_version_of_role_at_time_enum_values_in_voucher_approvals_table',33);
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (46,'2026_11_14_130931_drop_name_column_on_users_table',34);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (47,'2026_11_16_000001_add_admin_types_to_notifications_type',35);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (48,'2026_11_16_000002_add_unique_index_to_users_employee_id',36);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (49,'2026_11_19_000001_add_super_admin_to_users_role',37);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (50,'2026_11_19_000002_create_system_settings_table',37);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (51,'2026_11_19_000003_protect_audit_and_approval_history',37);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (52,'2026_11_19_000004_add_suspension_to_companies_and_fix_is_active',37);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (53,'2026_11_19_000005_make_catalog_names_unique_per_company',37);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (54,'2026_11_19_000006_change_voucher_categories_is_active_to_boolean',37);

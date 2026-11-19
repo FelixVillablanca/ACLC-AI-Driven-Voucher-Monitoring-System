@@ -2,6 +2,7 @@
 
 use App\Exceptions\ApiErrorRenderer;
 use App\Http\Middleware\AssignRequestId;
+use App\Http\Middleware\EnsureUserHasRole;
 use App\Http\Middleware\ForceJsonResponse;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -24,6 +25,8 @@ return Application::configure(basePath: dirname(__DIR__))
         // Sanctum SPA login: requests from the React app (SANCTUM_STATEFUL_DOMAINS)
         // get a session cookie + CSRF protection, so no token is stored in the browser.
         $middleware->statefulApi();
+        // Short names for route middleware: ->middleware('role:admin')
+        $middleware->alias(['role' => EnsureUserHasRole::class]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

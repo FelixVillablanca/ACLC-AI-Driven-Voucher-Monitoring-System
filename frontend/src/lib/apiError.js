@@ -59,8 +59,13 @@ export function normalizeApiError(error) {
  */
 export function applyFieldErrors(error, setError) {
   if (!error?.errors) return false
+  const applied = new Set()
   Object.entries(error.errors).forEach(([field, messages]) => {
-    setError(field, { type: 'server', message: messages[0] })
+    // List errors like "company_ids.1" belong to the "company_ids" field
+    const name = field.split('.')[0]
+    if (applied.has(name)) return
+    applied.add(name)
+    setError(name, { type: 'server', message: messages[0] }, { shouldFocus: applied.size === 1 })
   })
   return true
 }

@@ -3,7 +3,8 @@ import HomeRedirect from '@/app/HomeRedirect'
 import RequireAuth from '@/app/guards/RequireAuth'
 import RequireCompany from '@/app/guards/RequireCompany'
 import RequireRole from '@/app/guards/RequireRole'
-import { OPERATIONAL_ROLES, PATHS, ROLES } from '@/lib/constants'
+import { signOut } from '@/features/auth'
+import { PATHS, ROLES } from '@/lib/constants'
 import RouteErrorPage from '@/pages/RouteErrorPage'
 
 /**
@@ -13,6 +14,38 @@ import RouteErrorPage from '@/pages/RouteErrorPage'
  * (clerks never download the admin pages -> faster app).
  */
 const page = (importer) => async () => ({ Component: (await importer()).default })
+
+/** Where the admin bell panel's links go (Framer D7aTKQEDz). Clicking a notification opens its category's page. */
+const ADMIN_NOTIFICATION_LINKS = {
+  viewAll: PATHS.ADMIN_NOTIFICATIONS,
+  settings: PATHS.ADMIN_SETTINGS,
+  categories: {
+    security: PATHS.ADMIN_AUDIT_LOGS,
+    access: PATHS.ADMIN_COMPANY_ACCESS,
+    users: PATHS.ADMIN_USERS,
+    departments: PATHS.ADMIN_DEPARTMENTS,
+    companies: PATHS.ADMIN_COMPANIES,
+  },
+}
+
+/** A route for a screen that isn't built yet (shows "coming soon" inside the layout). */
+const comingSoon = (path, title) => ({
+  path,
+  lazy: async () => {
+    const { default: ComingSoonPage } = await import('@/pages/ComingSoonPage')
+    return {
+      Component: () => (
+        <ComingSoonPage className="py-24" title={`${title}: coming soon`} description="This screen is built from its own Framer frame." />
+      ),
+    }
+  },
+})
+
+/** A landing area that only ONE operational role can open, e.g. /clerk for accounting clerks. */
+const roleArea = (role, path) => ({
+  element: <RequireRole roles={[role]} />,
+  children: [{ element: <RequireCompany />, children: [{ path, lazy: page(() => import('@/pages/RoleHomePage')) }] }],
+})
 
 export const router = createBrowserRouter([
   {
@@ -32,27 +65,49 @@ export const router = createBrowserRouter([
             element: <RequireRole roles={[ROLES.ADMIN]} />,
             children: [
               {
-                path: PATHS.ADMIN,
-                lazy: page(() => import('@/pages/ComingSoonPage')), // Phase 2: admin pages
-              },
-            ],
-          },
-
-          // OPERATIONS area: logged in + clerk/officer/supervisor + a company selected
-          {
-            element: <RequireRole roles={OPERATIONAL_ROLES} />,
-            children: [
-              {
-                element: <RequireCompany />,
+                // Sidebar + top bar around every admin page (Framer Nhw7N27tM)
+                lazy: async () => {
+                  // Downloaded only when the admin area opens (keeps the login page small)
+                  const [{ default: AdminLayout }, { NotificationBell }, { CreateUserModal }] = await Promise.all([
+                    import('@/components/layout/AdminLayout'),
+                    import('@/features/notifications'),
+                    import('@/features/admin/users'),
+                  ])
+                  return {
+                    Component: () => (
+                      <AdminLayout
+                        onSignOut={signOut}
+                        notifications={<NotificationBell links={ADMIN_NOTIFICATION_LINKS} />}
+                        overlays={<CreateUserModal />}
+                      />
+                    ),
+                  }
+                },
                 children: [
-                  {
-                    path: PATHS.APP,
-                    lazy: page(() => import('@/pages/ComingSoonPage')), // Phase 3+: voucher pages
-                  },
+                  { path: PATHS.ADMIN, lazy: page(() => import('@/features/admin/dashboard/pages/AdminDashboardPage')) },
+                  // Not built yet: each gets its own Framer frame
+                  comingSoon(PATHS.ADMIN_COMPANIES, 'Companies'),
+                  comingSoon(PATHS.ADMIN_DEPARTMENTS, 'Departments'),
+                  comingSoon(PATHS.ADMIN_USERS, 'Users'),
+                  comingSoon(PATHS.ADMIN_COMPANY_ACCESS, 'Company Access'),
+                  comingSoon(PATHS.ADMIN_CATEGORIES, 'Categories'),
+                  comingSoon(PATHS.ADMIN_AUDIT_LOGS, 'Audit Logs'),
+                  // Account menu (⋮ under the user name, Framer nj06iziQJ)
+                  comingSoon(PATHS.ADMIN_PROFILE, 'My profile'),
+                  comingSoon(PATHS.ADMIN_SETTINGS, 'Account settings'),
+                  comingSoon(PATHS.ADMIN_CHANGE_PASSWORD, 'Change password'),
+                  comingSoon(PATHS.ADMIN_HELP, 'Help & support'),
+                  comingSoon(PATHS.ADMIN_NOTIFICATIONS, 'All notifications'),
                 ],
               },
             ],
           },
+
+          // OPERATIONS areas: one per role, and ONLY that role may enter (others see 403).
+          // Each also needs an active company. The real dashboards come from their Framer frames.
+          roleArea(ROLES.CLERK, PATHS.CLERK),
+          roleArea(ROLES.OFFICER, PATHS.OFFICER),
+          roleArea(ROLES.SUPERVISOR, PATHS.SUPERVISOR),
         ],
       },
 

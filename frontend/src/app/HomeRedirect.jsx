@@ -1,10 +1,10 @@
 import { Navigate } from 'react-router-dom'
 import SessionErrorScreen from '@/app/SessionErrorScreen'
 import LoadingState from '@/components/common/LoadingState'
-import { PATHS, ROLES } from '@/lib/constants'
+import { PATHS, ROLE_HOME } from '@/lib/constants'
 import { useAuthStore } from '@/stores/useAuthStore'
 
-/** "/" sends each person to the right place: guests to login, admin to /admin, others to /app */
+/** "/" sends each person to THEIR landing page: guests to /login, admin to /admin, clerk to /clerk, … */
 export default function HomeRedirect() {
   const { status, user } = useAuthStore()
 
@@ -12,5 +12,5 @@ export default function HomeRedirect() {
   if (status === 'error') return <SessionErrorScreen />
   if (status !== 'authenticated') return <Navigate to={PATHS.LOGIN} replace />
 
-  return <Navigate to={user.role === ROLES.ADMIN ? PATHS.ADMIN : PATHS.APP} replace />
+  return <Navigate to={ROLE_HOME[user.role] ?? PATHS.FORBIDDEN} replace />
 }

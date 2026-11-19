@@ -739,6 +739,7 @@ Free tier today → paid later without a redesign: move MySQL to a managed DB, r
 - **Concepts:** authentication vs authorization, multi-tenancy, defence in depth, observers
 
 ### Phase 2 — Admin module
+- [x] Admin landing page / dashboard (`Nhw7N27tM`): `GET /api/v1/admin/dashboard`, `role:admin` middleware (done 2026-11-15)
 - [ ] CRUD: companies, departments, users (Create user modal `lmhV2DJV1`), company access, categories, voucher types, payee types
 - [ ] Filtering/sorting/pagination conventions; caching of catalog lookups
 - **Concepts:** REST resource design, pagination, caching + invalidation

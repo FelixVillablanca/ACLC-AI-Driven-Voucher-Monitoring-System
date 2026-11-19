@@ -1,6 +1,6 @@
 import { Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { Info } from 'lucide-react'
-import { PATHS } from '@/lib/constants'
+import { PATHS, ROLE_HOME } from '@/lib/constants'
 import { useAuthStore } from '@/stores/useAuthStore'
 import FeaturePreviews from '../components/FeaturePreviews'
 import LoginBackdrop from '../components/LoginBackdrop'
@@ -15,11 +15,16 @@ export default function LoginPage() {
   const navigate = useNavigate()
   const location = useLocation()
 
-  // Already logged in? Skip the form ("/" sends admins to /admin, others to /app).
+  // Already logged in? Skip the form ("/" sends each role to its own landing page).
   if (status === 'authenticated') return <Navigate to={PATHS.HOME} replace />
 
-  // Go back to the page they wanted before being sent to login (if any)
-  const goNext = () => navigate(location.state?.from?.pathname ?? PATHS.HOME, { replace: true })
+  // After signing in, go to the user's OWN landing page (admin -> /admin, clerk -> /clerk, …).
+  // If they were on their way to a page inside their own area, continue there instead.
+  const goNext = (user) => {
+    const home = ROLE_HOME[user.role] ?? PATHS.HOME
+    const from = location.state?.from?.pathname
+    navigate(from?.startsWith(home) ? from : home, { replace: true })
+  }
 
   return (
     <div className="relative flex min-h-screen flex-col overflow-hidden bg-primary-dark">

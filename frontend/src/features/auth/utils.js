@@ -1,6 +1,6 @@
 import { useAuthStore } from '@/stores/useAuthStore'
 import { useCompanyStore } from '@/stores/useCompanyStore'
-import { me } from './api'
+import { logout, me } from './api'
 
 /**
  * Which company should be active after login?
@@ -36,4 +36,19 @@ export async function restoreSession() {
     if (error.status === 401) useAuthStore.getState().clear()
     else useAuthStore.getState().setError(error)
   }
+}
+
+/**
+ * Sign out: end the session on the server, then forget the user in the browser.
+ * If the server can't be reached, the error is thrown so the screen can show it,
+ * and the user stays signed in (otherwise a page refresh would quietly sign them back in).
+ */
+export async function signOut() {
+  try {
+    await logout()
+  } catch (error) {
+    if (error.status !== 401) throw error // 401 = the session had already ended: that's fine
+  }
+  useCompanyStore.getState().clear()
+  useAuthStore.getState().clear() // the route guards now send them to /login
 }

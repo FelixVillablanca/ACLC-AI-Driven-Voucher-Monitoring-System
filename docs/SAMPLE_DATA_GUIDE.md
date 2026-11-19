@@ -39,7 +39,8 @@ This runs `database/seeders/DatabaseSeeder.php`, which calls two seeders in orde
 
 1. **`DemoDataSeeder`** creates:
    - 2 companies: *Apex Holdings Inc.* and *Northfield Academy*
-   - 3 departments in each company: Accounting `ACC`, Human Resources `HR`, Operations `OPS`
+   - **No departments.** The admin creates those (the invented sample departments were removed on 2026-11-16)
+   - Employee IDs are generated automatically: `EMP-2026-0001`, `EMP-2026-0002`, …
    - 4 demo logins, plus company access for the 3 operational users
 2. **`SampleUsersSeeder`**: **your own extra users** (see section 3).
 
@@ -56,12 +57,14 @@ And `SampleUsersSeeder` adds one user per role, following the email-domain conve
 
 | Email | Role | Goes to |
 | --- | --- | --- |
-| `johndoe@administrator.com` | admin | `/admin` |
-| `marialopez@clerk.com` | accounting_clerk | `/app` |
-| `joseramos@officer.com` | accounting_officer | `/app` |
-| `anamendoza@supervisor.com` | supervisor_manager | `/app` |
+| `johndoe@Administrator.com` | admin | `/admin` |
+| `marialopez@Clerk.com` | accounting_clerk | `/clerk` |
+| `joseramos@Officer.com` | accounting_officer | `/officer` |
+| `anamendoza@Supervisor.com` | supervisor_manager | `/supervisor` |
 
 > The domain is a **naming convention only**. Where a user goes and what they may do is decided by their `role` column, never by the email text (see CLAUDE.md, "Domain emails").
+
+`SampleNotificationsSeeder` also gives every admin 6 sample notifications for the bell panel (4 unread). Re-running it resets them to unread.
 
 **Safe to run again and again.** The seeders use `firstOrCreate` ("find it, or create it if it's missing"), so a second run never makes duplicates. They only add rows and never delete anything.
 
@@ -83,10 +86,10 @@ Open **`backend/database/seeders/SampleUsersSeeder.php`**. At the top is a list 
     'password' => 'password',              // scrambled (hashed) automatically
     'first_name' => 'Juan',
     'last_name' => 'Dela Cruz',
-    'employee_id' => 'EMP-10002',
     'role' => 'accounting_officer',        // admin | accounting_clerk | accounting_officer | supervisor_manager
+                                           // (no employee_id: it's assigned automatically, EMP-2026-…)
     'company' => 'Northfield Academy',     // the home company (must already exist)
-    'department' => 'ACC',                 // a department CODE in that company: ACC, HR, OPS
+    'department' => null,                  // a department CODE in that company, or null (none exist yet)
     'access' => ['Northfield Academy', 'Apex Holdings Inc.'], // companies they can switch between
 ],
 ```
@@ -227,6 +230,6 @@ How to create that first admin will be decided when we reach it. Most likely it'
 | --- | --- | --- |
 | "These credentials do not match our records" with a demo account | Server is on the **real** DB, or the tests just wiped the testing DB | Check the DB (section 4), restart with `APP_ENV=testing`, reseed |
 | `Company [...] not found` when seeding | Typo in `SampleUsersSeeder`, or `DemoDataSeeder` hasn't run | Fix the name, or run `php artisan db:seed --env=testing` (runs both, in order) |
-| `Department [...] not found` | That code doesn't exist in that company | Use `ACC`, `HR` or `OPS` |
+| `Department [...] not found` | That department code doesn't exist in that company | Use `null`, or create the department first |
 | The switch seems ignored | Settings were frozen by `config:cache` | `php artisan config:clear`. Never run `config:cache` locally |
 | `Can't reach the server` on the login page | The backend isn't running | Start Terminal 1 (section 4) |

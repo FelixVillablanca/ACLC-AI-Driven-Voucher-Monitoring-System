@@ -17,15 +17,26 @@ class DemoDataSeederTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_it_creates_companies_departments_and_one_user_per_role(): void
+    public function test_it_creates_companies_and_one_user_per_role_but_no_departments(): void
     {
         $this->seed(DemoDataSeeder::class);
 
         $this->assertDatabaseCount('companies', 2);
-        $this->assertDatabaseCount('departments', 6);   // 3 per company
+        $this->assertDatabaseCount('departments', 0);   // the admin creates departments (2026-11-16)
         $this->assertDatabaseCount('users', 4);
         $this->assertDatabaseHas('users', ['email' => 'clerk@advms.test', 'role' => 'accounting_clerk']);
         $this->assertDatabaseHas('users', ['email' => 'admin@advms.test', 'role' => 'admin']);
+    }
+
+    public function test_demo_users_get_auto_generated_employee_ids(): void
+    {
+        $this->seed(DemoDataSeeder::class);
+
+        $year = now()->year;
+        $this->assertSame(
+            ["EMP-{$year}-0001", "EMP-{$year}-0002", "EMP-{$year}-0003", "EMP-{$year}-0004"],
+            User::orderBy('id')->pluck('employee_id')->all(),
+        );
     }
 
     public function test_the_clerk_can_switch_between_both_companies(): void
@@ -36,7 +47,7 @@ class DemoDataSeederTest extends TestCase
 
         $this->assertCount(2, $clerk->accessibleCompanies);
         $this->assertSame('Apex Holdings Inc.', $clerk->company->name);
-        $this->assertSame('Accounting', $clerk->department->name);
+        $this->assertNull($clerk->department); // no department until the admin creates one
     }
 
     public function test_running_it_twice_does_not_make_duplicates(): void

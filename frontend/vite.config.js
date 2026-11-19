@@ -12,6 +12,8 @@ export default defineConfig({
   },
   server: {
     port: 5173,
+    // Fail loudly instead of quietly moving to 5174 (the backend only trusts :5173 for login cookies)
+    strictPort: true,
     proxy : {
       //Forward API requests to the backend server
       '/api' : {

@@ -1,0 +1,61 @@
+{
+  // VS Code TASKS: start the dev servers with one click.
+  //   Ctrl+Shift+P -> "Tasks: Run Task" -> pick one of the "Dev:" tasks.
+  // Each server gets its own terminal tab (side by side). Stop one with the trash-can icon.
+  // Code changes reload by themselves; restart only after editing .env or to switch database.
+  // Guide: docs/DEV_SERVERS_GUIDE.md
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Dev: start both (real database)",
+      "dependsOn": ["Backend (real database)", "Frontend"],
+      "dependsOrder": "parallel",
+      "problemMatcher": []
+    },
+    {
+      "label": "Dev: start both (testing database, sample users)",
+      "dependsOn": ["Backend (testing database)", "Frontend"],
+      "dependsOrder": "parallel",
+      "problemMatcher": []
+    },
+    {
+      "label": "Backend (real database)",
+      "type": "shell",
+      "command": "php artisan serve --port=8000",
+      "options": { "cwd": "${workspaceFolder}/backend" },
+      "isBackground": true,
+      "presentation": { "group": "dev", "panel": "dedicated", "reveal": "always" },
+      "problemMatcher": {
+        "owner": "laravel",
+        "pattern": { "regexp": "^__never_matches__$" },
+        "background": { "activeBegins": true, "beginsPattern": ".", "endsPattern": "Server running on" }
+      }
+    },
+    {
+      "label": "Backend (testing database)",
+      "type": "shell",
+      "command": "php artisan serve --port=8000",
+      "options": { "cwd": "${workspaceFolder}/backend", "env": { "APP_ENV": "testing" } },
+      "isBackground": true,
+      "presentation": { "group": "dev", "panel": "dedicated", "reveal": "always" },
+      "problemMatcher": {
+        "owner": "laravel",
+        "pattern": { "regexp": "^__never_matches__$" },
+        "background": { "activeBegins": true, "beginsPattern": ".", "endsPattern": "Server running on" }
+      }
+    },
+    {
+      "label": "Frontend",
+      "type": "shell",
+      "command": "npm run dev",
+      "options": { "cwd": "${workspaceFolder}/frontend" },
+      "isBackground": true,
+      "presentation": { "group": "dev", "panel": "dedicated", "reveal": "always" },
+      "problemMatcher": {
+        "owner": "vite",
+        "pattern": { "regexp": "^__never_matches__$" },
+        "background": { "activeBegins": true, "beginsPattern": ".", "endsPattern": "(ready in|Local:)" }
+      }
+    }
+  ]
+}

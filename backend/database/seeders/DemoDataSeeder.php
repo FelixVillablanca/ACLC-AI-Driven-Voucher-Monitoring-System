@@ -2,15 +2,16 @@
 
 namespace Database\Seeders;
 
+use App\Domain\Identity\Support\EmployeeIdGenerator;
 use App\Models\Company;
-use App\Models\Department;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
 
 /**
- * DEMO DATA: sample companies, departments and one login per role.
+ * DEMO DATA: sample companies and one login per role.
+ * No departments: the admin creates those (removed 2026-11-16 at the user's request).
  *
  * All demo logins use the password:  password
  *   admin@advms.test       (admin)
@@ -47,24 +48,13 @@ class DemoDataSeeder extends Seeder
                 'is_active' => true,
             ]);
 
-            // 2) Departments next (the "classrooms"), the same 3 for each company
-            foreach ([$apex, $northfield] as $company) {
-                foreach ([['Accounting', 'ACC'], ['Human Resources', 'HR'], ['Operations', 'OPS']] as [$name, $code]) {
-                    Department::firstOrCreate(
-                        ['company_id' => $company->id, 'code' => $code],
-                        ['name' => $name, 'is_active' => true],
-                    );
-                }
-            }
-            $apexAccounting = $apex->departments()->where('code', 'ACC')->first();
+            // 2) Users (one per role). Employee IDs come from the same generator the app uses.
+            $admin = $this->demoUser('admin@advms.test', 'admin', 'System', 'Admin', $apex->id);
+            $clerk = $this->demoUser('clerk@advms.test', 'accounting_clerk', 'Carla', 'Reyes', $apex->id);
+            $officer = $this->demoUser('officer@advms.test', 'accounting_officer', 'Oscar', 'Santos', $apex->id);
+            $supervisor = $this->demoUser('supervisor@advms.test', 'supervisor_manager', 'Sofia', 'Garcia', $apex->id);
 
-            // 3) Users last (the "students"), one per role
-            $admin = $this->demoUser('admin@advms.test', 'admin', 'System', 'Admin', 'EMP-00001', $apex->id, null);
-            $clerk = $this->demoUser('clerk@advms.test', 'accounting_clerk', 'Carla', 'Reyes', 'EMP-00002', $apex->id, $apexAccounting->id);
-            $officer = $this->demoUser('officer@advms.test', 'accounting_officer', 'Oscar', 'Santos', 'EMP-00003', $apex->id, $apexAccounting->id);
-            $supervisor = $this->demoUser('supervisor@advms.test', 'supervisor_manager', 'Sofia', 'Garcia', 'EMP-00004', $apex->id, $apexAccounting->id);
-
-            // 4) Company access: the 3 operational users may switch between both companies.
+            // 3) Company access: the 3 operational users may switch between both companies.
             //    syncWithoutDetaching = "add these links if missing, keep any existing ones".
             foreach ([$clerk, $officer, $supervisor] as $user) {
                 $user->accessibleCompanies()->syncWithoutDetaching([
@@ -75,10 +65,17 @@ class DemoDataSeeder extends Seeder
         });
     }
 
-    private function demoUser(string $email, string $role, string $first, string $last, string $employeeId, int $companyId, ?int $departmentId): User
+    private function demoUser(string $email, string $role, string $first, string $last, int $companyId): User
     {
-        return User::firstOrCreate(['email' => $email], [
-            'employee_id' => $employeeId,
+        // Existing demo users are left as they are; only NEW ones get the next Employee ID
+        $existing = User::where('email', $email)->first();
+        if ($existing) {
+            return $existing;
+        }
+
+        return User::create([
+            'email' => $email,
+            'employee_id' => app(EmployeeIdGenerator::class)->next(),
             'first_name' => $first,
             'last_name' => $last,
             'password' => 'password', // the User model hashes (scrambles) it automatically
@@ -86,7 +83,7 @@ class DemoDataSeeder extends Seeder
             'is_active' => true,
             'access_status' => 'accepted',
             'company_id' => $companyId,
-            'department_id' => $departmentId,
+            'department_id' => null,
         ]);
     }
 }
