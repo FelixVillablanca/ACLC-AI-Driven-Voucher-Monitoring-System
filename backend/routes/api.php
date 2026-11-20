@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\V1\HealthController;
 use App\Http\Controllers\Api\V1\InvitationController;
 use App\Http\Controllers\Api\V1\NotificationController;
 use App\Http\Controllers\Api\V1\SuperAdmin\AdminController as SuperAdminAdminController;
+use App\Http\Controllers\Api\V1\SuperAdmin\BackupController;
 use App\Http\Controllers\Api\V1\SuperAdmin\DashboardController as SuperAdminDashboardController;
 use App\Http\Controllers\Api\V1\SuperAdmin\SecurityAlertController;
 use Illuminate\Support\Facades\Route;
@@ -62,6 +63,7 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
         // Admin accounts, global rules, all audit logs, system health. Never vouchers or money.
         Route::prefix('superadmin')->name('superadmin.')->middleware(['role:super_admin', 'throttle:superadmin'])->group(function () {
             Route::get('/dashboard', SuperAdminDashboardController::class)->name('dashboard');
+            Route::get('/admins', [SuperAdminAdminController::class, 'index'])->name('admins.index');
             Route::get('/admins/form-defaults', [SuperAdminAdminController::class, 'formDefaults'])->name('admins.form-defaults');
             Route::post('/admins', [SuperAdminAdminController::class, 'store'])->name('admins.store');
             Route::post('/admins/{user}/invitation', [SuperAdminAdminController::class, 'resendInvitation'])
@@ -70,6 +72,11 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
             Route::post('/admins/{user}/unlock', [SuperAdminAdminController::class, 'unlock'])->whereNumber('user')->name('admins.unlock');
             Route::post('/admins/{user}/password-reset', [SuperAdminAdminController::class, 'passwordReset'])
                 ->whereNumber('user')->name('admins.password-reset');
+
+            // Database backups: "Run a database backup now?" (Framer TKziMjHUe)
+            Route::get('/backups/overview', [BackupController::class, 'overview'])->name('backups.overview');
+            Route::post('/backups', [BackupController::class, 'store'])->name('backups.store');
+            Route::get('/backups/{backup}', [BackupController::class, 'show'])->whereNumber('backup')->name('backups.show');
 
             // Security alerts panel (Framer mQcXDCyDZ) + Alert detail (SCoT_cu7B)
             Route::prefix('security-alerts')->name('security-alerts.')->group(function () {

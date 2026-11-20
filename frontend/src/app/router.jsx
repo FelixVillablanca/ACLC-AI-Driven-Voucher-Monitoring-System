@@ -38,6 +38,7 @@ const SUPERADMIN_NOTIFICATION_LINKS = {
     users: PATHS.SUPERADMIN_ADMINS,
     departments: PATHS.SUPERADMIN_COMPANIES,
     companies: PATHS.SUPERADMIN_COMPANIES,
+    system: '?run=backup', // "Backup finished / failed": opens the backup dialog on the current page
   },
 }
 
@@ -124,13 +125,19 @@ export const router = createBrowserRouter([
               {
                 // White top navigation around every Super Admin page (Framer uH0wO9f5O)
                 lazy: async () => {
-                  const [{ default: SuperAdminLayout }, { NotificationBell }, { AddAdminModal }, { SecurityAlertsPanel }] =
-                    await Promise.all([
-                      import('@/components/layout/SuperAdminLayout'),
-                      import('@/features/notifications'),
-                      import('@/features/superadmin/admins'),
-                      import('@/features/superadmin/security'),
-                    ])
+                  const [
+                    { default: SuperAdminLayout },
+                    { NotificationBell },
+                    { AddAdminModal },
+                    { SecurityAlertsPanel },
+                    { RunBackupDialog },
+                  ] = await Promise.all([
+                    import('@/components/layout/SuperAdminLayout'),
+                    import('@/features/notifications'),
+                    import('@/features/superadmin/admins'),
+                    import('@/features/superadmin/security'),
+                    import('@/features/superadmin/backups'),
+                  ])
                   return {
                     Component: () => (
                       <SuperAdminLayout
@@ -140,6 +147,7 @@ export const router = createBrowserRouter([
                           <>
                             <AddAdminModal />
                             <SecurityAlertsPanel />
+                            <RunBackupDialog />
                           </>
                         }
                       />
@@ -152,7 +160,10 @@ export const router = createBrowserRouter([
                     lazy: page(() => import('@/features/superadmin/dashboard/pages/SuperAdminDashboardPage')),
                   },
                   // Designed in Framer, built next (see the frame table in CLAUDE.md)
-                  comingSoon(PATHS.SUPERADMIN_ADMINS, 'Admins'),
+                  {
+                    path: PATHS.SUPERADMIN_ADMINS,
+                    lazy: page(() => import('@/features/superadmin/admins/pages/AdminAccountsPage')),
+                  },
                   comingSoon(PATHS.SUPERADMIN_COMPANIES, 'Companies'),
                   comingSoon(PATHS.SUPERADMIN_SETTINGS, 'Global settings'),
                   comingSoon(PATHS.SUPERADMIN_AUDIT_LOGS, 'Audit logs'),

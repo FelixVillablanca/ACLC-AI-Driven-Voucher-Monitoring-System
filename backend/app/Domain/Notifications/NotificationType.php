@@ -25,6 +25,9 @@ enum NotificationType: string
     case DepartmentAlert = 'department_alert';
     case CompanyChanged = 'company_changed';
 
+    // Platform (added 2026-11-21): backups and other system jobs, for Super Admins
+    case SystemAlert = 'system_alert';
+
     public function category(): string
     {
         return match ($this) {
@@ -36,6 +39,7 @@ enum NotificationType: string
             self::UserChanged => 'users',
             self::DepartmentAlert => 'departments',
             self::CompanyChanged => 'companies',
+            self::SystemAlert => 'system',
         };
     }
 

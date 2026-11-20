@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { ADMINS_CHANGED_EVENT } from '@/features/superadmin/admins'
+import { BACKUPS_CHANGED_EVENT } from '@/features/superadmin/backups'
 import { SECURITY_ALERTS_CHANGED_EVENT } from '@/features/superadmin/security'
 import { getSuperAdminDashboard } from '../api'
 
@@ -38,10 +39,12 @@ export function useSuperAdminDashboard() {
     const onChanged = () => load(true)
     window.addEventListener(ADMINS_CHANGED_EVENT, onChanged)
     window.addEventListener(SECURITY_ALERTS_CHANGED_EVENT, onChanged)
+    window.addEventListener(BACKUPS_CHANGED_EVENT, onChanged)
     return () => {
       clearInterval(timer)
       window.removeEventListener(ADMINS_CHANGED_EVENT, onChanged)
       window.removeEventListener(SECURITY_ALERTS_CHANGED_EVENT, onChanged)
+      window.removeEventListener(BACKUPS_CHANGED_EVENT, onChanged)
     }
   }, [load])
 

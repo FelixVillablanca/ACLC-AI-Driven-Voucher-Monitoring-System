@@ -83,10 +83,11 @@ class SuperAdminDashboardSummary
         $items = [];
 
         $backup = $services['backup'];
+        // `running` lets the row say "Backing up now…" instead of offering a second backup
         if ($backup['status'] === 'danger') {
-            $items[] = ['type' => 'backup_overdue', 'severity' => 'danger', 'last_success_at' => $backup['last_success_at']];
+            $items[] = ['type' => 'backup_overdue', 'severity' => 'danger', 'last_success_at' => $backup['last_success_at'], 'running' => $backup['running']];
         } elseif ($backup['status'] === 'not_configured') {
-            $items[] = ['type' => 'backup_missing', 'severity' => 'danger'];
+            $items[] = ['type' => 'backup_missing', 'severity' => 'danger', 'running' => $backup['running']];
         }
 
         if ($services['ml']['status'] === 'danger') {
@@ -159,11 +160,7 @@ class SuperAdminDashboardSummary
                 'full_name' => $admin->full_name,
                 'email' => $admin->email,
                 'company' => $admin->company?->name,
-                'status' => match (true) {
-                    ! $admin->is_active || $admin->access_status === 'rejected' => 'inactive',
-                    $admin->access_status === 'pending' || $admin->last_login_at === null => 'pending',
-                    default => 'active',
-                },
+                'status' => $admin->accountStatus(), // same rule as the Admins page
                 'last_login_at' => $admin->last_login_at?->toIso8601String(),
                 'deactivated_at' => $admin->deactivated_at?->toIso8601String(),
                 'created_at' => $admin->created_at?->toIso8601String(),

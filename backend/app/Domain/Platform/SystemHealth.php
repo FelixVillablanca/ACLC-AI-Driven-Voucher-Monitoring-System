@@ -2,6 +2,7 @@
 
 namespace App\Domain\Platform;
 
+use App\Models\Backup;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -26,11 +27,8 @@ class SystemHealth
     /** Cache key the scheduler writes every minute (routes/console.php). A "heartbeat". */
     public const SCHEDULER_HEARTBEAT = 'health:scheduler:last_run_at';
 
-    /** Cache key a successful backup will write (backups are set up in Phase 8). */
-    public const BACKUP_LAST_SUCCESS = 'health:backup:last_success_at';
-
-    /** Backups should run every 24 h; a little slack before we call it overdue. */
-    private const BACKUP_OVERDUE_AFTER_HOURS = 25;
+    /** Backups run every night (02:00); a little slack before we call it overdue. */
+    public const BACKUP_OVERDUE_AFTER_HOURS = 25;
 
     /** The scheduler beats every minute; 5 minutes of silence means it stopped. */
     private const SCHEDULER_LATE_AFTER_MINUTES = 5;
@@ -92,9 +90,14 @@ class SystemHealth
         return ['key' => 'scheduler', 'status' => $status, 'last_run_at' => $lastRun ? Carbon::parse($lastRun)->toIso8601String() : null];
     }
 
+    /**
+     * Database backups (the `backups` table, Framer TKziMjHUe).
+     * not_configured = no good backup yet · danger = the last good one is over 25 h old.
+     * `running` = a backup is queued or being made right now.
+     */
     public function backup(): array
     {
-        $lastSuccess = Cache::get(self::BACKUP_LAST_SUCCESS);
+        $lastSuccess = Backup::succeeded()->max('finished_at');
 
         $status = match (true) {
             $lastSuccess === null => 'not_configured',
@@ -102,7 +105,12 @@ class SystemHealth
             default => 'ok',
         };
 
-        return ['key' => 'backup', 'status' => $status, 'last_success_at' => $lastSuccess ? Carbon::parse($lastSuccess)->toIso8601String() : null];
+        return [
+            'key' => 'backup',
+            'status' => $status,
+            'last_success_at' => $lastSuccess ? Carbon::parse($lastSuccess)->toIso8601String() : null,
+            'running' => Backup::inProgress()->exists(),
+        ];
     }
 
     public function failedJobCount(): int

@@ -6,6 +6,7 @@ namespace App\Models;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -60,5 +61,31 @@ class User extends Authenticatable
     public function getFullNameAttribute(): string
     {
         return trim("{$this->first_name} {$this->last_name}");
+    }
+
+    /**
+     * The account status the Super Admin screens show (one definition, used everywhere):
+     *   inactive = deactivated / locked, or access rejected
+     *   pending  = hasn't set a password yet, or has never signed in
+     *   active   = everything else
+     */
+    public function accountStatus(): string
+    {
+        return match (true) {
+            ! $this->is_active || $this->access_status === 'rejected' => 'inactive',
+            $this->access_status === 'pending' || $this->last_login_at === null => 'pending',
+            default => 'active',
+        };
+    }
+
+    /** The same rule as accountStatus(), as a database filter: User::query()->withAccountStatus('pending') */
+    public function scopeWithAccountStatus(Builder $query, string $status): Builder
+    {
+        return match ($status) {
+            'inactive' => $query->where(fn (Builder $q) => $q->where('is_active', false)->orWhere('access_status', 'rejected')),
+            'pending' => $query->where('is_active', true)->where('access_status', '!=', 'rejected')
+                ->where(fn (Builder $q) => $q->where('access_status', 'pending')->orWhereNull('last_login_at')),
+            default => $query->where('is_active', true)->where('access_status', 'accepted')->whereNotNull('last_login_at'),
+        };
     }
 }

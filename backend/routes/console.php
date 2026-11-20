@@ -19,3 +19,12 @@ Artisan::command('inspire', function () {
 Schedule::call(fn () => Cache::forever(SystemHealth::SCHEDULER_HEARTBEAT, now()->toIso8601String()))
     ->everyMinute()
     ->name('scheduler-heartbeat');
+
+/*
+| NIGHTLY DATABASE BACKUP (Framer TKziMjHUe): every night at 02:00 a backup is queued,
+| and the queue worker (`php artisan queue:work`, started by dev.ps1) makes it.
+| Keeps the newest 7 good backups (config/backup.php).
+*/
+Schedule::command('backup:run')
+    ->dailyAt(config('backup.nightly_at'))
+    ->name('nightly-database-backup');

@@ -1,9 +1,10 @@
 import { useState } from 'react'
 import ConfirmDialog from '@/components/common/ConfirmDialog'
 import { unlockAdminAccount } from '../api'
+import { announceAdminsChanged } from '../utils'
 
-/** "Unlock account" confirm (undoes Lock). */
-export default function UnlockAccountDialog({ account, onCancel, onDone }) {
+/** "Unlock account" confirm (undoes Lock). account: { id, full_name } */
+export default function UnlockAdminDialog({ account, onCancel, onDone }) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState(null)
 
@@ -12,6 +13,7 @@ export default function UnlockAccountDialog({ account, onCancel, onDone }) {
     setError(null)
     try {
       await unlockAdminAccount(account.id)
+      announceAdminsChanged()
       onDone(`${account.full_name}'s account is unlocked`)
     } catch (err) {
       setError(err)

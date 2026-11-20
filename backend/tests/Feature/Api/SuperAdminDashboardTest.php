@@ -4,6 +4,7 @@ namespace Tests\Feature\Api;
 
 use App\Domain\Platform\SystemHealth;
 use App\Domain\Platform\SystemSettings;
+use App\Models\Backup;
 use App\Models\Company;
 use App\Models\Notification;
 use App\Models\SecurityAlert;
@@ -107,7 +108,7 @@ class SuperAdminDashboardTest extends TestCase
             ->getJson(self::URL)
             ->assertOk()
             ->assertJsonCount(4, 'data.attention')
-            ->assertJsonPath('data.attention.0', ['type' => 'backup_missing', 'severity' => 'danger'])
+            ->assertJsonPath('data.attention.0', ['type' => 'backup_missing', 'severity' => 'danger', 'running' => false])
             ->assertJsonPath('data.attention.1.type', 'failed_jobs')
             ->assertJsonPath('data.attention.1.count', 1)
             ->assertJsonPath('data.attention.1.jobs', ['RunAnomalyCheck'])
@@ -132,14 +133,14 @@ class SuperAdminDashboardTest extends TestCase
                 ['key' => 'ml', 'status' => 'not_configured'],
                 ['key' => 'queue', 'status' => 'ok', 'failed' => 0, 'waiting' => 0],
                 ['key' => 'scheduler', 'status' => 'not_configured', 'last_run_at' => null],
-                ['key' => 'backup', 'status' => 'not_configured', 'last_success_at' => null],
+                ['key' => 'backup', 'status' => 'not_configured', 'last_success_at' => null, 'running' => false],
             ]);
 
         // ML service set up but down, scheduler stopped 10 min ago, backup 30 h old
         config(['services.ml.url' => 'http://ml.test']);
         Http::fake(['ml.test/*' => Http::response('', 500)]);
         Cache::put(SystemHealth::SCHEDULER_HEARTBEAT, now()->subMinutes(10)->toIso8601String());
-        Cache::put(SystemHealth::BACKUP_LAST_SUCCESS, now()->subHours(30)->toIso8601String());
+        Backup::create(['status' => 'succeeded', 'trigger' => 'scheduled', 'finished_at' => now()->subHours(30)]);
 
         $this->actingAs($owner)->getJson(self::URL)
             ->assertOk()
@@ -147,6 +148,7 @@ class SuperAdminDashboardTest extends TestCase
             ->assertJsonPath('data.services.2.status', 'warning')
             ->assertJsonPath('data.services.3.status', 'danger')
             ->assertJsonPath('data.attention.0.type', 'backup_overdue')
+            ->assertJsonPath('data.attention.0.running', false)
             ->assertJsonPath('data.attention.1.type', 'ml_down');
     }
 

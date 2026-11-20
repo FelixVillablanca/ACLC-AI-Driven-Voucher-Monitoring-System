@@ -1,7 +1,7 @@
 -- =====================================================================
 -- AI-Driven Voucher Monitoring System: FULL database schema (MariaDB 10.4)
 -- First built 2026-11-19 for re-creating the database after the XAMPP crash.
--- Refreshed 2026-11-20 from the live database (`php artisan schema:dump`), so it is
+-- Refreshed 2026-11-21 from the live database (`php artisan schema:dump`), so it is
 -- the same as mysql-schema.sql plus this header and the commented CREATE DATABASE lines.
 --
 -- Migrations included on top of the original baseline:
@@ -17,6 +17,7 @@
 --   2026_11_20_000001  users.last_login_at has no default (NULL until the first sign-in)
 --   2026_11_20_000002  users.personal_email (where invitation / reset links are sent)
 --   2026_11_20_000003  NEW table security_alerts (Security alerts panel, shared by Super Admins)
+--   2026_11_21_000001  NEW table backups (database backup runs); notifications.type also allows 'system_alert'
 -- Checked against docs/System_Flow_Roles_and_UML_Design.docx (ER + class diagrams).
 --
 -- The `migrations` rows at the bottom mark ALL migrations as already run,
@@ -79,6 +80,29 @@ CREATE TABLE `audit_logs` (
   KEY `audit_logs_company_id_foreign` (`company_id`),
   CONSTRAINT `audit_logs_company_id_foreign` FOREIGN KEY (`company_id`) REFERENCES `companies` (`id`) ON DELETE RESTRICT,
   CONSTRAINT `audit_logs_user_id_foreign` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE RESTRICT
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+DROP TABLE IF EXISTS `backups`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `backups` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `status` enum('queued','running','succeeded','failed') NOT NULL DEFAULT 'queued',
+  `trigger` enum('scheduled','manual') NOT NULL,
+  `requested_by` bigint(20) unsigned DEFAULT NULL,
+  `notify_requester` tinyint(1) NOT NULL DEFAULT 0 COMMENT '"Notify me when it finishes"',
+  `file_path` varchar(255) DEFAULT NULL COMMENT 'Inside storage/app/private, never reachable from the web',
+  `size_bytes` bigint(20) unsigned DEFAULT NULL COMMENT 'Size of the compressed file',
+  `database_size_bytes` bigint(20) unsigned DEFAULT NULL COMMENT 'Size of the database when it started',
+  `started_at` timestamp NULL DEFAULT NULL,
+  `finished_at` timestamp NULL DEFAULT NULL,
+  `error` text DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `backups_requested_by_foreign` (`requested_by`),
+  KEY `backups_status_finished_at_index` (`status`,`finished_at`),
+  CONSTRAINT `backups_requested_by_foreign` FOREIGN KEY (`requested_by`) REFERENCES `users` (`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `budget_allocations`;
@@ -294,7 +318,7 @@ CREATE TABLE `notifications` (
   `is_read` tinyint(4) NOT NULL DEFAULT 0 COMMENT '0 = unread, 1 = read',
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL,
-  `type` enum('voucher_approved','voucher_rejected','voucher_pending','anomaly_flagged','budget_alert','security_alert','access_changed','user_changed','department_alert','company_changed') NOT NULL,
+  `type` enum('voucher_approved','voucher_rejected','voucher_pending','anomaly_flagged','budget_alert','security_alert','access_changed','user_changed','department_alert','company_changed','system_alert') NOT NULL,
   PRIMARY KEY (`id`),
   KEY `notifications_recipient_id_foreign` (`recipient_id`),
   KEY `notifications_voucher_id_foreign` (`voucher_id`),
@@ -751,3 +775,4 @@ INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (55,'2026_11_19_174
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (56,'2026_11_20_000001_remove_default_from_users_last_login_at',39);
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (57,'2026_11_20_000002_add_personal_email_to_users',40);
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (58,'2026_11_20_000003_create_security_alerts_table',41);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (59,'2026_11_21_000001_create_backups_table_and_system_alert_type',42);

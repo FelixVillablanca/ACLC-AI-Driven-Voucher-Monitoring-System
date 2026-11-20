@@ -5,6 +5,7 @@ import {
   CircleAlert,
   CircleCheck,
   CircleX,
+  DatabaseBackup,
   Clock,
   FileText,
   Layers,
@@ -28,6 +29,7 @@ const TYPE_STYLE = {
   voucher_pending: { tone: 'warning', icon: Clock },
   anomaly_flagged: { tone: 'warning', icon: Sparkles },
   budget_alert: { tone: 'warning', icon: Wallet },
+  system_alert: { tone: 'primary', icon: DatabaseBackup }, // backups (Super Admins)
 }
 
 /** Each CATEGORY's label ("2 min ago · Security") and its icon once READ (grey circle). */
@@ -40,6 +42,7 @@ export const CATEGORIES = {
   vouchers: { label: 'Vouchers', icon: FileText },
   ai: { label: 'AI', icon: Sparkles },
   budgets: { label: 'Budgets', icon: Wallet },
+  system: { label: 'System', icon: DatabaseBackup },
 }
 
 export const TONE_CLASSES = {

@@ -1,4 +1,5 @@
 import { Building2, Cpu, DatabaseBackup, RotateCw, ShieldAlert } from 'lucide-react'
+import { RUN_BACKUP_SEARCH } from '@/features/superadmin/backups'
 import { alertShortName, SECURITY_ALERTS_SEARCH } from '@/features/superadmin/security'
 import { PATHS } from '@/lib/constants'
 import { formatDayAgo, formatTimeAgo, plural } from '@/lib/formatters'
@@ -39,6 +40,7 @@ export function describeService(service) {
         }[service.status],
       }
     case 'backup':
+      if (service.running) return { name, text: 'Backing up…', tone: 'primary' }
       return {
         name,
         ...{
@@ -59,23 +61,26 @@ export function describeAttention(item) {
   const tone = SEVERITY_TONES[item.severity] ?? 'primary'
 
   switch (item.type) {
+    // Both open the "Run a database backup now?" dialog (Framer TKziMjHUe) on this page
     case 'backup_missing':
       return {
         tone,
         icon: DatabaseBackup,
-        title: 'Database backups aren’t set up',
-        caption: 'No backup has been recorded yet · should run every 24 h',
-        action: 'Open system health',
-        to: PATHS.SUPERADMIN_SYSTEM_HEALTH,
+        title: 'No database backup yet',
+        caption: item.running ? 'The first backup is running now' : 'Backups run every night at 02:00 · none has finished yet',
+        action: item.running ? 'View progress' : 'Run backup',
+        to: RUN_BACKUP_SEARCH,
       }
     case 'backup_overdue':
       return {
         tone,
         icon: DatabaseBackup,
         title: 'Database backup is overdue',
-        caption: `Last backup ${formatTimeAgo(item.last_success_at)} · should run every 24 h`,
-        action: 'Run backup',
-        to: `${PATHS.SUPERADMIN_SYSTEM_HEALTH}?action=backup`,
+        caption: item.running
+          ? 'A backup is running now'
+          : `Last good backup ${formatTimeAgo(item.last_success_at)} · should run every 24 h`,
+        action: item.running ? 'View progress' : 'Run backup',
+        to: RUN_BACKUP_SEARCH,
       }
     case 'ml_down':
       return {

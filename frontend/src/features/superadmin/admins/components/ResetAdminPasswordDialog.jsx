@@ -1,10 +1,13 @@
 import { useState } from 'react'
 import ConfirmDialog from '@/components/common/ConfirmDialog'
 import { resetAdminPassword } from '../api'
+import { announceAdminsChanged } from '../utils'
 
-/** "Reset password" confirm: a one-time link goes to the Admin's personal email. */
-export default function ResetPasswordDialog({ alert, onCancel, onDone }) {
-  const account = alert.account
+/**
+ * "Reset password" confirm: a one-time link goes to the Admin's personal email.
+ *   account: { id, full_name, personal_email }    alertId: optional security alert to mark reviewed
+ */
+export default function ResetAdminPasswordDialog({ account, alertId = null, onCancel, onDone }) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState(null)
 
@@ -12,7 +15,8 @@ export default function ResetPasswordDialog({ alert, onCancel, onDone }) {
     setBusy(true)
     setError(null)
     try {
-      const sentTo = await resetAdminPassword(account.id, { alertId: alert.id })
+      const sentTo = await resetAdminPassword(account.id, { alertId })
+      announceAdminsChanged()
       onDone(`Reset link sent to ${sentTo}`)
     } catch (err) {
       setError(err)

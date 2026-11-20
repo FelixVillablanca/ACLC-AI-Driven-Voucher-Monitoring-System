@@ -5,6 +5,7 @@ import toast from 'react-hot-toast'
 import EmptyState from '@/components/common/EmptyState'
 import ErrorState from '@/components/common/ErrorState'
 import Pill from '@/components/common/Pill'
+import { LockAdminDialog, ResetAdminPasswordDialog, UnlockAdminDialog } from '@/features/superadmin/admins'
 import { ROLE_SHORT_LABELS } from '@/lib/constants'
 import { formatInitials, plural } from '@/lib/formatters'
 import { reviewSecurityAlert } from '../api'
@@ -20,10 +21,7 @@ import {
   suggestedStep,
   timelineRows,
 } from '../utils'
-import LockAccountDialog from './LockAccountDialog'
 import PanelCloseButton from './PanelCloseButton'
-import ResetPasswordDialog from './ResetPasswordDialog'
-import UnlockAccountDialog from './UnlockAccountDialog'
 
 /** "What happened" shows this many rows, then "+ N more attempts". */
 const FIRST_ROWS = 3
@@ -112,13 +110,23 @@ export default function AlertDetailView({ alertId, onBack, onClose }) {
 
       <AnimatePresence>
         {detail.alert && dialog === 'lock' && (
-          <LockAccountDialog alert={detail.alert} onCancel={() => setDialog(null)} onDone={onDialogDone} />
+          <LockAdminDialog
+            account={detail.alert.account}
+            alertId={detail.alert.id}
+            onCancel={() => setDialog(null)}
+            onDone={onDialogDone}
+          />
         )}
         {detail.alert && dialog === 'unlock' && (
-          <UnlockAccountDialog account={detail.alert.account} onCancel={() => setDialog(null)} onDone={onDialogDone} />
+          <UnlockAdminDialog account={detail.alert.account} onCancel={() => setDialog(null)} onDone={onDialogDone} />
         )}
         {detail.alert && dialog === 'reset' && (
-          <ResetPasswordDialog alert={detail.alert} onCancel={() => setDialog(null)} onDone={onDialogDone} />
+          <ResetAdminPasswordDialog
+            account={detail.alert.account}
+            alertId={detail.alert.id}
+            onCancel={() => setDialog(null)}
+            onDone={onDialogDone}
+          />
         )}
       </AnimatePresence>
     </>

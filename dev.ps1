@@ -1,8 +1,8 @@
 <#
 .SYNOPSIS
-  Starts the backend (Laravel API on :8000), the frontend (React/Vite on :5173) and the
-  Laravel scheduler (php artisan schedule:work) together in ONE terminal.
-  Press Ctrl+C once to stop ALL THREE.
+  Starts the backend (Laravel API on :8000), the frontend (React/Vite on :5173), the
+  Laravel scheduler (php artisan schedule:work) and the queue worker (php artisan queue:work)
+  together in ONE terminal. Press Ctrl+C once to stop ALL FOUR.
 
 .EXAMPLE
   .\dev.ps1              # uses the REAL database (backend/.env)
@@ -14,6 +14,8 @@
     - React files: Vite updates the browser instantly when you save (Hot Module Replacement).
     - PHP files:   Laravel reads your PHP code fresh on every request.
   Restart (Ctrl+C, then run again) only after changing .env, or to switch database.
+  EXCEPTION: the queue worker keeps the PHP code it started with, so restart after
+  changing a queued job (app/Jobs) too.
   Full guide: docs/DEV_SERVERS_GUIDE.md
 #>
 param(
@@ -68,7 +70,8 @@ Write-Host "  App:      http://localhost:$($ports.frontend)" -ForegroundColor Cy
 Write-Host "  API:      http://localhost:$($ports.backend)" -ForegroundColor Cyan
 Write-Host "  Database: $database" -ForegroundColor $(if ($Testing) { 'Yellow' } else { 'Cyan' })
 Write-Host '  Scheduler: php artisan schedule:work (runs scheduled tasks every minute)' -ForegroundColor Cyan
-Write-Host '  Press Ctrl+C to stop all three.' -ForegroundColor Cyan
+Write-Host '  Queue:     php artisan queue:work (runs background jobs, e.g. database backups)' -ForegroundColor Cyan
+Write-Host '  Press Ctrl+C to stop all four.' -ForegroundColor Cyan
 Write-Host ''
 
 # 2) Start each server as a background job. "2>&1" merges error output so we see everything.
@@ -94,12 +97,22 @@ $scheduler = Start-Job -Name scheduler -ArgumentList (Join-Path $root 'backend')
   php artisan schedule:work 2>&1 | ForEach-Object { "$_" }
 }
 
-$jobs = @($backend, $frontend, $scheduler)
-$colors = @{ backend = 'Magenta'; frontend = 'Green'; scheduler = 'DarkYellow' }
+# The QUEUE WORKER: does slow work in the background so nobody's browser waits
+# (today: database backups; later: AI anomaly checks, OpenAI summaries, exports).
+# --tries=1: a failed job is recorded, not repeated automatically.
+$queue = Start-Job -Name queue -ArgumentList (Join-Path $root 'backend'), $Testing.IsPresent -ScriptBlock {
+  param($dir, $testing)
+  Set-Location $dir
+  if ($testing) { $env:APP_ENV = 'testing' }
+  php artisan queue:work --tries=1 2>&1 | ForEach-Object { "$_" }
+}
+
+$jobs = @($backend, $frontend, $scheduler, $queue)
+$colors = @{ backend = 'Magenta'; frontend = 'Green'; scheduler = 'DarkYellow'; queue = 'Blue' }
 $started = Get-Date
 
 try {
-  # 3) Show every process's output, each line labelled [backend], [frontend] or [scheduler]
+  # 3) Show every process's output, each line labelled [backend], [frontend], [scheduler] or [queue]
   while ($true) {
     foreach ($job in $jobs) {
       foreach ($line in (Receive-Job $job)) {
@@ -117,7 +130,7 @@ try {
   }
 }
 finally {
-  # 4) Runs on Ctrl+C too: stop all three and everything they started
+  # 4) Runs on Ctrl+C too: stop all four and everything they started
   Write-Host ''
   Write-Host 'Stopping servers...' -ForegroundColor Cyan
   Get-CimInstance Win32_Process -Filter "ParentProcessId=$PID" |

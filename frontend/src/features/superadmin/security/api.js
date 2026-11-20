@@ -37,25 +37,3 @@ export async function reviewAllSecurityAlerts() {
   const { data } = await apiClient.post('/superadmin/security-alerts/review-all')
   return data.data.reviewed
 }
-
-/** Lock an Admin's account. Needs the Super Admin's own password (422 on `password` if wrong). */
-export async function lockAdminAccount(adminId, { password, alertId }) {
-  const { data } = await apiClient.post(`/superadmin/admins/${adminId}/lock`, {
-    password,
-    security_alert_id: alertId ?? null,
-  })
-  return data.data
-}
-
-export async function unlockAdminAccount(adminId) {
-  const { data } = await apiClient.post(`/superadmin/admins/${adminId}/unlock`)
-  return data.data
-}
-
-/** Emails a 60-minute "choose a new password" link. Returns the address it went to. */
-export async function resetAdminPassword(adminId, { alertId } = {}) {
-  const { data } = await apiClient.post(`/superadmin/admins/${adminId}/password-reset`, {
-    security_alert_id: alertId ?? null,
-  })
-  return data.data.sent_to
-}

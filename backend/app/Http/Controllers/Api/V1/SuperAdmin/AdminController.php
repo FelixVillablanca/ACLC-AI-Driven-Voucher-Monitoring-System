@@ -8,22 +8,77 @@ use App\Domain\Identity\Actions\SendAccountInvitation;
 use App\Domain\Identity\Actions\SendPasswordReset;
 use App\Domain\Identity\Actions\UnlockAdminAccount;
 use App\Domain\Identity\Support\EmployeeIdGenerator;
+use App\Domain\Reporting\Queries\SuperAdminDashboardSummary;
 use App\Exceptions\ApiException;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\SuperAdmin\AdminAccountActionRequest;
+use App\Http\Requests\SuperAdmin\ListAdminsRequest;
 use App\Http\Requests\SuperAdmin\LockAdminRequest;
 use App\Http\Requests\SuperAdmin\StoreAdminRequest;
+use App\Http\Resources\AdminAccountResource;
 use App\Http\Resources\UserResource;
 use App\Models\Company;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 /**
  * Admin accounts, managed by the Super Admin (Framer TkIHF89oH "Create admin account").
  */
 class AdminController extends Controller
 {
+    /** The people this page lists: everyone who runs the system (never company users). */
+    private const ROLES = ['admin', 'super_admin'];
+
+    /**
+     * GET /api/v1/superadmin/admins  (Admin accounts page, Framer bxGFPLOVN)
+     * Super Admins first, then working accounts, pending, inactive; newest sign-in first.
+     * OFFSET pagination (page numbers), because this is a table with "Page 1 of 3".
+     * meta.counts = the chip numbers (they follow the search and role filter, not the status chip).
+     */
+    public function index(ListAdminsRequest $request): AnonymousResourceCollection
+    {
+        $role = $request->validated('filter.role');
+        $status = $request->validated('filter.status');
+        $search = trim((string) $request->validated('search'));
+        // % and _ are wildcards in LIKE; escape them so they match themselves
+        $like = '%'.addcslashes($search, '\\%_').'%';
+
+        $base = User::query()
+            ->whereIn('role', $role ? [$role] : self::ROLES)
+            ->when($search !== '', fn (Builder $q) => $q->where(fn (Builder $w) => $w
+                ->whereRaw("CONCAT_WS(' ', first_name, last_name) LIKE ?", [$like])
+                ->orWhere('email', 'like', $like)));
+
+        $accounts = (clone $base)
+            ->when($status, fn (Builder $q) => $q->withAccountStatus($status))
+            ->with('company:id,name')
+            ->orderByRaw("role = 'super_admin' DESC")
+            ->orderByRaw("CASE WHEN is_active = 0 OR access_status = 'rejected' THEN 2
+                               WHEN access_status = 'pending' OR last_login_at IS NULL THEN 1 ELSE 0 END")
+            ->orderByDesc('last_login_at')
+            ->orderBy('first_name')
+            ->orderBy('id')
+            ->paginate((int) $request->validated('per_page', 25))
+            ->withQueryString();
+
+        $counts = ['all' => (clone $base)->count()];
+        foreach (['active', 'pending', 'inactive'] as $key) {
+            $counts[$key] = (clone $base)->withAccountStatus($key)->count();
+        }
+
+        return AdminAccountResource::collection($accounts)->additional(['meta' => [
+            'counts' => $counts,
+            'total_accounts' => User::whereIn('role', self::ROLES)->count(),
+            'super_admin_seats' => [
+                'used' => User::where('role', 'super_admin')->where('is_active', true)->count(),
+                'total' => SuperAdminDashboardSummary::SUPER_ADMIN_SEATS,
+            ],
+        ]]);
+    }
+
     /**
      * GET /api/v1/superadmin/admins/form-defaults
      * The next Employee ID (a preview, nothing is reserved) and the companies an Admin can be
