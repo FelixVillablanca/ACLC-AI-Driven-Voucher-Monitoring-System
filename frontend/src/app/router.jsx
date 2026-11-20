@@ -131,12 +131,14 @@ export const router = createBrowserRouter([
                     { AddAdminModal },
                     { SecurityAlertsPanel },
                     { RunBackupDialog },
+                    { RetryJobsDialog },
                   ] = await Promise.all([
                     import('@/components/layout/SuperAdminLayout'),
                     import('@/features/notifications'),
                     import('@/features/superadmin/admins'),
                     import('@/features/superadmin/security'),
                     import('@/features/superadmin/backups'),
+                    import('@/features/superadmin/jobs'),
                   ])
                   return {
                     Component: () => (
@@ -148,6 +150,7 @@ export const router = createBrowserRouter([
                             <AddAdminModal />
                             <SecurityAlertsPanel />
                             <RunBackupDialog />
+                            <RetryJobsDialog />
                           </>
                         }
                       />

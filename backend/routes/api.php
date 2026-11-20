@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\V1\NotificationController;
 use App\Http\Controllers\Api\V1\SuperAdmin\AdminController as SuperAdminAdminController;
 use App\Http\Controllers\Api\V1\SuperAdmin\BackupController;
 use App\Http\Controllers\Api\V1\SuperAdmin\DashboardController as SuperAdminDashboardController;
+use App\Http\Controllers\Api\V1\SuperAdmin\FailedJobController;
 use App\Http\Controllers\Api\V1\SuperAdmin\SecurityAlertController;
 use Illuminate\Support\Facades\Route;
 
@@ -77,6 +78,11 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
             Route::get('/backups/overview', [BackupController::class, 'overview'])->name('backups.overview');
             Route::post('/backups', [BackupController::class, 'store'])->name('backups.store');
             Route::get('/backups/{backup}', [BackupController::class, 'show'])->whereNumber('backup')->name('backups.show');
+
+            // Failed background jobs: "Retry failed jobs" (Framer fzdOvPqCX)
+            Route::get('/failed-jobs', [FailedJobController::class, 'index'])->name('failed-jobs.index');
+            Route::post('/failed-jobs/retry', [FailedJobController::class, 'retry'])->name('failed-jobs.retry');
+            Route::delete('/failed-jobs', [FailedJobController::class, 'destroy'])->name('failed-jobs.destroy');
 
             // Security alerts panel (Framer mQcXDCyDZ) + Alert detail (SCoT_cu7B)
             Route::prefix('security-alerts')->name('security-alerts.')->group(function () {

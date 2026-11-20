@@ -1,5 +1,6 @@
 import { Building2, Cpu, DatabaseBackup, RotateCw, ShieldAlert } from 'lucide-react'
 import { RUN_BACKUP_SEARCH } from '@/features/superadmin/backups'
+import { RETRY_JOBS_SEARCH } from '@/features/superadmin/jobs'
 import { alertShortName, SECURITY_ALERTS_SEARCH } from '@/features/superadmin/security'
 import { PATHS } from '@/lib/constants'
 import { formatDayAgo, formatTimeAgo, plural } from '@/lib/formatters'
@@ -98,7 +99,7 @@ export function describeAttention(item) {
         title: `${plural(item.count, 'background job', 'background jobs')} failed`,
         caption: item.jobs?.length ? item.jobs.join(', ') : 'They will not run again until retried',
         action: 'Retry jobs',
-        to: `${PATHS.SUPERADMIN_SYSTEM_HEALTH}?action=retry`,
+        to: RETRY_JOBS_SEARCH, // "Retry failed jobs" (Framer fzdOvPqCX) on this page
       }
     case 'security_alerts':
       return {
