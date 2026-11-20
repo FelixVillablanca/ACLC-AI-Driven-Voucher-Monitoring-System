@@ -18,7 +18,7 @@ import RememberMeCheckbox from './RememberMeCheckbox'
  *   - wrong email or password     -> red message under the email field (server 422)
  *   - inactive account, too many tries, server down -> red box above the button
  */
-export default function LoginForm({ onSuccess }) {
+export default function LoginForm({ onSuccess, onTwoFactor }) {
   const login = useLogin()
   const [formError, setFormError] = useState(null)
 
@@ -41,8 +41,9 @@ export default function LoginForm({ onSuccess }) {
   const onSubmit = async (values) => {
     setFormError(null)
     try {
-      const user = await login(isSuperAdminEmail ? { ...values, remember: false } : values)
-      onSuccess?.(user)
+      const result = await login(isSuperAdminEmail ? { ...values, remember: false } : values)
+      if (result.twoFactor) onTwoFactor?.(result.twoFactor)
+      else onSuccess?.(result.user)
     } catch (error) {
       if (!applyFieldErrors(error, setError)) setFormError(error)
     }

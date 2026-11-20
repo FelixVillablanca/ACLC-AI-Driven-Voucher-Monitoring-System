@@ -21,6 +21,7 @@ class PasswordResetMail extends Mailable
         public User $user,
         public string $link,
         public int $expiresInMinutes,
+        public bool $signedOut = true, // false = their old password still works until they use the link
     ) {}
 
     public function envelope(): Envelope

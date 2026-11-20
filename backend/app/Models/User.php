@@ -18,7 +18,7 @@ use Illuminate\Notifications\Notifiable;
     'is_active', 'access_status', 'role', 'department_id', 'company_id',
     'profile_photo', 'last_login_at', 'deactivated_at',
 ])]
-#[Hidden(['password', 'remember_token'])]
+#[Hidden(['password', 'remember_token', 'two_factor_secret', 'two_factor_recovery_codes'])]
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
@@ -36,6 +36,12 @@ class User extends Authenticatable
             'is_active' => 'boolean',
             'last_login_at' => 'datetime',
             'deactivated_at' => 'datetime', // when the account was deactivated (NULL = never)
+            // Two-step sign-in: the key and backup codes are ENCRYPTED in the database (APP_KEY)
+            'two_factor_secret' => 'encrypted',
+            'two_factor_recovery_codes' => 'encrypted:array',
+            'two_factor_confirmed_at' => 'datetime',
+            'two_factor_required_at' => 'datetime',
+            'two_factor_setup_deadline' => 'datetime',
         ];
     }
 
@@ -75,6 +81,42 @@ class User extends Authenticatable
             ! $this->is_active || $this->access_status === 'rejected' => 'inactive',
             $this->access_status === 'pending' || $this->last_login_at === null => 'pending',
             default => 'active',
+        };
+    }
+
+    /** Two-step sign-in is ON (they set it up and confirmed a code). */
+    public function hasTwoFactor(): bool
+    {
+        return $this->two_factor_confirmed_at !== null && $this->two_factor_secret !== null;
+    }
+
+    /** A Super Admin required two-step, and it isn't set up yet. */
+    public function mustSetUpTwoFactor(): bool
+    {
+        return $this->two_factor_required_at !== null && ! $this->hasTwoFactor();
+    }
+
+    /** The setup window ran out: sign-in waits until it's done (no "set up later"). */
+    public function twoFactorSetupOverdue(): bool
+    {
+        return $this->mustSetUpTwoFactor()
+            && ($this->two_factor_setup_deadline === null || $this->two_factor_setup_deadline->isPast());
+    }
+
+    /**
+     * What the "Two-step" column shows:
+     *   on        ✓ On
+     *   required  a Super Admin required it; waiting for them to set it up
+     *   off       Off
+     *   not_set_up  the account itself isn't set up yet (pending invitation)
+     */
+    public function twoFactorStatus(): string
+    {
+        return match (true) {
+            $this->hasTwoFactor() => 'on',
+            $this->access_status === 'pending' => 'not_set_up',
+            $this->mustSetUpTwoFactor() => 'required',
+            default => 'off',
         };
     }
 

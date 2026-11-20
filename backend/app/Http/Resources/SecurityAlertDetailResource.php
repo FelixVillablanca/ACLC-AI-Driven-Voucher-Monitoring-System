@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use App\Domain\Identity\Support\AccountActions;
 use App\Domain\Security\Actions\WatchSignIns;
 use App\Models\SecurityAlert;
 use App\Models\User;
@@ -74,35 +75,38 @@ class SecurityAlertDetailResource extends SecurityAlertResource
 
     /**
      * Which footer buttons work, and if not, why (shown as a note instead).
-     * Only Admin accounts can be locked/reset here: Super Admins are protected (seat rules),
-     * and clerks/officers/supervisors belong to their company's Admin.
+     * The same rules as the Admins tab (AccountActions): Admins and Super Admins can be
+     * deactivated / reset (never yourself, never the last Super Admin); company users belong
+     * to their company's Admin.
      */
     private function actions(): array
     {
         $user = $this->user;
+        $viewer = request()->user();
         $open = $this->status === 'open';
 
-        $blocked = match (true) {
-            $user === null => 'No account uses this email, so there is nothing to lock or reset.',
-            $user->role === 'super_admin' => 'Super Admin accounts can’t be locked or reset from here.',
-            $user->role !== 'admin' => 'This is a company user. Their company’s Admin manages the account.',
-            default => null,
-        };
+        if ($user === null || ! in_array($user->role, ['admin', 'super_admin'], true)) {
+            return [
+                'review' => $open, 'dismiss' => $open, 'deactivate' => false, 'reactivate' => false, 'reset_password' => false,
+                'account_note' => $user === null
+                    ? 'No account uses this email, so there is nothing to deactivate or reset.'
+                    : 'This is a company user. Their company’s Admin manages the account.',
+                'reset_note' => null,
+            ];
+        }
 
-        $resetBlocked = $blocked ?? match (true) {
-            $user->access_status === 'pending' => 'They haven’t set a password yet.',
-            ! $user->personal_email => 'This Admin has no personal email to send the link to.',
-            default => null,
-        };
+        $deactivate = AccountActions::reason($viewer, $user, $user->is_active ? 'deactivate' : 'reactivate');
+        $reset = AccountActions::reason($viewer, $user, 'reset_password');
 
         return [
             'review' => $open,
             'dismiss' => $open,
-            'lock' => $blocked === null && $user->is_active,
-            'unlock' => $blocked === null && ! $user->is_active,
-            'reset_password' => $resetBlocked === null,
-            'account_note' => $blocked,
-            'reset_note' => $blocked === null ? $resetBlocked : null,
+            'deactivate' => $user->is_active && $deactivate === null,
+            'reactivate' => ! $user->is_active && $deactivate === null,
+            'reset_password' => $reset === null,
+            // Only say something when the main action is blocked
+            'account_note' => $user->is_active && $deactivate !== null ? $deactivate : null,
+            'reset_note' => $user->is_active ? $reset : null,
         ];
     }
 }

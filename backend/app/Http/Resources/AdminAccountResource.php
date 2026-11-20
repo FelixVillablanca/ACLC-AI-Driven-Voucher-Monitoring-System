@@ -2,14 +2,18 @@
 
 namespace App\Http\Resources;
 
+use App\Domain\Identity\Actions\SendAccountInvitation;
+use App\Domain\Identity\Support\AccountActions;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 
 /**
- * One row of the Admin accounts table (Framer bxGFPLOVN).
- * `actions` says which ⋯ menu items work for this row, so the screen never offers
- * something the server would refuse.
+ * One row of the Admins table (Framer U7glXUOSF).
+ * `actions` says which ⋯ menu items work for this row (rules: AccountActions), so the screen
+ * never offers something the server would refuse.
  *
  * @mixin User
  */
@@ -17,9 +21,7 @@ class AdminAccountResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
-        $status = $this->accountStatus();
-        $isAdmin = $this->role === 'admin';
-        $isYou = $this->id === $request->user()?->id;
+        $viewer = $request->user();
 
         return [
             'id' => $this->id,
@@ -30,18 +32,24 @@ class AdminAccountResource extends JsonResource
             'personal_email' => $this->personal_email,
             'role' => $this->role,
             'company' => $this->company?->name,
-            'status' => $status,
-            'is_you' => $isYou,
+            'status' => $this->accountStatus(),
+            'two_factor' => $this->twoFactorStatus(),
+            'two_factor_setup_deadline' => $this->two_factor_setup_deadline?->toIso8601String(),
+            'is_you' => $this->id === $viewer?->id,
             'last_login_at' => $this->last_login_at?->toIso8601String(),
             'deactivated_at' => $this->deactivated_at?->toIso8601String(),
             'created_at' => $this->created_at?->toIso8601String(),
-            // Super Admin accounts are only managed from the server console for now
-            'actions' => [
-                'resend_invitation' => $isAdmin && $this->is_active && $this->access_status === 'pending' && $this->personal_email !== null,
-                'reset_password' => $isAdmin && $this->is_active && $this->access_status === 'accepted' && $this->personal_email !== null,
-                'lock' => $isAdmin && $this->is_active,
-                'unlock' => $isAdmin && ! $this->is_active,
-            ],
+            // Pending Admins: when their "set your password" link stops working
+            'invitation_expires_at' => $this->access_status === 'pending' ? $this->invitationExpiresAt() : null,
+            'actions' => $viewer ? AccountActions::allowed($viewer, $this->resource) : [],
         ];
+    }
+
+    private function invitationExpiresAt(): ?string
+    {
+        $created = DB::table('password_reset_tokens')->where('email', $this->email)->value('created_at');
+        $hours = intdiv((int) config('auth.passwords.'.SendAccountInvitation::BROKER.'.expire'), 60);
+
+        return $created ? Carbon::parse($created)->addHours($hours)->toIso8601String() : null;
     }
 }

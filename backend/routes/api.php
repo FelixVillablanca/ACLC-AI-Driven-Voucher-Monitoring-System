@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\V1\SuperAdmin\BackupController;
 use App\Http\Controllers\Api\V1\SuperAdmin\DashboardController as SuperAdminDashboardController;
 use App\Http\Controllers\Api\V1\SuperAdmin\FailedJobController;
 use App\Http\Controllers\Api\V1\SuperAdmin\SecurityAlertController;
+use App\Http\Controllers\Api\V1\TwoFactorLoginController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -29,6 +30,16 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
     Route::post('/auth/login', [AuthController::class, 'login'])
         ->middleware('throttle:login')
         ->name('auth.login');
+
+    // Public: the 2nd step of signing in (two-step sign-in), right after a correct password.
+    // The "half signed in" session is the proof. 6 tries per minute, so codes can't be guessed.
+    Route::prefix('auth/two-factor')->name('auth.two-factor.')->middleware('throttle:two-factor')->group(function () {
+        Route::post('/challenge', [TwoFactorLoginController::class, 'challenge'])->name('challenge');
+        Route::get('/setup', [TwoFactorLoginController::class, 'setupInfo'])->name('setup.show');
+        Route::post('/setup', [TwoFactorLoginController::class, 'confirmSetup'])->name('setup.confirm');
+        Route::post('/skip', [TwoFactorLoginController::class, 'skip'])->name('skip');
+        Route::post('/cancel', [TwoFactorLoginController::class, 'cancel'])->name('cancel');
+    });
 
     // Public: the "set your password" link from an invitation email (the token is the proof).
     // Rate limited (10 per minute per IP, see AppServiceProvider) so nobody can guess tokens.
@@ -64,15 +75,26 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
         // Admin accounts, global rules, all audit logs, system health. Never vouchers or money.
         Route::prefix('superadmin')->name('superadmin.')->middleware(['role:super_admin', 'throttle:superadmin'])->group(function () {
             Route::get('/dashboard', SuperAdminDashboardController::class)->name('dashboard');
-            Route::get('/admins', [SuperAdminAdminController::class, 'index'])->name('admins.index');
-            Route::get('/admins/form-defaults', [SuperAdminAdminController::class, 'formDefaults'])->name('admins.form-defaults');
-            Route::post('/admins', [SuperAdminAdminController::class, 'store'])->name('admins.store');
-            Route::post('/admins/{user}/invitation', [SuperAdminAdminController::class, 'resendInvitation'])
-                ->whereNumber('user')->name('admins.invitation');
-            Route::post('/admins/{user}/lock', [SuperAdminAdminController::class, 'lock'])->whereNumber('user')->name('admins.lock');
-            Route::post('/admins/{user}/unlock', [SuperAdminAdminController::class, 'unlock'])->whereNumber('user')->name('admins.unlock');
-            Route::post('/admins/{user}/password-reset', [SuperAdminAdminController::class, 'passwordReset'])
-                ->whereNumber('user')->name('admins.password-reset');
+            // Admins tab (Framer U7glXUOSF) + click-flows A1–A12
+            Route::prefix('admins')->name('admins.')->controller(SuperAdminAdminController::class)->group(function () {
+                Route::get('/', 'index')->name('index');
+                Route::get('/form-defaults', 'formDefaults')->name('form-defaults');
+                Route::get('/export', 'export')->name('export');
+                Route::post('/', 'store')->name('store');
+                Route::post('/bulk', 'bulk')->name('bulk');
+                Route::whereNumber('user')->group(function () {
+                    Route::get('/{user}', 'show')->name('show');
+                    Route::patch('/{user}', 'update')->name('update');
+                    Route::get('/{user}/activity', 'activity')->name('activity');
+                    Route::post('/{user}/invitation', 'resendInvitation')->name('invitation');
+                    Route::delete('/{user}/invitation', 'cancelInvitation')->name('invitation.cancel');
+                    Route::post('/{user}/password-reset', 'passwordReset')->name('password-reset');
+                    Route::post('/{user}/two-factor', 'requireTwoFactor')->name('two-factor');
+                    Route::post('/{user}/deactivate', 'deactivate')->name('deactivate');
+                    Route::post('/{user}/reactivate', 'reactivate')->name('reactivate');
+                    Route::post('/{user}/promote', 'promote')->name('promote');
+                });
+            });
 
             // Database backups: "Run a database backup now?" (Framer TKziMjHUe)
             Route::get('/backups/overview', [BackupController::class, 'overview'])->name('backups.overview');

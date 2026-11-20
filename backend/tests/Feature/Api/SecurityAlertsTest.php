@@ -17,7 +17,7 @@ use Tests\TestCase;
  *   The rules:  5 failed sign-ins in 5 minutes -> High;  Admin on a new device -> Medium;
  *               password changed via reset link -> Low
  *   The API:    GET/POST /api/v1/superadmin/security-alerts…,
- *               POST /api/v1/superadmin/admins/{id}/lock | unlock | password-reset
+ *               POST /api/v1/superadmin/admins/{id}/deactivate | reactivate | password-reset
  *
  * Run:  php artisan test --filter=SecurityAlertsTest
  */
@@ -174,22 +174,29 @@ class SecurityAlertsTest extends TestCase
             ->assertJsonPath('data.account.last_good_sign_in.device', 'Edge on Windows')
             ->assertJsonPath('data.ip_seen_before', false)
             ->assertJsonCount(1, 'data.events')
-            ->assertJsonPath('data.actions.lock', true)
-            ->assertJsonPath('data.actions.unlock', false)
+            ->assertJsonPath('data.actions.deactivate', true)
+            ->assertJsonPath('data.actions.reactivate', false)
             ->assertJsonPath('data.actions.reset_password', true)
             ->assertJsonPath('data.actions.account_note', null);
     }
 
-    public function test_super_admin_and_unknown_accounts_offer_no_account_actions(): void
+    public function test_account_actions_follow_the_shared_rules(): void
     {
+        // About ANOTHER Super Admin: may be deactivated (2 seats used, so not the last); no personal email to reset
         $aboutOwner = SecurityAlert::create(['type' => 'failed_sign_ins', 'severity' => 'high', 'user_id' => $this->otherOwner->id, 'subject_email' => 'ana@superadmin.com']);
+        // About YOURSELF: never deactivate yourself
+        $aboutMe = SecurityAlert::create(['type' => 'failed_sign_ins', 'severity' => 'high', 'user_id' => $this->owner->id, 'subject_email' => 'felix@superadmin.com']);
         $nobody = SecurityAlert::create(['type' => 'failed_sign_ins', 'severity' => 'high', 'subject_email' => 'ghost@administrator.com']);
 
         $this->actingAs($this->owner)->getJson(self::URL.'/'.$aboutOwner->id)
-            ->assertJsonPath('data.actions.lock', false)->assertJsonPath('data.actions.reset_password', false)
-            ->assertJsonPath('data.actions.account_note', 'Super Admin accounts can’t be locked or reset from here.');
+            ->assertJsonPath('data.actions.deactivate', true)
+            ->assertJsonPath('data.actions.reset_password', false)
+            ->assertJsonPath('data.actions.reset_note', 'There is no personal email to send the link to.');
+        $this->actingAs($this->owner)->getJson(self::URL.'/'.$aboutMe->id)
+            ->assertJsonPath('data.actions.deactivate', false)
+            ->assertJsonPath('data.actions.account_note', 'You can’t deactivate your own account.');
         $this->actingAs($this->owner)->getJson(self::URL.'/'.$nobody->id)
-            ->assertJsonPath('data.account', null)->assertJsonPath('data.actions.lock', false);
+            ->assertJsonPath('data.account', null)->assertJsonPath('data.actions.deactivate', false);
     }
 
     public function test_only_super_admins_get_in(): void
@@ -236,47 +243,53 @@ class SecurityAlertsTest extends TestCase
 
     // ---------------------------------------------------------------- lock / unlock
 
-    public function test_lock_needs_the_super_admins_password(): void
+    public function test_deactivate_needs_the_super_admins_password(): void
     {
-        $this->actingAs($this->owner)->postJson("/api/v1/superadmin/admins/{$this->admin->id}/lock", [])
+        $this->actingAs($this->owner)->postJson("/api/v1/superadmin/admins/{$this->admin->id}/deactivate", [])
             ->assertStatus(422)->assertJsonValidationErrors(['password' => 'Type your password to confirm.']);
-        $this->actingAs($this->owner)->postJson("/api/v1/superadmin/admins/{$this->admin->id}/lock", ['password' => 'nope'])
+        $this->actingAs($this->owner)->postJson("/api/v1/superadmin/admins/{$this->admin->id}/deactivate", ['password' => 'nope'])
             ->assertStatus(422)->assertJsonValidationErrors(['password' => 'That password is not correct.']);
 
         $this->assertTrue($this->admin->fresh()->is_active);
     }
 
-    public function test_lock_signs_the_admin_out_closes_the_alert_and_tells_the_other_owners(): void
+    public function test_deactivate_signs_the_admin_out_closes_the_alert_and_tells_the_other_owners(): void
     {
         $alert = $this->failedAlert();
         DB::table('sessions')->insert(['id' => 'abc', 'user_id' => $this->admin->id, 'payload' => '-', 'last_activity' => time()]);
 
-        $this->actingAs($this->owner)->postJson("/api/v1/superadmin/admins/{$this->admin->id}/lock", [
+        $this->actingAs($this->owner)->postJson("/api/v1/superadmin/admins/{$this->admin->id}/deactivate", [
             'password' => 'password', 'security_alert_id' => $alert->id,
-        ])->assertOk()->assertJsonPath('data.is_active', false);
+        ])->assertOk()->assertJsonPath('data.status', 'inactive');
 
         $this->assertFalse($this->admin->fresh()->is_active);
         $this->assertDatabaseMissing('sessions', ['user_id' => $this->admin->id]);
         $this->assertSame('reviewed', $alert->fresh()->status);
-        $this->assertDatabaseHas('audit_logs', ['action' => 'account_locked', 'record_id' => $this->admin->id]);
-        $this->assertDatabaseHas('notifications', ['recipient_id' => $this->otherOwner->id, 'title' => 'Admin account locked']);
+        $this->assertDatabaseHas('audit_logs', ['action' => 'account_deactivated', 'record_id' => $this->admin->id]);
+        $this->assertDatabaseHas('notifications', ['recipient_id' => $this->otherOwner->id, 'title' => 'Account deactivated']);
 
-        // The Admin can't sign in any more, and locking twice is a conflict
+        // The Admin can't sign in any more, and deactivating twice is a conflict
         $this->login('johndoe@administrator.com', 'password')->assertForbidden()->assertJsonPath('code', 'ACCOUNT_INACTIVE');
-        $this->actingAs($this->owner)->postJson("/api/v1/superadmin/admins/{$this->admin->id}/lock", ['password' => 'password'])
-            ->assertStatus(409)->assertJsonPath('code', 'ALREADY_LOCKED');
+        $this->actingAs($this->owner)->postJson("/api/v1/superadmin/admins/{$this->admin->id}/deactivate", ['password' => 'password'])
+            ->assertStatus(409)->assertJsonPath('code', 'ACTION_NOT_ALLOWED');
 
-        // Unlock brings them back
-        $this->actingAs($this->owner)->postJson("/api/v1/superadmin/admins/{$this->admin->id}/unlock")->assertOk();
+        // Reactivate brings them back
+        $this->actingAs($this->owner)->postJson("/api/v1/superadmin/admins/{$this->admin->id}/reactivate")->assertOk();
         $this->assertTrue($this->admin->fresh()->is_active);
-        $this->actingAs($this->owner)->postJson("/api/v1/superadmin/admins/{$this->admin->id}/unlock")->assertStatus(409);
+        $this->actingAs($this->owner)->postJson("/api/v1/superadmin/admins/{$this->admin->id}/reactivate")->assertStatus(409);
     }
 
-    public function test_only_admin_accounts_can_be_locked_or_reset_here(): void
+    public function test_company_users_and_the_last_super_admin_are_protected(): void
     {
-        $this->actingAs($this->owner)->postJson("/api/v1/superadmin/admins/{$this->otherOwner->id}/lock", ['password' => 'password'])->assertNotFound();
-        $this->actingAs($this->owner)->postJson("/api/v1/superadmin/admins/{$this->otherOwner->id}/password-reset")->assertNotFound();
-        $this->actingAs($this->admin)->postJson("/api/v1/superadmin/admins/{$this->admin->id}/unlock")->assertForbidden();
+        $clerk = User::factory()->create();
+        $this->actingAs($this->owner)->postJson("/api/v1/superadmin/admins/{$clerk->id}/deactivate", ['password' => 'password'])->assertNotFound();
+        $this->actingAs($this->owner)->postJson("/api/v1/superadmin/admins/{$this->owner->id}/deactivate", ['password' => 'password'])
+            ->assertStatus(409)->assertJsonPath('message', 'You can’t deactivate your own account.');
+        $this->actingAs($this->admin)->postJson("/api/v1/superadmin/admins/{$this->admin->id}/reactivate")->assertForbidden();
+
+        // Ana may be deactivated (Felix stays), but then Felix is the LAST one
+        $this->actingAs($this->owner)->postJson("/api/v1/superadmin/admins/{$this->otherOwner->id}/deactivate", ['password' => 'password'])->assertOk();
+        $this->actingAs($this->otherOwner->fresh())->getJson('/api/v1/superadmin/dashboard')->assertForbidden(); // signed out / blocked
     }
 
     // ---------------------------------------------------------------- password reset
@@ -316,9 +329,9 @@ class SecurityAlertsTest extends TestCase
         $pending = User::factory()->admin()->pending()->create(['personal_email' => 'p@gmail.com']);
 
         $this->actingAs($this->owner)->postJson("/api/v1/superadmin/admins/{$noEmail->id}/password-reset")
-            ->assertStatus(409)->assertJsonPath('code', 'NO_PERSONAL_EMAIL');
+            ->assertStatus(409)->assertJsonPath('message', 'There is no personal email to send the link to.');
         $this->actingAs($this->owner)->postJson("/api/v1/superadmin/admins/{$pending->id}/password-reset")
-            ->assertStatus(409)->assertJsonPath('code', 'NOT_ACTIVATED');
+            ->assertStatus(409)->assertJsonPath('message', 'They haven’t set a password yet. Resend their invitation instead.');
         Mail::assertNothingSent();
     }
 

@@ -3,10 +3,10 @@
 namespace App\Http\Requests\SuperAdmin;
 
 /**
- * Lock account. Locking works like deactivating, which the spec (§4) calls a SENSITIVE action,
- * so the Super Admin types their own password again ("current_password" checks it).
+ * Deactivate account. The spec (§4) calls deactivating SENSITIVE, so the Super Admin types
+ * their own password again ("current_password" checks it).
  */
-class LockAdminRequest extends AdminAccountActionRequest
+class DeactivateAccountRequest extends AdminAccountActionRequest
 {
     public function rules(): array
     {

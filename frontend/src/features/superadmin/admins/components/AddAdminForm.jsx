@@ -96,10 +96,18 @@ export default function AddAdminForm({ defaults, onCancel, onCreated, onDirtyCha
             label="Company"
             required
             error={errors.company_id?.message}
-            hint={company ? `${company.admins_count === 0 ? 'No Admin yet' : `Already has ${company.admins_count} Admin${company.admins_count === 1 ? '' : 's'}`}` : 'The one company this Admin will run'}
+            hint={
+              company
+                ? `${company.admins_count === 0 ? 'No Admin yet' : `Already has ${company.admins_count} Admin${company.admins_count === 1 ? '' : 's'}`}`
+                : 'The one company this Admin will run'
+            }
           >
             <div className="relative">
-              <select {...fieldProps('company_id')} {...register('company_id')} className={`${inputClass} appearance-none pr-9`}>
+              <select
+                {...fieldProps('company_id')}
+                {...register('company_id')}
+                className={`${inputClass} appearance-none pr-9`}
+              >
                 <option value="">Choose a company</option>
                 {defaults.companies.map((c) => (
                   <option key={c.id} value={c.id}>
@@ -107,7 +115,10 @@ export default function AddAdminForm({ defaults, onCancel, onCreated, onDirtyCha
                   </option>
                 ))}
               </select>
-              <ChevronDown className="pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+              <ChevronDown
+                className="pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2 text-muted-foreground"
+                aria-hidden="true"
+              />
             </div>
           </FieldShell>
           <FieldShell
@@ -134,8 +145,9 @@ export default function AddAdminForm({ defaults, onCancel, onCreated, onDirtyCha
           </span>
           <p className="text-caption">
             After you create the account, we email{' '}
-            <span className="font-medium text-foreground">{personalEmail?.trim() || 'their personal email'}</span> their sign-in
-            email and a one-time link to choose their own password. The link expires in 72 hours. No password is ever sent.
+            <span className="font-medium text-foreground">{personalEmail?.trim() || 'their personal email'}</span> their
+            sign-in email and a one-time link to choose their own password. The link expires in 72 hours. No password is
+            ever sent.
           </p>
         </div>
 
@@ -147,7 +159,10 @@ export default function AddAdminForm({ defaults, onCancel, onCreated, onDirtyCha
         </div>
 
         {formError && (
-          <div role="alert" className="flex items-start gap-2.5 rounded-[10px] border border-danger/20 bg-danger-soft p-3">
+          <div
+            role="alert"
+            className="flex items-start gap-2.5 rounded-[10px] border border-danger/20 bg-danger-soft p-3"
+          >
             <TriangleAlert className="mt-0.5 size-4 shrink-0 text-danger" aria-hidden="true" />
             <div>
               <p className="text-body-strong text-danger">{formError.message}</p>

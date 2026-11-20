@@ -164,7 +164,8 @@ class SuperAdminCreateAdminTest extends TestCase
         $clerk = User::factory()->create(['access_status' => 'pending']);
 
         $this->actingAs($this->owner)->postJson("/api/v1/superadmin/admins/{$active->id}/invitation")
-            ->assertStatus(409)->assertJsonPath('code', 'ALREADY_ACTIVE');
+            ->assertStatus(409)->assertJsonPath('code', 'ACTION_NOT_ALLOWED')
+            ->assertJsonPath('message', 'Only Admins who haven’t set a password yet get invitations.');
         $this->actingAs($this->owner)->postJson("/api/v1/superadmin/admins/{$clerk->id}/invitation")
             ->assertNotFound();
     }

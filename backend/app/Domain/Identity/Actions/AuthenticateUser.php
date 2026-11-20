@@ -14,13 +14,22 @@ use Illuminate\Validation\ValidationException;
  * The rules live here, so they can be tested and reused.
  *
  * Order: 1) check the password WITHOUT signing in, 2) check the account is allowed in,
- * 3) only then sign in. A blocked person never gets a session, not even for a moment.
+ * 3) two-step sign-in, if it's on or required, 4) only then sign in.
+ * A blocked person never gets a session, not even for a moment.
  */
 class AuthenticateUser
 {
     public function __construct(private WatchSignIns $watch) {}
 
-    public function handle(string $email, string $password, bool $remember = false, ?string $ip = null, ?string $userAgent = null): User
+    /**
+     * Steps 1–3. Returns the user and what still has to happen:
+     *   ['user' => User, 'two_factor' => null]         → call finish() now
+     *   ['user' => User, 'two_factor' => 'challenge']  → ask for the 6-digit code first
+     *   ['user' => User, 'two_factor' => 'setup']      → they must set up two-step first
+     *
+     * @return array{user: User, two_factor: ?string}
+     */
+    public function check(string $email, string $password, ?string $ip = null, ?string $userAgent = null): array
     {
         $guard = Auth::guard('web');
 
@@ -45,9 +54,21 @@ class AuthenticateUser
             throw $problem;
         }
 
+        $twoFactor = match (true) {
+            $user->hasTwoFactor() => 'challenge',
+            $user->mustSetUpTwoFactor() => 'setup',
+            default => null,
+        };
+
+        return ['user' => $user, 'two_factor' => $twoFactor];
+    }
+
+    /** Step 4: really sign in (after the password, and the code if two-step is on). */
+    public function finish(User $user, bool $remember = false, ?string $ip = null, ?string $userAgent = null): User
+    {
         // "Keep me signed in" (a 30-day cookie) is never allowed for Super Admins:
         // the platform owner's session must end after the short idle timeout (spec §4.6).
-        $guard->login($user, $remember && $user->role !== 'super_admin');
+        Auth::guard('web')->login($user, $remember && $user->role !== 'super_admin');
 
         // forceFill + saveQuietly: update one column without firing model events
         $user->forceFill(['last_login_at' => now()])->saveQuietly();

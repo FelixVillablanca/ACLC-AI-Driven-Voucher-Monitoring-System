@@ -27,7 +27,7 @@ export const apiClient = axios.create({
 export const BACKGROUND = Object.freeze({ headers: { 'X-Background-Refresh': '1' } })
 
 /** Codes meaning "the server has signed you out" (the message explains why). */
-const SIGNED_OUT_CODES = ['SESSION_EXPIRED', 'COMPANY_SUSPENDED', 'ACCOUNT_INACTIVE']
+const SIGNED_OUT_CODES = ['SESSION_EXPIRED', 'COMPANY_SUSPENDED', 'ACCOUNT_INACTIVE', 'TWO_FACTOR_SETUP_REQUIRED']
 
 // BEFORE every request: attach the active company and a duplicate-guard key
 apiClient.interceptors.request.use((config) => {
@@ -48,7 +48,7 @@ apiClient.interceptors.response.use(
     const apiError = normalizeApiError(error)
 
     // The login form shows its own errors, so only handle sessions that were already open
-    const isLogin = /\/auth\/(login|invitation\/)/.test(error.config?.url ?? '')
+    const isLogin = /\/auth\/(login|invitation\/|two-factor\/)/.test(error.config?.url ?? '')
 
     // Signed out by the server (idle too long, company suspended, account deactivated):
     // forget the user, and SAY WHY, instead of silently dropping them on the login page.

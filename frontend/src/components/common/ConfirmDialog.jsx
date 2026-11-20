@@ -12,7 +12,7 @@ const CONFIRM_TONES = {
  * "Are you sure?" dialog (14px radius, Muted footer, like the other Framer modals).
  * Render it only while it's open, inside <AnimatePresence>.
  *
- *   <ConfirmDialog title="Lock John's account?" confirmLabel="Lock account" tone="danger"
+ *   <ConfirmDialog title="Deactivate John's account?" confirmLabel="Deactivate account" tone="danger"
  *     busy={saving} error={error} onConfirm={…} onCancel={…}>
  *     …what will happen, extra fields…
  *   </ConfirmDialog>
@@ -28,6 +28,9 @@ export default function ConfirmDialog({
   error,
   onConfirm,
   onCancel,
+  confirmDisabled = false, // e.g. a checklist isn't complete yet
+  extraAction = null, // { label, onClick }: one more button, before the confirm button
+  width = 460,
   children,
 }) {
   const titleId = useId()
@@ -46,7 +49,7 @@ export default function ConfirmDialog({
 
   const submit = (e) => {
     e.preventDefault()
-    if (!busy) onConfirm()
+    if (!busy && !confirmDisabled) onConfirm()
   }
 
   return (
@@ -67,9 +70,10 @@ export default function ConfirmDialog({
         animate={{ opacity: 1, y: 0, scale: 1 }}
         exit={{ opacity: 0, y: 6, scale: 0.98 }}
         transition={{ duration: 0.16, ease: 'easeOut' }}
-        className="flex w-[460px] max-w-full flex-col overflow-hidden rounded-[14px] border bg-card text-foreground shadow-2xl"
+        style={{ width }}
+        className="flex max-h-[calc(100dvh-2rem)] max-w-full flex-col overflow-hidden rounded-[14px] border bg-card text-foreground shadow-2xl"
       >
-        <div className="flex flex-col gap-3 px-6 pt-6 pb-5">
+        <div className="flex min-h-0 flex-col gap-3 overflow-y-auto px-6 pt-6 pb-5">
           <h2 id={titleId} className="text-card-title text-base">
             {title}
           </h2>
@@ -95,11 +99,21 @@ export default function ConfirmDialog({
           >
             Cancel
           </button>
+          {extraAction && (
+            <button
+              type="button"
+              onClick={extraAction.onClick}
+              disabled={busy}
+              className="text-body-strong h-[38px] rounded-lg border bg-card px-3.5 text-primary outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring/50 disabled:opacity-60"
+            >
+              {extraAction.label}
+            </button>
+          )}
           <button
             type="submit"
-            disabled={busy}
+            disabled={busy || confirmDisabled}
             className={cn(
-              'text-auth-button flex h-[38px] items-center gap-1.5 rounded-lg px-3.5 outline-none focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-70',
+              'text-auth-button flex h-[38px] items-center gap-1.5 rounded-lg px-3.5 outline-none focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50',
               CONFIRM_TONES[tone],
             )}
           >

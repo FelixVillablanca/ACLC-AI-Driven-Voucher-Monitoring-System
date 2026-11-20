@@ -152,11 +152,11 @@ export function suggestedStep(alert) {
       if (account.role !== 'admin') return 'This is a company user. Let their company’s Admin know.'
       if (alert.ip_seen_before === true)
         return `${name} has signed in from this IP before, so they may have forgotten their password. Check with them, and reset the password if it wasn’t them.`
-      return `The IP is new for this admin. Lock the account until ${name} confirms it was them, or reset their password.`
+      return `The IP is new for this admin. Deactivate the account until ${name} confirms it was them, or reset their password.`
     case 'new_device_sign_in':
-      return `Ask ${name} if they signed in with ${alert.device ?? 'this device'}${alert.ip_seen_before === false ? ' (the IP is new too)' : ''}. If not, lock the account and reset the password.`
+      return `Ask ${name} if they signed in with ${alert.device ?? 'this device'}${alert.ip_seen_before === false ? ' (the IP is new too)' : ''}. If not, deactivate the account and reset the password.`
     case 'password_changed':
-      return `If ${name} didn’t choose a new password, lock the account right away.`
+      return `If ${name} didn’t choose a new password, deactivate the account right away.`
     case 'super_admin_added':
       return 'Make sure this person should have full access to the whole platform.'
     default:

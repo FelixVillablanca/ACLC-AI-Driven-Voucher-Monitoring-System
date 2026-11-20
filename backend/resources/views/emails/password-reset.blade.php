@@ -7,8 +7,13 @@
       <div style="display:inline-block;width:32px;height:32px;line-height:32px;text-align:center;border-radius:8px;background:#1E1B4B;color:#FFFFFF;font-size:12px;font-weight:600;">VM</div>
       <h1 style="font-size:22px;line-height:1.3;margin:16px 0 4px;">Hi {{ $user->first_name }}, please choose a new password</h1>
       <p style="font-size:14px;line-height:1.5;color:#64748B;margin:0;">
+        @if ($signedOut)
         To keep your account safe, a Super Admin of the AI-Driven Voucher Monitoring System reset your password
         and signed you out on all devices. Your old password no longer works.
+        @else
+        A Super Admin of the AI-Driven Voucher Monitoring System sent you a link to choose a new password.
+        Your current password keeps working until you use it.
+        @endif
       </p>
     </td></tr>
     <tr><td style="padding:16px 28px;">

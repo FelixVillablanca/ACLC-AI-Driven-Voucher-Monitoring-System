@@ -37,6 +37,12 @@ class AppServiceProvider extends ServiceProvider
             Str::lower((string) $request->input('email')).'|'.$request->ip()
         ));
 
+        // Two-step codes: 6 tries per minute per browser session (and per IP), so 6-digit codes can't be guessed
+        RateLimiter::for('two-factor', fn (Request $request) => [
+            Limit::perMinute(6)->by('two-factor|'.($request->hasSession() ? $request->session()->getId() : '').'|'.$request->ip()),
+            Limit::perMinute(30)->by('two-factor-ip|'.$request->ip()),
+        ]);
+
         // "Set your password" links: 10 tries per minute per computer, so tokens can't be guessed
         RateLimiter::for('invitation', fn (Request $request) => Limit::perMinute(10)->by('invitation|'.$request->ip()));
 

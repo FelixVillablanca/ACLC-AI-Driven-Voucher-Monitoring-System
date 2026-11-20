@@ -33,7 +33,9 @@ export default function AdminCreatedPanel({ result, onCreateAnother, onDone }) {
             <CircleCheck className="size-5" aria-hidden="true" />
           </span>
           <div>
-            <p className="text-card-title">{admin.full_name} is now Admin of {admin.company?.name}</p>
+            <p className="text-card-title">
+              {admin.full_name} is now Admin of {admin.company?.name}
+            </p>
             <p className="text-body text-muted-foreground">Shown as Pending until they set their password.</p>
           </div>
         </div>
@@ -51,16 +53,21 @@ export default function AdminCreatedPanel({ result, onCreateAnother, onDone }) {
           <div role="status" className="flex items-start gap-3 rounded-[10px] bg-success-soft px-3.5 py-3">
             <MailCheck className="mt-0.5 size-4 shrink-0 text-success" aria-hidden="true" />
             <p className="text-caption">
-              <span className="font-medium text-success">Invitation sent to {admin.personal_email}.</span> The set-password
-              link works once and expires in 72 hours.
+              <span className="font-medium text-success">Invitation sent to {admin.personal_email}.</span> The
+              set-password link works once and expires in 72 hours.
             </p>
           </div>
         ) : (
-          <div role="alert" className="flex flex-wrap items-center gap-3 rounded-[10px] border border-warning/30 bg-warning-soft px-3.5 py-3">
+          <div
+            role="alert"
+            className="flex flex-wrap items-center gap-3 rounded-[10px] border border-warning/30 bg-warning-soft px-3.5 py-3"
+          >
             <MailWarning className="size-4 shrink-0 text-warning" aria-hidden="true" />
             <p className="text-caption min-w-0 flex-1">
-              <span className="font-medium text-warning">The account was created, but the email couldn&apos;t be sent</span> to{' '}
-              {admin.personal_email}. Try again in a moment.
+              <span className="font-medium text-warning">
+                The account was created, but the email couldn&apos;t be sent
+              </span>{' '}
+              to {admin.personal_email}. Try again in a moment.
             </p>
             <button
               type="button"
@@ -68,7 +75,11 @@ export default function AdminCreatedPanel({ result, onCreateAnother, onDone }) {
               disabled={resending}
               className="text-auth-link flex h-8 items-center gap-1.5 rounded-lg border bg-card px-3 text-primary outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring/50 disabled:opacity-60"
             >
-              {resending ? <Loader2 className="size-3.5 animate-spin" aria-hidden="true" /> : <RotateCw className="size-3.5" aria-hidden="true" />}
+              {resending ? (
+                <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />
+              ) : (
+                <RotateCw className="size-3.5" aria-hidden="true" />
+              )}
               {resending ? 'Sending…' : 'Resend link'}
             </button>
           </div>

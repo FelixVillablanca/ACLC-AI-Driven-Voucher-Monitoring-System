@@ -159,6 +159,8 @@ Admins set up their one company; the Super Admin runs the whole platform.
 | Admin accounts page (Admins tab: search, filters, table, ⋯ row menu) | `bxGFPLOVN` | 2026-11-20 |
 | Run database backup (+ nightly 02:00 backups, keep newest 7) | `TKziMjHUe` | 2026-11-21 |
 | Retry failed background jobs | `fzdOvPqCX` | 2026-11-21 |
+| Admins tab, full version (cards, views, sort, bulk, export, profile, edit, reset, two-step, Make Super Admin, deactivate, cancel invite) | `U7glXUOSF` + A1–A12 (`x8wWbSPsg` for A11) | 2026-11-21 |
+| Two-step sign-in (authenticator app, backup codes, setup deadline) | A11 | 2026-11-21 |
 
 Also done in this phase: platform default settings (high-value threshold ₱50,000.00, AI sensitivity balanced,
 OpenAI cap $25.00, Super Admin idle timeout 15 min), Asia/Manila timezone, company suspension blocking,
@@ -178,12 +180,11 @@ voucher types, payee types. Plus the shared conventions: filtering / sorting / p
 | Company panel (suspend / reactivate) | `FC7jMBFYg` |
 | Edit global settings (password to save) | `C3d2wopED` |
 | Account menu (v2 nav) | `PSEjFM9zW` |
-| Admins tab, fuller version + click-flows A1–A12 (export, search, sort, pending, bulk, row menu, profile, edit, password reset, require two-step, make Super Admin) | `XGSlfiNvJ`, `U7glXUOSF`, `tzF153Wh1` … `QgC8ADhk4` |
 | Companies tab + click-flows C1–C8 | `vnNFYExpX`, `CGGx439Db` + 8 |
 | Global settings tab + sections (AI & anomaly, OpenAI usage) + click-flows | `tsrXCiWWw`, `BfnusLHkd`, `bKB5a9QuJ` + their sets |
 | Audit logs tab + click-flows AL1–AL9 | `EJ0asP2ZH` + 8 |
 | System health tab + click-flows SH1–SH10 | `m80KDanOj` + 10 |
-| Not designed yet: A13 Deactivate admin, success/error message sheet, tablet/phone nav | — |
+| Not designed yet: success/error message sheet, tablet/phone nav | — |
 
 **Concepts:** REST resource design (§4.1), pagination (§4.5), caching + invalidation, queues & background jobs (§3.6),
 scheduler (§3.7), row locking for "only one at a time" rules (§3.4).

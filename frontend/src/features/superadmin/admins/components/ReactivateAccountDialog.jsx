@@ -1,10 +1,10 @@
 import { useState } from 'react'
 import ConfirmDialog from '@/components/common/ConfirmDialog'
-import { unlockAdminAccount } from '../api'
+import { reactivateAccount } from '../api'
 import { announceAdminsChanged } from '../utils'
 
-/** "Unlock account" confirm (undoes Lock). account: { id, full_name } */
-export default function UnlockAdminDialog({ account, onCancel, onDone }) {
+/** "Reactivate account" confirm (undoes Deactivate). account: { id, full_name } */
+export default function ReactivateAccountDialog({ account, onCancel, onDone }) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState(null)
 
@@ -12,9 +12,9 @@ export default function UnlockAdminDialog({ account, onCancel, onDone }) {
     setBusy(true)
     setError(null)
     try {
-      await unlockAdminAccount(account.id)
+      await reactivateAccount(account.id)
       announceAdminsChanged()
-      onDone(`${account.full_name}'s account is unlocked`)
+      onDone(`${account.full_name}'s account is active again`)
     } catch (err) {
       setError(err)
       setBusy(false)
@@ -23,14 +23,17 @@ export default function UnlockAdminDialog({ account, onCancel, onDone }) {
 
   return (
     <ConfirmDialog
-      title={`Unlock ${account.full_name}'s account?`}
-      confirmLabel="Unlock account"
+      title={`Reactivate ${account.full_name}'s account?`}
+      confirmLabel="Reactivate account"
       busy={busy}
       error={error}
       onConfirm={confirm}
       onCancel={onCancel}
     >
-      <p>They can sign in again with their current password. If you also reset it, they need the emailed link first.</p>
+      <p>
+        They can sign in again with their current password. If their password was reset, they need the emailed link
+        first.
+      </p>
     </ConfirmDialog>
   )
 }

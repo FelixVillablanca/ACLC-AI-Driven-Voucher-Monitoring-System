@@ -5,7 +5,11 @@ import toast from 'react-hot-toast'
 import EmptyState from '@/components/common/EmptyState'
 import ErrorState from '@/components/common/ErrorState'
 import Pill from '@/components/common/Pill'
-import { LockAdminDialog, ResetAdminPasswordDialog, UnlockAdminDialog } from '@/features/superadmin/admins'
+import {
+  DeactivateAccountDialog,
+  ReactivateAccountDialog,
+  ResetAdminPasswordDialog,
+} from '@/features/superadmin/admins'
 import { ROLE_SHORT_LABELS } from '@/lib/constants'
 import { formatInitials, plural } from '@/lib/formatters'
 import { reviewSecurityAlert } from '../api'
@@ -29,11 +33,11 @@ const FIRST_ROWS = 3
 /**
  * Alert detail (Framer SCoT_cu7B, 480px): "← All alerts", the pill + title + rule,
  * the Account card, "What happened", "Suggested next step", and the footer actions
- * (Mark as reviewed · Reset password · Lock account).
+ * (Mark as reviewed · Reset password · Deactivate account; "Lock" was renamed 2026-11-21).
  */
 export default function AlertDetailView({ alertId, onBack, onClose }) {
   const detail = useSecurityAlert(alertId)
-  const [dialog, setDialog] = useState(null) // 'lock' | 'unlock' | 'reset'
+  const [dialog, setDialog] = useState(null) // 'deactivate' | 'reactivate' | 'reset'
   const [reviewing, setReviewing] = useState(false)
 
   const refresh = () => {
@@ -100,25 +104,24 @@ export default function AlertDetailView({ alertId, onBack, onClose }) {
       )}
 
       {detail.status === 'success' && (
-        <Loaded
-          alert={detail.alert}
-          reviewing={reviewing}
-          onMarkReviewed={markReviewed}
-          onOpenDialog={setDialog}
-        />
+        <Loaded alert={detail.alert} reviewing={reviewing} onMarkReviewed={markReviewed} onOpenDialog={setDialog} />
       )}
 
       <AnimatePresence>
-        {detail.alert && dialog === 'lock' && (
-          <LockAdminDialog
+        {detail.alert && dialog === 'deactivate' && (
+          <DeactivateAccountDialog
             account={detail.alert.account}
             alertId={detail.alert.id}
             onCancel={() => setDialog(null)}
             onDone={onDialogDone}
           />
         )}
-        {detail.alert && dialog === 'unlock' && (
-          <UnlockAdminDialog account={detail.alert.account} onCancel={() => setDialog(null)} onDone={onDialogDone} />
+        {detail.alert && dialog === 'reactivate' && (
+          <ReactivateAccountDialog
+            account={detail.alert.account}
+            onCancel={() => setDialog(null)}
+            onDone={onDialogDone}
+          />
         )}
         {detail.alert && dialog === 'reset' && (
           <ResetAdminPasswordDialog
@@ -182,14 +185,16 @@ function Loaded({ alert, reviewing, onMarkReviewed, onOpenDialog }) {
             </FooterButton>
           )}
           {actions.reset_password && <FooterButton onClick={() => onOpenDialog('reset')}>Reset password</FooterButton>}
-          {actions.unlock && <FooterButton onClick={() => onOpenDialog('unlock')}>Unlock account</FooterButton>}
-          {actions.lock && (
+          {actions.reactivate && (
+            <FooterButton onClick={() => onOpenDialog('reactivate')}>Reactivate account</FooterButton>
+          )}
+          {actions.deactivate && (
             <button
               type="button"
-              onClick={() => onOpenDialog('lock')}
+              onClick={() => onOpenDialog('deactivate')}
               className="text-auth-button flex h-[38px] items-center rounded-lg bg-danger px-3.5 text-white outline-none hover:bg-danger/90 focus-visible:ring-3 focus-visible:ring-ring/50"
             >
-              Lock account
+              Deactivate account
             </button>
           )}
         </div>
@@ -257,7 +262,9 @@ function WhatHappened({ alert }) {
         </button>
       )}
       {showAll && notKept > 0 && (
-        <p className="text-caption">{plural(notKept, 'older attempt isn’t', 'older attempts aren’t')} listed (the last 50 are kept).</p>
+        <p className="text-caption">
+          {plural(notKept, 'older attempt isn’t', 'older attempts aren’t')} listed (the last 50 are kept).
+        </p>
       )}
     </section>
   )

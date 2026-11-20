@@ -3,22 +3,22 @@ import { listAdmins } from '../api'
 import { ADMINS_CHANGED_EVENT } from '../utils'
 
 /**
- * One page of the Admin accounts table for the current filters.
+ * One page of the Admins table for the current view / search / sort.
  *   { status: 'loading' | 'success' | 'error', accounts, meta, error, reload }
  *
  * The saved answer remembers WHICH filters it was for, so changing a filter shows
  * "loading" on its own. Older, slower answers are ignored (request id).
- * Refreshes quietly when an Admin is created / locked / unlocked anywhere in the app.
+ * Refreshes quietly when an account is created / changed anywhere in the app.
  */
-export function useAdminAccounts({ status, role, search, page }) {
-  const key = JSON.stringify([status, role, search, page])
+export function useAdminAccounts({ view, search, sort, order, page }) {
+  const key = JSON.stringify([view, search, sort, order, page])
   const [state, setState] = useState({ key: null, status: 'loading', accounts: [], meta: null, error: null })
   const requestRef = useRef(0)
 
   const fetchPage = useCallback(
     (quiet = false) => {
       const id = ++requestRef.current
-      return listAdmins({ status, role, search, page })
+      return listAdmins({ view, search, sort, order, page })
         .then(({ accounts, meta }) => {
           if (id === requestRef.current) setState({ key, status: 'success', accounts, meta, error: null })
         })
@@ -27,7 +27,7 @@ export function useAdminAccounts({ status, role, search, page }) {
           setState((prev) => (quiet && prev.status === 'success' ? prev : { ...prev, key, status: 'error', error }))
         })
     },
-    [key, status, role, search, page],
+    [key, view, search, sort, order, page],
   )
 
   useEffect(() => {
@@ -47,7 +47,7 @@ export function useAdminAccounts({ status, role, search, page }) {
     status: current ? state.status : 'loading',
     accounts: current ? state.accounts : [],
     error: current ? state.error : null,
-    meta: state.meta, // chip counts + subtitle stay visible while the next page loads
+    meta: state.meta, // the cards and tab numbers stay visible while the next page loads
     reload,
   }
 }

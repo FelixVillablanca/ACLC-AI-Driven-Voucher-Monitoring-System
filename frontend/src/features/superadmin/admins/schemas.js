@@ -15,7 +15,10 @@ export const createAdminSchema = z.object({
     .min(1, 'Enter the email name (the part before @).')
     .max(64, 'The email name can be at most 64 characters.')
     .regex(/^[a-z0-9]+([._-][a-z0-9]+)*$/i, 'Use only letters, numbers and . _ - (no spaces or @).'),
-  company_id: z.coerce.number({ error: 'Choose the company this Admin will run.' }).int().positive('Choose the company this Admin will run.'),
+  company_id: z.coerce
+    .number({ error: 'Choose the company this Admin will run.' })
+    .int()
+    .positive('Choose the company this Admin will run.'),
   personal_email: z
     .string()
     .trim()
