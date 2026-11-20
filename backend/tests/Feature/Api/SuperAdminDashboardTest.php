@@ -6,6 +6,7 @@ use App\Domain\Platform\SystemHealth;
 use App\Domain\Platform\SystemSettings;
 use App\Models\Company;
 use App\Models\Notification;
+use App\Models\SecurityAlert;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
@@ -89,14 +90,12 @@ class SuperAdminDashboardTest extends TestCase
             'uuid' => 'job-1', 'connection' => 'database', 'queue' => 'default',
             'payload' => json_encode(['displayName' => 'App\\Jobs\\RunAnomalyCheck']), 'exception' => 'Timeout',
         ]);
-        // 2 unread security alerts for THIS Super Admin (+1 read, +1 for someone else: not counted)
-        foreach (['Old alert', 'Newest alert'] as $i => $title) {
-            $n = new Notification(['recipient_id' => $owner->id, 'type' => 'security_alert', 'title' => $title, 'message' => '-']);
-            $n->created_at = now()->subMinutes(10 - $i);
-            $n->save();
-        }
-        Notification::create(['recipient_id' => $owner->id, 'type' => 'security_alert', 'title' => 'Read', 'message' => '-', 'is_read' => true]);
-        Notification::create(['recipient_id' => $otherOwner->id, 'type' => 'security_alert', 'title' => 'Not mine', 'message' => '-']);
+        // 2 shared security alerts not reviewed yet (+1 reviewed: not counted). Shared = the same for every Super Admin.
+        SecurityAlert::create(['type' => 'new_device_sign_in', 'severity' => 'medium', 'subject_email' => 'old@administrator.com']);
+        SecurityAlert::create(['type' => 'failed_sign_ins', 'severity' => 'high', 'subject_email' => 'newest@administrator.com']);
+        SecurityAlert::create(['type' => 'password_changed', 'severity' => 'low', 'status' => 'reviewed', 'subject_email' => 'x@administrator.com', 'reviewed_by' => $otherOwner->id]);
+        // A personal notification is NOT an alert any more
+        Notification::create(['recipient_id' => $owner->id, 'type' => 'security_alert', 'title' => 'Bell only', 'message' => '-']);
         // A suspended company with 2 people in it
         $north = Company::factory()->create(['name' => 'Northfield', 'is_active' => false]);
         $north->forceFill(['suspended_at' => now()->subDay()])->save();
@@ -114,7 +113,8 @@ class SuperAdminDashboardTest extends TestCase
             ->assertJsonPath('data.attention.1.jobs', ['RunAnomalyCheck'])
             ->assertJsonPath('data.attention.2.type', 'security_alerts')
             ->assertJsonPath('data.attention.2.count', 2)
-            ->assertJsonPath('data.attention.2.latest', 'Newest alert')
+            ->assertJsonPath('data.attention.2.severity', 'danger') // one of them is High
+            ->assertJsonPath('data.attention.2.latest', ['type' => 'failed_sign_ins', 'subject_email' => 'newest@administrator.com'])
             ->assertJsonPath('data.attention.3.type', 'company_suspended')
             ->assertJsonPath('data.attention.3.company.name', 'Northfield')
             ->assertJsonPath('data.attention.3.users_affected', 2);

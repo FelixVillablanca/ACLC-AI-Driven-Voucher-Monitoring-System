@@ -5,8 +5,9 @@ namespace App\Domain\Identity\Actions;
 use App\Domain\Identity\Support\EmployeeIdGenerator;
 use App\Domain\Identity\Support\RoleEmailDomains;
 use App\Domain\Reporting\Queries\SuperAdminDashboardSummary;
+use App\Domain\Security\Actions\RaiseSecurityAlert;
 use App\Exceptions\ApiException;
-use App\Models\Notification;
+use App\Models\SecurityAlert;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 
@@ -19,11 +20,11 @@ use Illuminate\Support\Facades\DB;
  *      The LOCK stops two terminals from both taking "the last seat" at the same moment.
  *   2. create the user (email built by the server: {name}@Superadmin.com)
  *   3. write an audit-log row (user_id NULL = done by the system console, company_id NULL = platform-level)
- *   4. tell the other Super Admins (security_alert), because a new platform owner is a sensitive change
+ *   4. raise a (low) security alert + tell the other Super Admins, because a new platform owner is a sensitive change
  */
 class CreateSuperAdmin
 {
-    public function __construct(private EmployeeIdGenerator $employeeIds) {}
+    public function __construct(private EmployeeIdGenerator $employeeIds, private RaiseSecurityAlert $raise) {}
 
     public function handle(string $firstName, string $lastName, string $username, string $password): User
     {
@@ -73,12 +74,13 @@ class CreateSuperAdmin
                 'updated_at' => now(),
             ]);
 
-            $existing->each(fn (User $other) => Notification::create([
-                'recipient_id' => $other->id,
-                'type' => 'security_alert',
-                'title' => 'New Super Admin added',
-                'message' => "{$user->full_name} ({$user->email}) was made a Super Admin from the server console.",
-            ]));
+            $this->raise->handle([
+                'type' => SecurityAlert::TYPE_SUPER_ADMIN_ADDED,
+                'severity' => 'low',
+                'user_id' => $user->id,
+                'subject_email' => strtolower($user->email),
+                'details' => ['via' => 'console: superadmin:create'],
+            ], 'New Super Admin added', "{$user->full_name} ({$user->email}) was made a Super Admin from the server console.", [$user->id]);
 
             return $user;
         });

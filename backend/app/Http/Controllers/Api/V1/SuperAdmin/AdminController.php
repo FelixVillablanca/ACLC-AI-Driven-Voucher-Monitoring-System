@@ -3,10 +3,15 @@
 namespace App\Http\Controllers\Api\V1\SuperAdmin;
 
 use App\Domain\Identity\Actions\CreateAdmin;
+use App\Domain\Identity\Actions\LockAdminAccount;
 use App\Domain\Identity\Actions\SendAccountInvitation;
+use App\Domain\Identity\Actions\SendPasswordReset;
+use App\Domain\Identity\Actions\UnlockAdminAccount;
 use App\Domain\Identity\Support\EmployeeIdGenerator;
 use App\Exceptions\ApiException;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\SuperAdmin\AdminAccountActionRequest;
+use App\Http\Requests\SuperAdmin\LockAdminRequest;
 use App\Http\Requests\SuperAdmin\StoreAdminRequest;
 use App\Http\Resources\UserResource;
 use App\Models\Company;
@@ -75,5 +80,42 @@ class AdminController extends Controller
         }
 
         return response()->json(['data' => ['sent_to' => $user->personal_email]]);
+    }
+
+    /** POST /api/v1/superadmin/admins/{user}/lock  { password, security_alert_id? } (Alert detail, SCoT_cu7B) */
+    public function lock(LockAdminRequest $request, User $user, LockAdminAccount $lock): UserResource
+    {
+        $this->mustBeAdmin($user);
+
+        return UserResource::make($lock->handle($user, $request->user(), $request->validated('security_alert_id'), $request->ip()));
+    }
+
+    /** POST /api/v1/superadmin/admins/{user}/unlock */
+    public function unlock(AdminAccountActionRequest $request, User $user, UnlockAdminAccount $unlock): UserResource
+    {
+        $this->mustBeAdmin($user);
+
+        return UserResource::make($unlock->handle($user, $request->user(), $request->ip()));
+    }
+
+    /**
+     * POST /api/v1/superadmin/admins/{user}/password-reset  { security_alert_id? }
+     * Emails a 60-minute "choose a new password" link and stops the old password working.
+     */
+    public function passwordReset(AdminAccountActionRequest $request, User $user, SendPasswordReset $reset): JsonResponse
+    {
+        $this->mustBeAdmin($user);
+
+        $sentTo = $reset->handle($user, $request->user(), $request->validated('security_alert_id'), $request->ip());
+
+        return response()->json(['data' => ['sent_to' => $sentTo]]);
+    }
+
+    /** Only Admin accounts are managed here; anything else looks like it doesn't exist (404). */
+    private function mustBeAdmin(User $user): void
+    {
+        if ($user->role !== 'admin') {
+            throw new ApiException('We could not find what you are looking for.', 'NOT_FOUND', 404);
+        }
     }
 }

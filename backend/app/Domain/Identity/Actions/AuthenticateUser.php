@@ -3,6 +3,7 @@
 namespace App\Domain\Identity\Actions;
 
 use App\Domain\Identity\Support\AccountStanding;
+use App\Domain\Security\Actions\WatchSignIns;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
@@ -17,13 +18,20 @@ use Illuminate\Validation\ValidationException;
  */
 class AuthenticateUser
 {
-    public function handle(string $email, string $password, bool $remember = false): User
+    public function __construct(private WatchSignIns $watch) {}
+
+    public function handle(string $email, string $password, bool $remember = false, ?string $ip = null, ?string $userAgent = null): User
     {
         $guard = Auth::guard('web');
 
         // Wrong email OR wrong password -> the SAME message, on purpose.
         // Saying "email not found" would tell attackers which emails exist.
+        // (Only the audit log and the Security alerts panel know which one it was.)
         if (! $guard->validate(['email' => $email, 'password' => $password])) {
+            /** @var User|null $known */
+            $known = $guard->getLastAttempted();
+            $this->watch->failed($email, $known, $known ? 'wrong_password' : 'unknown_email', $ip, $userAgent);
+
             throw ValidationException::withMessages([
                 'email' => 'These credentials do not match our records.',
             ]);
@@ -43,6 +51,9 @@ class AuthenticateUser
 
         // forceFill + saveQuietly: update one column without firing model events
         $user->forceFill(['last_login_at' => now()])->saveQuietly();
+
+        // Audit row + "new device?" check (Security alerts panel)
+        $this->watch->succeeded($user, $ip, $userAgent);
 
         return $user;
     }

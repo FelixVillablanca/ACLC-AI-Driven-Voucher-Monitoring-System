@@ -27,6 +27,7 @@ class UserResource extends JsonResource
             'email' => $this->email,
             'personal_email' => $this->personal_email,
             'role' => $this->role,
+            'is_active' => (bool) $this->is_active, // false = deactivated or locked
             'profile_photo' => $this->profile_photo,
             'last_login_at' => $this->last_login_at?->toIso8601String(),
             'company' => CompanySummaryResource::make($this->whenLoaded('company')),

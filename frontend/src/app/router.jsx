@@ -33,7 +33,7 @@ const SUPERADMIN_NOTIFICATION_LINKS = {
   viewAll: PATHS.SUPERADMIN_NOTIFICATIONS,
   settings: PATHS.SUPERADMIN_ACCOUNT,
   categories: {
-    security: PATHS.SUPERADMIN_AUDIT_LOGS,
+    security: '?panel=security-alerts', // opens the Security alerts panel on the current page
     access: PATHS.SUPERADMIN_ADMINS,
     users: PATHS.SUPERADMIN_ADMINS,
     departments: PATHS.SUPERADMIN_COMPANIES,
@@ -124,17 +124,24 @@ export const router = createBrowserRouter([
               {
                 // White top navigation around every Super Admin page (Framer uH0wO9f5O)
                 lazy: async () => {
-                  const [{ default: SuperAdminLayout }, { NotificationBell }, { AddAdminModal }] = await Promise.all([
-                    import('@/components/layout/SuperAdminLayout'),
-                    import('@/features/notifications'),
-                    import('@/features/superadmin/admins'),
-                  ])
+                  const [{ default: SuperAdminLayout }, { NotificationBell }, { AddAdminModal }, { SecurityAlertsPanel }] =
+                    await Promise.all([
+                      import('@/components/layout/SuperAdminLayout'),
+                      import('@/features/notifications'),
+                      import('@/features/superadmin/admins'),
+                      import('@/features/superadmin/security'),
+                    ])
                   return {
                     Component: () => (
                       <SuperAdminLayout
                         onSignOut={signOut}
                         notifications={<NotificationBell links={SUPERADMIN_NOTIFICATION_LINKS} />}
-                        overlays={<AddAdminModal />}
+                        overlays={
+                          <>
+                            <AddAdminModal />
+                            <SecurityAlertsPanel />
+                          </>
+                        }
                       />
                     ),
                   }

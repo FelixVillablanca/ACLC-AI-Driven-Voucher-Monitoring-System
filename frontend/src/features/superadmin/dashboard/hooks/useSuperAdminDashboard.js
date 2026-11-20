@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { ADMINS_CHANGED_EVENT } from '@/features/superadmin/admins'
+import { SECURITY_ALERTS_CHANGED_EVENT } from '@/features/superadmin/security'
 import { getSuperAdminDashboard } from '../api'
 
 /** The Services panel is "checked every 60 seconds" (Framer m80KDanOj), so the page refreshes itself that often. */
@@ -32,12 +33,15 @@ export function useSuperAdminDashboard() {
   useEffect(() => {
     load()
     const timer = setInterval(() => document.visibilityState === 'visible' && load(true), REFRESH_EVERY_MS)
-    // An Admin was just created (Create admin modal): refresh the numbers right away
-    const onAdminsChanged = () => load()
-    window.addEventListener(ADMINS_CHANGED_EVENT, onAdminsChanged)
+    // An Admin was just created, or an alert/account changed in the Security alerts panel:
+    // refresh the numbers right away (quietly: the page stays on screen)
+    const onChanged = () => load(true)
+    window.addEventListener(ADMINS_CHANGED_EVENT, onChanged)
+    window.addEventListener(SECURITY_ALERTS_CHANGED_EVENT, onChanged)
     return () => {
       clearInterval(timer)
-      window.removeEventListener(ADMINS_CHANGED_EVENT, onAdminsChanged)
+      window.removeEventListener(ADMINS_CHANGED_EVENT, onChanged)
+      window.removeEventListener(SECURITY_ALERTS_CHANGED_EVENT, onChanged)
     }
   }, [load])
 

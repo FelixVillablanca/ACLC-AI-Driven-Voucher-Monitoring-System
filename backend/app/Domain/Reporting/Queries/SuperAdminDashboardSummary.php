@@ -2,11 +2,10 @@
 
 namespace App\Domain\Reporting\Queries;
 
-use App\Domain\Notifications\NotificationType;
 use App\Domain\Platform\SystemHealth;
 use App\Domain\Platform\SystemSettings;
 use App\Models\Company;
-use App\Models\Notification;
+use App\Models\SecurityAlert;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
@@ -41,7 +40,7 @@ class SuperAdminDashboardSummary
             'checked_at' => now()->toIso8601String(),
             'counts' => $this->counts(),
             'services' => $services,
-            'attention' => $this->attention($viewer, collect($services)->keyBy('key')->all()),
+            'attention' => $this->attention(collect($services)->keyBy('key')->all()),
             'admins' => $this->admins(),
             'rules' => $this->rules(),
         ];
@@ -79,7 +78,7 @@ class SuperAdminDashboardSummary
      * @param  array<string, array<string, mixed>>  $services
      * @return array<int, array<string, mixed>>
      */
-    private function attention(User $viewer, array $services): array
+    private function attention(array $services): array
     {
         $items = [];
 
@@ -99,14 +98,17 @@ class SuperAdminDashboardSummary
             $items[] = ['type' => 'failed_jobs', 'severity' => 'warning', 'count' => $failed, 'jobs' => $this->health->failedJobNames()];
         }
 
-        $alerts = Notification::for($viewer)->unread()->whereIn('type', NotificationType::valuesInCategory('security'));
+        // Shared security alerts not reviewed yet (Security alerts panel, Framer mQcXDCyDZ).
+        // Red when one of them is High (e.g. many failed sign-ins), amber otherwise.
+        $alerts = SecurityAlert::open();
         $alertCount = (clone $alerts)->count();
         if ($alertCount > 0) {
+            $latest = (clone $alerts)->latest('id')->first(['type', 'subject_email']);
             $items[] = [
                 'type' => 'security_alerts',
-                'severity' => 'warning',
+                'severity' => (clone $alerts)->where('severity', 'high')->exists() ? 'danger' : 'warning',
                 'count' => $alertCount,
-                'latest' => (clone $alerts)->latest('created_at')->latest('id')->value('title'),
+                'latest' => ['type' => $latest->type, 'subject_email' => $latest->subject_email],
             ];
         }
 

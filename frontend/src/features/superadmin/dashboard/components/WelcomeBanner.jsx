@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
 import { Plus } from 'lucide-react'
 import { CREATE_ADMIN_SEARCH } from '@/features/superadmin/admins'
-import { PATHS } from '@/lib/constants'
+import { SECURITY_ALERTS_SEARCH } from '@/features/superadmin/security'
 import { formatDate, greeting } from '@/lib/formatters'
 import { attentionSummary } from '../utils'
 import ServicesPanel from './ServicesPanel'
@@ -32,8 +32,9 @@ export default function WelcomeBanner({ firstName, attentionCount, companies, se
             <Plus className="size-4" aria-hidden="true" />
             Add admin
           </Link>
+          {/* Opens the Security alerts panel (Framer mQcXDCyDZ) on top of this page */}
           <Link
-            to={`${PATHS.SUPERADMIN_AUDIT_LOGS}?sensitive=1`}
+            to={{ search: SECURITY_ALERTS_SEARCH }}
             className="text-auth-link flex h-[38px] items-center rounded-lg border bg-card px-3.5 text-primary outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring/50"
           >
             Review security alerts

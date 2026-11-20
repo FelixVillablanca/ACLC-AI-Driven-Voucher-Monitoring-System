@@ -1,4 +1,5 @@
 import { Building2, Cpu, DatabaseBackup, RotateCw, ShieldAlert } from 'lucide-react'
+import { alertShortName, SECURITY_ALERTS_SEARCH } from '@/features/superadmin/security'
 import { PATHS } from '@/lib/constants'
 import { formatDayAgo, formatTimeAgo, plural } from '@/lib/formatters'
 
@@ -99,9 +100,11 @@ export function describeAttention(item) {
         tone,
         icon: ShieldAlert,
         title: `${plural(item.count, 'security alert', 'security alerts')} not reviewed`,
-        caption: item.latest ?? 'Check who signed in and what changed',
+        caption: item.latest
+          ? `Latest: ${alertShortName(item.latest.type)} · ${item.latest.subject_email}`
+          : 'Check who signed in and what changed',
         action: 'Review',
-        to: `${PATHS.SUPERADMIN_AUDIT_LOGS}?sensitive=1`,
+        to: SECURITY_ALERTS_SEARCH,
       }
     case 'company_suspended':
       return {

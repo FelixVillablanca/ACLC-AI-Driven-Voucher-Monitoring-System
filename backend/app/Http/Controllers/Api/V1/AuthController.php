@@ -29,6 +29,8 @@ class AuthController extends Controller
             $request->validated('email'),
             $request->validated('password'),
             $request->boolean('remember'),
+            $request->ip(),
+            $request->userAgent(),
         );
 
         // New session ID after login, so an old (possibly stolen) ID becomes useless.

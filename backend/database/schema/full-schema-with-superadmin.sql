@@ -1,21 +1,26 @@
 -- =====================================================================
 -- AI-Driven Voucher Monitoring System: FULL database schema (MariaDB 10.4)
--- Rebuilt 2026-11-19 for re-creating the database after the XAMPP crash.
+-- First built 2026-11-19 for re-creating the database after the XAMPP crash.
+-- Refreshed 2026-11-20 from the live database (`php artisan schema:dump`), so it is
+-- the same as mysql-schema.sql plus this header and the commented CREATE DATABASE lines.
 --
--- = mysql-schema.sql (official baseline) + the 6 migrations dated 2026_11_19_*
---   (backend/database/migrations/), all approved by the user on 2026-11-19:
---   000001  users.role also allows 'super_admin'                     (docx section 4)
---   000002  NEW table system_settings (Super Admin global settings)  (docx section 4.9)
---   000003  audit_logs.user_id / company_id may be NULL (system / platform-level rows);
---           deleting a user/company that has audit or approval history is REFUSED
---   000004  companies: suspended_at, suspended_by, suspension_reason;
---           companies/departments.is_active are 0/1, never NULL (default 1)
---   000005  voucher/payee type names and category codes are unique PER COMPANY
---   000006  voucher_categories.is_active is 0/1 instead of 'activated'/'notActivated'
+-- Migrations included on top of the original baseline:
+--   2026_11_19_000001  users.role also allows 'super_admin'                     (docx section 4)
+--   2026_11_19_000002  NEW table system_settings (Super Admin global settings)  (docx section 4.9)
+--   2026_11_19_000003  audit_logs.user_id / company_id may be NULL (system / platform-level rows);
+--                      deleting a user/company that has audit or approval history is REFUSED
+--   2026_11_19_000004  companies: suspended_at, suspended_by, suspension_reason;
+--                      companies/departments.is_active are 0/1, never NULL (default 1)
+--   2026_11_19_000005  voucher/payee type names and category codes are unique PER COMPANY
+--   2026_11_19_000006  voucher_categories.is_active is 0/1 instead of 'activated'/'notActivated'
+--   2026_11_19_174142  users.deactivated_at
+--   2026_11_20_000001  users.last_login_at has no default (NULL until the first sign-in)
+--   2026_11_20_000002  users.personal_email (where invitation / reset links are sent)
+--   2026_11_20_000003  NEW table security_alerts (Security alerts panel, shared by Super Admins)
 -- Checked against docs/System_Flow_Roles_and_UML_Design.docx (ER + class diagrams).
 --
--- The `migrations` rows at the bottom mark ALL migrations (including the 6 new ones)
--- as already run, so `php artisan migrate` will have nothing to do afterwards.
+-- The `migrations` rows at the bottom mark ALL migrations as already run,
+-- so `php artisan migrate` will have nothing to do afterwards.
 --
 -- How to use it (phpMyAdmin "Import", or the mysql CLI):
 --   1. Create the empty database (uncomment the 3 lines below, or do it in phpMyAdmin).
@@ -383,6 +388,35 @@ CREATE TABLE `roles` (
   UNIQUE KEY `roles_name_guard_name_unique` (`name`,`guard_name`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
+DROP TABLE IF EXISTS `security_alerts`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `security_alerts` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `type` varchar(40) NOT NULL,
+  `severity` enum('high','medium','low') NOT NULL,
+  `status` enum('open','reviewed','dismissed') NOT NULL DEFAULT 'open',
+  `user_id` bigint(20) unsigned DEFAULT NULL,
+  `subject_email` varchar(255) NOT NULL COMMENT 'The email typed / the account email, kept even if the account is gone',
+  `ip_address` varchar(45) DEFAULT NULL,
+  `device` varchar(100) DEFAULT NULL COMMENT 'e.g. "Chrome on Windows"',
+  `event_count` int(10) unsigned NOT NULL DEFAULT 1,
+  `first_seen_at` timestamp NULL DEFAULT NULL,
+  `last_seen_at` timestamp NULL DEFAULT NULL,
+  `details` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`details`)),
+  `reviewed_by` bigint(20) unsigned DEFAULT NULL,
+  `reviewed_at` timestamp NULL DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `security_alerts_user_id_foreign` (`user_id`),
+  KEY `security_alerts_reviewed_by_foreign` (`reviewed_by`),
+  KEY `security_alerts_status_created_at_index` (`status`,`created_at`),
+  KEY `security_alerts_type_subject_email_status_index` (`type`,`subject_email`,`status`),
+  CONSTRAINT `security_alerts_reviewed_by_foreign` FOREIGN KEY (`reviewed_by`) REFERENCES `users` (`id`) ON DELETE SET NULL,
+  CONSTRAINT `security_alerts_user_id_foreign` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `sessions`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -486,6 +520,7 @@ CREATE TABLE `users` (
   `first_name` varchar(100) DEFAULT NULL,
   `last_name` varchar(100) DEFAULT NULL,
   `email` varchar(255) NOT NULL,
+  `personal_email` varchar(255) DEFAULT NULL,
   `password` varchar(255) NOT NULL,
   `is_active` tinyint(4) NOT NULL DEFAULT 0,
   `access_status` enum('accepted','pending','rejected') NOT NULL DEFAULT 'pending',
@@ -493,7 +528,7 @@ CREATE TABLE `users` (
   `department_id` bigint(20) unsigned DEFAULT NULL,
   `company_id` bigint(20) unsigned DEFAULT NULL,
   `profile_photo` varchar(500) DEFAULT NULL,
-  `last_login_at` timestamp NULL DEFAULT current_timestamp(),
+  `last_login_at` timestamp NULL DEFAULT NULL,
   `deactivated_at` timestamp NULL DEFAULT NULL,
   `remember_token` varchar(100) DEFAULT NULL,
   `created_at` timestamp NULL DEFAULT NULL,
@@ -712,3 +747,7 @@ INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (51,'2026_11_19_000
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (52,'2026_11_19_000004_add_suspension_to_companies_and_fix_is_active',37);
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (53,'2026_11_19_000005_make_catalog_names_unique_per_company',37);
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (54,'2026_11_19_000006_change_voucher_categories_is_active_to_boolean',37);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (55,'2026_11_19_174142_add_deactivated_at_column_in_users_table',38);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (56,'2026_11_20_000001_remove_default_from_users_last_login_at',39);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (57,'2026_11_20_000002_add_personal_email_to_users',40);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (58,'2026_11_20_000003_create_security_alerts_table',41);

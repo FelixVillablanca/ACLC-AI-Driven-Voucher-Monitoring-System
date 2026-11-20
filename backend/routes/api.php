@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\V1\InvitationController;
 use App\Http\Controllers\Api\V1\NotificationController;
 use App\Http\Controllers\Api\V1\SuperAdmin\AdminController as SuperAdminAdminController;
 use App\Http\Controllers\Api\V1\SuperAdmin\DashboardController as SuperAdminDashboardController;
+use App\Http\Controllers\Api\V1\SuperAdmin\SecurityAlertController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -65,6 +66,19 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
             Route::post('/admins', [SuperAdminAdminController::class, 'store'])->name('admins.store');
             Route::post('/admins/{user}/invitation', [SuperAdminAdminController::class, 'resendInvitation'])
                 ->whereNumber('user')->name('admins.invitation');
+            Route::post('/admins/{user}/lock', [SuperAdminAdminController::class, 'lock'])->whereNumber('user')->name('admins.lock');
+            Route::post('/admins/{user}/unlock', [SuperAdminAdminController::class, 'unlock'])->whereNumber('user')->name('admins.unlock');
+            Route::post('/admins/{user}/password-reset', [SuperAdminAdminController::class, 'passwordReset'])
+                ->whereNumber('user')->name('admins.password-reset');
+
+            // Security alerts panel (Framer mQcXDCyDZ) + Alert detail (SCoT_cu7B)
+            Route::prefix('security-alerts')->name('security-alerts.')->group(function () {
+                Route::get('/', [SecurityAlertController::class, 'index'])->name('index');
+                Route::post('/review-all', [SecurityAlertController::class, 'reviewAll'])->name('review-all');
+                Route::get('/{alert}', [SecurityAlertController::class, 'show'])->whereNumber('alert')->name('show');
+                Route::post('/{alert}/review', [SecurityAlertController::class, 'review'])->whereNumber('alert')->name('review');
+                Route::post('/{alert}/dismiss', [SecurityAlertController::class, 'dismiss'])->whereNumber('alert')->name('dismiss');
+            });
         });
 
         // Next: company-scoped routes (ResolveCompany middleware) go here.

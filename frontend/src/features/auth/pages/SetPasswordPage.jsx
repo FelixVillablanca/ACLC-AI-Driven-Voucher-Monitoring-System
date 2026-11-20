@@ -32,7 +32,7 @@ export default function SetPasswordPage() {
   const runCheck = useCallback(
     () =>
       checkInvitation({ email, token })
-        .then((data) => setLink({ status: 'valid', firstName: data.first_name, error: null }))
+        .then((data) => setLink({ status: 'valid', firstName: data.first_name, kind: data.kind, error: null }))
         .catch((error) =>
           setLink({ status: error.status === 410 || error.status === 422 ? 'invalid' : 'error', firstName: null, error }),
         ),
@@ -88,7 +88,7 @@ export default function SetPasswordPage() {
             />
           )}
 
-          {!missing && link.status === 'valid' && <SetPasswordForm email={email} token={token} firstName={link.firstName} />}
+          {!missing && link.status === 'valid' && <SetPasswordForm email={email} token={token} firstName={link.firstName} kind={link.kind} />}
         </section>
       </main>
     </div>
@@ -120,7 +120,7 @@ const RULES = [
   { test: (v) => /[0-9]/.test(v), label: 'Numbers' },
 ]
 
-function SetPasswordForm({ email, token, firstName }) {
+function SetPasswordForm({ email, token, firstName, kind }) {
   const navigate = useNavigate()
   const [formError, setFormError] = useState(null)
   const {
@@ -147,10 +147,11 @@ function SetPasswordForm({ email, token, firstName }) {
     <>
       <div className="flex flex-col gap-1.5">
         <h1 id="set-password-heading" className="text-auth-heading">
-          {firstName ? `Welcome, ${firstName}` : 'Set your password'}
+          {kind === 'reset' ? 'Choose a new password' : firstName ? `Welcome, ${firstName}` : 'Set your password'}
         </h1>
         <p className="text-body text-muted-foreground">
-          Choose a password for <span className="font-medium text-foreground">{email}</span>. You’ll use it to sign in.
+          {kind === 'reset' ? 'Your old password no longer works. Choose a new one for ' : 'Choose a password for '}
+          <span className="font-medium text-foreground">{email}</span>. You’ll use it to sign in.
         </p>
       </div>
 

@@ -354,6 +354,35 @@ CREATE TABLE `roles` (
   UNIQUE KEY `roles_name_guard_name_unique` (`name`,`guard_name`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
+DROP TABLE IF EXISTS `security_alerts`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `security_alerts` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `type` varchar(40) NOT NULL,
+  `severity` enum('high','medium','low') NOT NULL,
+  `status` enum('open','reviewed','dismissed') NOT NULL DEFAULT 'open',
+  `user_id` bigint(20) unsigned DEFAULT NULL,
+  `subject_email` varchar(255) NOT NULL COMMENT 'The email typed / the account email, kept even if the account is gone',
+  `ip_address` varchar(45) DEFAULT NULL,
+  `device` varchar(100) DEFAULT NULL COMMENT 'e.g. "Chrome on Windows"',
+  `event_count` int(10) unsigned NOT NULL DEFAULT 1,
+  `first_seen_at` timestamp NULL DEFAULT NULL,
+  `last_seen_at` timestamp NULL DEFAULT NULL,
+  `details` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`details`)),
+  `reviewed_by` bigint(20) unsigned DEFAULT NULL,
+  `reviewed_at` timestamp NULL DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `security_alerts_user_id_foreign` (`user_id`),
+  KEY `security_alerts_reviewed_by_foreign` (`reviewed_by`),
+  KEY `security_alerts_status_created_at_index` (`status`,`created_at`),
+  KEY `security_alerts_type_subject_email_status_index` (`type`,`subject_email`,`status`),
+  CONSTRAINT `security_alerts_reviewed_by_foreign` FOREIGN KEY (`reviewed_by`) REFERENCES `users` (`id`) ON DELETE SET NULL,
+  CONSTRAINT `security_alerts_user_id_foreign` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `sessions`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -687,3 +716,4 @@ INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (54,'2026_11_19_000
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (55,'2026_11_19_174142_add_deactivated_at_column_in_users_table',38);
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (56,'2026_11_20_000001_remove_default_from_users_last_login_at',39);
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (57,'2026_11_20_000002_add_personal_email_to_users',40);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (58,'2026_11_20_000003_create_security_alerts_table',41);
