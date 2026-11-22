@@ -18,10 +18,9 @@ const page = (importer) => async () => ({ Component: (await importer()).default 
 /** Where the admin bell panel's links go (Framer D7aTKQEDz). Clicking a notification opens its category's page. */
 const ADMIN_NOTIFICATION_LINKS = {
   viewAll: PATHS.ADMIN_NOTIFICATIONS,
-  settings: PATHS.ADMIN_SETTINGS,
   categories: {
     security: PATHS.ADMIN_AUDIT_LOGS,
-    access: PATHS.ADMIN_COMPANY_ACCESS,
+    access: `${PATHS.ADMIN_COMPANY_ACCESS}?view=requests`, // requests to join, invitation answers
     users: PATHS.ADMIN_USERS,
     departments: PATHS.ADMIN_DEPARTMENTS,
     companies: PATHS.ADMIN, // an Admin has one company: its news shows on the dashboard
@@ -31,7 +30,6 @@ const ADMIN_NOTIFICATION_LINKS = {
 /** Where the Super Admin bell panel's links go. */
 const SUPERADMIN_NOTIFICATION_LINKS = {
   viewAll: PATHS.SUPERADMIN_NOTIFICATIONS,
-  settings: PATHS.SUPERADMIN_ACCOUNT,
   categories: {
     security: '?panel=security-alerts', // opens the Security alerts panel on the current page
     access: PATHS.SUPERADMIN_ADMINS,
@@ -42,16 +40,12 @@ const SUPERADMIN_NOTIFICATION_LINKS = {
   },
 }
 
-/** A route for a screen that isn't built yet (shows "coming soon" inside the layout). */
-const comingSoon = (path, title) => ({
+/** "All notifications": the same page for Admin and Super Admin; `links` says where a click goes. */
+const notificationsPage = (path, links) => ({
   path,
   lazy: async () => {
-    const { default: ComingSoonPage } = await import('@/pages/ComingSoonPage')
-    return {
-      Component: () => (
-        <ComingSoonPage className="py-24" title={`${title}: coming soon`} description="This screen is built from its own Framer frame." />
-      ),
-    }
+    const { NotificationsPage } = await import('@/features/notifications')
+    return { Component: () => <NotificationsPage links={links} /> }
   },
 })
 
@@ -63,6 +57,12 @@ const accountPages = (paths) => [
   { path: paths.activity, lazy: page(() => import('@/features/account/pages/MyActivityPage')) },
   { path: paths.help, lazy: page(() => import('@/features/account/pages/HelpSupportPage')) },
 ]
+
+/** Where the clerk's bell links go. Clerk pages beyond the dashboard come with the voucher forms. */
+const CLERK_NOTIFICATION_LINKS = {
+  viewAll: PATHS.CLERK_NOTIFICATIONS,
+  categories: { access: '?companies=manage' }, // invitations / answers open the Join another company window
+}
 
 /** A landing area that only ONE operational role can open, e.g. /clerk for accounting clerks. */
 const roleArea = (role, path) => ({
@@ -130,13 +130,11 @@ export const router = createBrowserRouter([
                   { path: PATHS.ADMIN_DEPARTMENTS, lazy: page(() => import('@/features/admin/departments/pages/DepartmentsPage')) },
                   { path: PATHS.ADMIN_USERS, lazy: page(() => import('@/features/admin/users/pages/UsersPage')) },
                   { path: PATHS.ADMIN_COMPANY_ACCESS, lazy: page(() => import('@/features/admin/access/pages/CompanyAccessPage')) },
-                  comingSoon(PATHS.ADMIN_CATEGORIES, 'Categories'),
-                  comingSoon(PATHS.ADMIN_VOUCHER_TYPES, 'Voucher types'),
-                  comingSoon(PATHS.ADMIN_PAYEE_TYPES, 'Payee types'),
-                  comingSoon(PATHS.ADMIN_AUDIT_LOGS, 'Audit Logs'),
+                  { path: PATHS.ADMIN_CATEGORIES, lazy: page(() => import('@/features/admin/catalog/pages/CategoriesPage')) },
+                  { path: PATHS.ADMIN_AUDIT_LOGS, lazy: page(() => import('@/features/admin/audit/pages/AuditLogsPage')) },
                   // Account menu (⋮ under the user name, Framer nj06iziQJ)
                   ...accountPages(ACCOUNT_PATHS[ROLES.ADMIN]),
-                  comingSoon(PATHS.ADMIN_NOTIFICATIONS, 'All notifications'),
+                  notificationsPage(PATHS.ADMIN_NOTIFICATIONS, ADMIN_NOTIFICATION_LINKS),
                 ],
               },
             ],
@@ -209,15 +207,51 @@ export const router = createBrowserRouter([
                   },
                   // Account menu (avatar in the top nav)
                   ...accountPages(ACCOUNT_PATHS[ROLES.SUPER_ADMIN]),
-                  comingSoon(PATHS.SUPERADMIN_NOTIFICATIONS, 'All notifications'),
+                  notificationsPage(PATHS.SUPERADMIN_NOTIFICATIONS, SUPERADMIN_NOTIFICATION_LINKS),
                 ],
               },
             ],
           },
 
           // OPERATIONS areas: one per role, and ONLY that role may enter (others see 403).
-          // Each also needs an active company. The real dashboards come from their Framer frames.
-          roleArea(ROLES.CLERK, PATHS.CLERK),
+          // Each also needs an active company. Officer and supervisor dashboards come from their Framer frames.
+          // ACCOUNTING CLERK (Framer LolF6YFo5): dark sidebar + company switcher around every clerk page
+          {
+            element: <RequireRole roles={[ROLES.CLERK]} />,
+            children: [
+              {
+                element: <RequireCompany />,
+                children: [
+                  {
+                    lazy: async () => {
+                      const [{ default: OperationsLayout }, { NotificationBell }, { ClerkNav }, { JoinCompanyModal, MANAGE_COMPANIES_SEARCH }] =
+                        await Promise.all([
+                          import('@/components/layout/OperationsLayout'),
+                          import('@/features/notifications'),
+                          import('@/features/dashboard'),
+                          import('@/features/joinCompany'),
+                        ])
+                      return {
+                        Component: () => (
+                          <OperationsLayout
+                            nav={ClerkNav}
+                            onSignOut={signOut}
+                            notifications={<NotificationBell links={CLERK_NOTIFICATION_LINKS} />}
+                            manageCompaniesSearch={MANAGE_COMPANIES_SEARCH}
+                            overlays={<JoinCompanyModal />}
+                          />
+                        ),
+                      }
+                    },
+                    children: [
+                      { path: PATHS.CLERK, lazy: page(() => import('@/features/dashboard/pages/ClerkDashboardPage')) },
+                      notificationsPage(PATHS.CLERK_NOTIFICATIONS, CLERK_NOTIFICATION_LINKS),
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
           roleArea(ROLES.OFFICER, PATHS.OFFICER),
           roleArea(ROLES.SUPERVISOR, PATHS.SUPERVISOR),
         ],

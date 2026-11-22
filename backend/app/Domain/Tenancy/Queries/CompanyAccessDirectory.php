@@ -7,26 +7,28 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 
 /**
- * People & Access → Company access (code-first 2026-11-22). One company: the Admin's own.
+ * People & Access → Company access. One company: the Admin's own.
+ * Split in two (user decision 2026-11-22):
  *
- * Who is listed: clerks / officers / supervisors who EITHER belong to this company (home company)
- * OR have an access row for it (e.g. someone from another company who was given access).
- * For each: their access to THIS company = accepted | pending | denied | none (no row),
- * who granted / changed it and when.
+ *   in_company        clerks / officers / supervisors whose HOME company is this one, with their access
+ *                     to it (accepted | pending | denied | none) → filter[access]=has|none
+ *   other_companies   people of OTHER companies who WORK here (accepted access). They're shown with their
+ *                     work email and role only (CompanyAccessRowResource); their home Admin manages them.
  *
- * Views: has_access (accepted) · no_access (pending, denied or none = can't open the company) ·
- *        other_companies (people whose home company is another one)
+ * Open invites and requests are on their own tab (CrossCompanyDirectory::pending).
  */
 class CompanyAccessDirectory
 {
-    public const VIEWS = ['has_access', 'no_access', 'other_companies'];
+    public const VIEWS = ['in_company', 'other_companies'];
+
+    public const ACCESS = ['has', 'none'];
 
     public const SORTS = ['name', 'name_desc', 'recent'];
 
     public function __construct(private int $companyId) {}
 
-    /** The people + their access columns for this company (access_status, access_changed_at, access_by_name). */
-    public function base(?string $search = null): Builder
+    /** One view's people + their access columns for this company (access_status, access_changed_at, access_by_name). */
+    public function base(string $view = 'in_company', ?string $search = null): Builder
     {
         $row = fn (string $column) => DB::table('user_company_access')
             ->select($column)
@@ -37,22 +39,25 @@ class CompanyAccessDirectory
         $query = User::query()
             ->select('users.*')
             ->whereIn('users.role', AccessCandidates::OPERATIONAL_ROLES)
-            ->where(fn (Builder $q) => $q
-                ->where('users.company_id', $this->companyId)
-                ->orWhereExists(fn ($e) => $e->from('user_company_access')
-                    ->whereColumn('user_company_access.user_id', 'users.id')
-                    ->where('user_company_access.company_id', $this->companyId)))
             ->addSelect([
                 'access_status' => $row('granted_status'),
+                'access_kind' => $row('kind'),
                 'access_changed_at' => $row('granted_at'),
                 'access_by_name' => DB::table('user_company_access')
-                    ->join('users as granter', 'granter.id', '=', 'user_company_access.granted_by')
+                    ->join('users as granter', 'granter.id', '=', DB::raw('COALESCE(user_company_access.responded_by, user_company_access.granted_by, user_company_access.requested_by)'))
                     ->selectRaw("TRIM(CONCAT(granter.first_name, ' ', granter.last_name))")
                     ->whereColumn('user_company_access.user_id', 'users.id')
                     ->where('user_company_access.company_id', $this->companyId)
                     ->limit(1),
             ])
             ->with(['department:id,name', 'company:id,name']);
+
+        if ($view === 'other_companies') {
+            $query->where('users.company_id', '!=', $this->companyId)
+                ->whereExists($this->accepted());
+        } else {
+            $query->where('users.company_id', $this->companyId);
+        }
 
         if ($search) {
             $like = '%'.addcslashes($search, '\\%_').'%';
@@ -61,23 +66,19 @@ class CompanyAccessDirectory
                 ->orWhere('users.last_name', 'like', $like)
                 ->orWhereRaw("CONCAT(users.first_name, ' ', users.last_name) LIKE ?", [$like])
                 ->orWhere('users.email', 'like', $like)
-                ->orWhere('users.employee_id', 'like', $like));
+                // employee IDs belong to the home company: only searchable for this company's own people
+                ->when($view === 'in_company', fn ($w) => $w->orWhere('users.employee_id', 'like', $like)));
         }
 
         return $query;
     }
 
-    public function view(Builder $query, ?string $view): Builder
+    /** filter[access] on the In your company view: has = can open it, none = can't yet. */
+    public function access(Builder $query, ?string $access): Builder
     {
-        $accepted = fn ($e) => $e->from('user_company_access')
-            ->whereColumn('user_company_access.user_id', 'users.id')
-            ->where('user_company_access.company_id', $this->companyId)
-            ->where('user_company_access.granted_status', 'accepted');
-
-        return match ($view) {
-            'has_access' => $query->whereExists($accepted),
-            'no_access' => $query->whereNotExists($accepted),
-            'other_companies' => $query->where('users.company_id', '!=', $this->companyId),
+        return match ($access) {
+            'has' => $query->whereExists($this->accepted()),
+            'none' => $query->whereNotExists($this->accepted()),
             default => $query,
         };
     }
@@ -91,26 +92,40 @@ class CompanyAccessDirectory
         };
     }
 
+    /** The tab numbers (they follow the search). */
     public function viewCounts(?string $search): array
     {
-        $count = fn (?string $view) => $this->view($this->base($search), $view)->count();
-
         return [
-            'all' => $count(null),
-            'has_access' => $count('has_access'),
-            'no_access' => $count('no_access'),
-            'other_companies' => $count('other_companies'),
+            'in_company' => $this->base('in_company', $search)->count(),
+            'other_companies' => $this->base('other_companies', $search)->count(),
+            'requests' => $this->pendingCount('request'),
         ];
     }
 
-    /** The cards. "can_be_granted" = what the Grant company access dialog will list. */
+    /** The cards. */
     public function summary(): array
     {
         return [
-            'has_access' => $this->view($this->base(), 'has_access')->count(),
-            'no_access' => $this->view($this->base(), 'no_access')->count(),
-            'other_companies' => $this->view($this->base(), 'other_companies')->where('users.is_active', true)->count(),
+            'has_access' => $this->access($this->base('in_company'), 'has')->count(),
+            'no_access' => $this->access($this->base('in_company'), 'none')->count(),
+            'other_companies' => $this->base('other_companies')->count(),
+            'requests' => $this->pendingCount('request'),
+            'invites' => $this->pendingCount('invite'),
             'can_be_granted' => AccessCandidates::query($this->companyId)->count(),
         ];
+    }
+
+    private function accepted(): \Closure
+    {
+        return fn ($e) => $e->from('user_company_access')
+            ->whereColumn('user_company_access.user_id', 'users.id')
+            ->where('user_company_access.company_id', $this->companyId)
+            ->where('user_company_access.granted_status', 'accepted');
+    }
+
+    private function pendingCount(string $kind): int
+    {
+        return DB::table('user_company_access')->where('company_id', $this->companyId)
+            ->where('granted_status', 'pending')->where('kind', $kind)->count();
     }
 }

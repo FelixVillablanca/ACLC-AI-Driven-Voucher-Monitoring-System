@@ -3,7 +3,7 @@ import { ACCOUNT_PATHS, PATHS, ROLES } from '@/lib/constants'
 import { cn } from '@/lib/utils'
 import TopNavUserMenu from './TopNavUserMenu'
 
-/** The 6 tabs, in the Framer order. Only Overview is built; the others open "coming soon" pages for now. */
+/** The 6 tabs, in the Framer order (all built). */
 const TABS = [
   { to: PATHS.SUPERADMIN, label: 'Overview', end: true },
   { to: PATHS.SUPERADMIN_ADMINS, label: 'Admins' },

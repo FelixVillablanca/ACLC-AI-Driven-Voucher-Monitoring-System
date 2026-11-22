@@ -1,6 +1,8 @@
 <?php
 
 use App\Http\Controllers\Api\V1\AccountController;
+use App\Http\Controllers\Api\V1\Admin\AuditLogController as AdminAuditLogController;
+use App\Http\Controllers\Api\V1\Admin\CatalogController as AdminCatalogController;
 use App\Http\Controllers\Api\V1\Admin\CompanyAccessController as AdminCompanyAccessController;
 use App\Http\Controllers\Api\V1\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Api\V1\Admin\DepartmentController as AdminDepartmentController;
@@ -8,8 +10,10 @@ use App\Http\Controllers\Api\V1\Admin\LookupController;
 use App\Http\Controllers\Api\V1\Admin\SearchController as AdminSearchController;
 use App\Http\Controllers\Api\V1\Admin\UserController as AdminUserController;
 use App\Http\Controllers\Api\V1\AuthController;
+use App\Http\Controllers\Api\V1\Clerk\DashboardController as ClerkDashboardController;
 use App\Http\Controllers\Api\V1\HealthController;
 use App\Http\Controllers\Api\V1\InvitationController;
+use App\Http\Controllers\Api\V1\MyCompanyAccessController;
 use App\Http\Controllers\Api\V1\NotificationController;
 use App\Http\Controllers\Api\V1\SuperAdmin\AdminController as SuperAdminAdminController;
 use App\Http\Controllers\Api\V1\SuperAdmin\AuditLogController;
@@ -113,8 +117,24 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
             Route::patch('/departments/{department}', [AdminDepartmentController::class, 'update'])->whereNumber('department')->middleware('throttle:30,1')->name('departments.update');
             Route::post('/departments/{department}/deactivate', [AdminDepartmentController::class, 'deactivate'])->whereNumber('department')->middleware('throttle:30,1')->name('departments.deactivate');
             Route::post('/departments/{department}/reactivate', [AdminDepartmentController::class, 'reactivate'])->whereNumber('department')->middleware('throttle:30,1')->name('departments.reactivate');
+            // Configuration -> Categories page (2026-11-22): categories, voucher types and payee types in one place
+            Route::get('/catalog', [AdminCatalogController::class, 'index'])->name('catalog.index');
+            Route::post('/catalog/{kind}', [AdminCatalogController::class, 'store'])->whereIn('kind', ['categories', 'voucher_types', 'payee_types'])->middleware('throttle:30,1')->name('catalog.store');
+            Route::patch('/catalog/{kind}/{id}', [AdminCatalogController::class, 'update'])->whereIn('kind', ['categories', 'voucher_types', 'payee_types'])->whereNumber('id')->middleware('throttle:30,1')->name('catalog.update');
+            Route::delete('/catalog/{kind}/{id}', [AdminCatalogController::class, 'destroy'])->whereIn('kind', ['categories', 'voucher_types', 'payee_types'])->whereNumber('id')->middleware('throttle:30,1')->name('catalog.destroy');
+            Route::post('/catalog/categories/{id}/deactivate', [AdminCatalogController::class, 'deactivate'])->whereNumber('id')->middleware('throttle:30,1')->name('catalog.deactivate');
+            Route::post('/catalog/categories/{id}/reactivate', [AdminCatalogController::class, 'reactivate'])->whereNumber('id')->middleware('throttle:30,1')->name('catalog.reactivate');
+            // System -> Audit logs (2026-11-22): this company's entries only, never voucher activity, read-only
+            Route::get('/audit-logs', [AdminAuditLogController::class, 'index'])->name('audit-logs.index');
+            Route::get('/audit-logs/{id}', [AdminAuditLogController::class, 'show'])->whereNumber('id')->name('audit-logs.show');
             Route::get('/company-access', [AdminCompanyAccessController::class, 'index'])->name('company-access.index');
             Route::get('/company-access/candidates', [AdminCompanyAccessController::class, 'candidates'])->name('company-access.candidates');
+            Route::get('/company-access/directory', [AdminCompanyAccessController::class, 'directory'])->name('company-access.directory');
+            Route::get('/company-access/pending', [AdminCompanyAccessController::class, 'pending'])->name('company-access.pending');
+            Route::post('/company-access/invitations', [AdminCompanyAccessController::class, 'invite'])->middleware('throttle:30,1')->name('company-access.invite');
+            Route::delete('/company-access/invitations/{user}', [AdminCompanyAccessController::class, 'cancelInvite'])->whereNumber('user')->name('company-access.cancel-invite');
+            Route::post('/company-access/requests/{user}/approve', [AdminCompanyAccessController::class, 'approve'])->whereNumber('user')->middleware('throttle:30,1')->name('company-access.approve');
+            Route::post('/company-access/requests/{user}/decline', [AdminCompanyAccessController::class, 'decline'])->whereNumber('user')->middleware('throttle:30,1')->name('company-access.decline');
             Route::post('/company-access/{user}/revoke', [AdminCompanyAccessController::class, 'revoke'])->whereNumber('user')->middleware('throttle:30,1')->name('company-access.revoke');
             Route::post('/company-access', [AdminCompanyAccessController::class, 'store'])->middleware('throttle:30,1')->name('company-access.store');
         });
@@ -209,6 +229,21 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
             });
         });
 
-        // Next: company-scoped routes (ResolveCompany middleware) go here.
+        // JOIN ANOTHER COMPANY (2026-11-22): clerks, officers and supervisors; always their own access, no X-Company-ID
+        Route::prefix('me/company-access')->name('me.company-access.')->controller(MyCompanyAccessController::class)
+            ->middleware('role:accounting_clerk,accounting_officer,supervisor_manager')->group(function () {
+                Route::get('/', 'show')->name('show');
+                Route::post('/requests', 'request')->middleware('throttle:10,1')->name('request');
+                Route::delete('/requests/{company}', 'cancelRequest')->whereNumber('company')->name('cancel-request');
+                Route::post('/invitations/{company}/accept', 'accept')->whereNumber('company')->name('accept');
+                Route::post('/invitations/{company}/decline', 'decline')->whereNumber('company')->name('decline');
+            });
+
+        // ACCOUNTING CLERK area (2026-11-22): always inside the company sent in X-Company-ID (ResolveCompany)
+        Route::prefix('clerk')->name('clerk.')->middleware(['role:accounting_clerk', 'company'])->group(function () {
+            Route::get('/dashboard', ClerkDashboardController::class)->name('dashboard');
+        });
+
+        // Next: the other company-scoped routes (officer, supervisor, vouchers) go here.
     });
 });

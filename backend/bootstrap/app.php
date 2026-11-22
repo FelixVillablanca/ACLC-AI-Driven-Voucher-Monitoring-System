@@ -6,6 +6,7 @@ use App\Http\Middleware\EnforceIdleTimeout;
 use App\Http\Middleware\EnsureAccountInGoodStanding;
 use App\Http\Middleware\EnsureUserHasRole;
 use App\Http\Middleware\ForceJsonResponse;
+use App\Http\Middleware\ResolveCompany;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -30,6 +31,7 @@ return Application::configure(basePath: dirname(__DIR__))
         // Short names for route middleware: ->middleware('role:admin')
         $middleware->alias([
             'role' => EnsureUserHasRole::class,
+            'company' => ResolveCompany::class, // X-Company-ID must be a company the user has accepted access to
             'account.standing' => EnsureAccountInGoodStanding::class, // deactivated / company suspended -> signed out now
             'idle.timeout' => EnforceIdleTimeout::class,              // Super Admins: signed out after 15 idle minutes
         ]);

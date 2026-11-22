@@ -48,8 +48,10 @@ class GrantCompanyAccess
                     ->where('user_id', $user->id)->where('company_id', $company->id)->lockForUpdate()->first();
 
                 if ($existing) {
+                    // granting a person's own pending request answers it too
                     DB::table('user_company_access')->where('id', $existing->id)->update([
                         'granted_status' => 'accepted', 'granted_by' => $admin->id, 'granted_at' => $now, 'updated_at' => $now,
+                        'responded_at' => $now, 'responded_by' => $admin->id,
                     ]);
                     $rowId = $existing->id;
                 } else {

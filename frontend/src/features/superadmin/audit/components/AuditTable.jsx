@@ -3,7 +3,7 @@ import { ChevronDown, ChevronRight, Flag, Settings2 } from 'lucide-react'
 import { formatDate, formatInitials } from '@/lib/formatters'
 import { cn } from '@/lib/utils'
 import { TONE_PILL } from '../utils'
-import WhatChanged from './WhatChanged'
+import WhatChanged from '@/components/common/WhatChanged'
 
 /**
  * The log table (Framer EJ0asP2ZH): Time ↓ · Who · Action (+ amber ⚑) · Record · Company · IP · ›.

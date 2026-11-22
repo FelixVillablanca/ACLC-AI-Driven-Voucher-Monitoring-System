@@ -7,6 +7,10 @@ use Illuminate\Database\Seeder;
 /**
  * The MAIN seeder. `php artisan db:seed` runs this file, and it decides
  * which other seeders to run, in order.
+ *
+ * Only people, companies and settings are seeded. Notifications and audit-log entries are never
+ * made up: the app writes them itself when someone really does something (removed 2026-11-22:
+ * the sample notification / audit seeders showed invented events as if they had happened).
  */
 class DatabaseSeeder extends Seeder
 {
@@ -16,8 +20,6 @@ class DatabaseSeeder extends Seeder
             SystemSettingsSeeder::class, // platform defaults (real starting values, safe on any DB)
             DemoDataSeeder::class,    // companies, departments, 4 demo logins
             SampleUsersSeeder::class, // your own extra users (edit the list in that file)
-            SampleNotificationsSeeder::class, // bell-panel samples for every admin
-            SampleAuditLogsSeeder::class, // a few audit entries for today (Audit logs tab), added once
         ]);
     }
 }

@@ -31,9 +31,10 @@ export const GROUP_TAGS = {
 }
 
 export const SENSITIVITIES = [
-  { key: 'relaxed', label: 'Relaxed', rate: 'about 1–2%' },
-  { key: 'balanced', label: 'Balanced', rate: 'about 3–5%' },
-  { key: 'strict', label: 'Strict', rate: 'about 6–8%' },
+  // No made-up flag rates: there's no anomaly model yet, so there's no real rate to show.
+  { key: 'relaxed', label: 'Relaxed', hint: 'Fewer flags: only vouchers that are far from normal.' },
+  { key: 'balanced', label: 'Balanced', hint: 'The recommended middle ground.' },
+  { key: 'strict', label: 'Strict', hint: 'More flags: smaller differences are flagged too, so Supervisors see more.' },
 ]
 
 export const IDLE_MINUTES = [5, 10, 15, 30, 60]
@@ -116,12 +117,11 @@ export function impactText({ key, from, to }) {
       return to
         ? 'Every voucher the AI flags will need the Supervisor / Manager, whatever the amount.'
         : 'AI-flagged vouchers below the high-value threshold will only need step 1.'
-    case KEYS.SENSITIVITY: {
-      const s = SENSITIVITIES.find((x) => x.key === to)
+    case KEYS.SENSITIVITY:
       return rank(to) > rank(from)
-        ? `More vouchers will be flagged (${s?.rate} of vouchers), and each flagged one goes to step 2.`
-        : `Fewer vouchers will be flagged (${s?.rate} of vouchers).`
-    }
+        ? 'More vouchers will be flagged, and each flagged one goes to step 2.'
+        : 'Fewer vouchers will be flagged.'
+
     case KEYS.MIN_CONFIDENCE:
       return to > from
         ? 'Clerks will see fewer, but surer, category suggestions.'
@@ -154,4 +154,3 @@ export function lowersChecks({ key, from, to }) {
   if (key === KEYS.OPENAI_PAUSE) return from === true && to === false
   return false
 }
-

@@ -21,6 +21,7 @@ export default function ApprovalRulesCard({ field }) {
       icon={CheckCircle2}
       title="Approval rules"
       caption="Decide when a voucher must go to the Supervisor / Manager (step 2)."
+      notInUseYet="Approvals aren't built yet. These rules apply as soon as vouchers can be approved."
     >
       <SettingRow
         id={threshold.id}
@@ -30,13 +31,7 @@ export default function ApprovalRulesCard({ field }) {
         wasText={threshold.wasText}
         error={threshold.error}
       >
-        <MoneyInput
-          id={threshold.id}
-          symbol="₱"
-          value={threshold.value}
-          onChange={threshold.onChange}
-          invalid={Boolean(threshold.error)}
-        />
+        <MoneyInput id={threshold.id} symbol="₱" value={threshold.value} onChange={threshold.onChange} invalid={Boolean(threshold.error)} />
       </SettingRow>
 
       <SettingRow

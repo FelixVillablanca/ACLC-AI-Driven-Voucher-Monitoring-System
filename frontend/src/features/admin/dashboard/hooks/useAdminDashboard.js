@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useState } from 'react'
 import { ACCESS_CHANGED_EVENT } from '@/features/admin/access'
+import { CATALOG_CHANGED_EVENT } from '@/features/admin/catalog'
 import { DEPARTMENTS_CHANGED_EVENT } from '@/features/admin/departments'
 import { USERS_CHANGED_EVENT } from '@/features/admin/users'
 
 // Something was added in a Quick actions modal: quietly refresh the numbers
-const REFRESH_EVENTS = [USERS_CHANGED_EVENT, DEPARTMENTS_CHANGED_EVENT, ACCESS_CHANGED_EVENT]
+const REFRESH_EVENTS = [USERS_CHANGED_EVENT, DEPARTMENTS_CHANGED_EVENT, ACCESS_CHANGED_EVENT, CATALOG_CHANGED_EVENT]
 import { getAdminDashboard } from '../api'
 
 /**

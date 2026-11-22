@@ -25,9 +25,7 @@ export default function SectionNav({ active, dirtyGroups, onPick, lastSaved }) {
             )}
           >
             <span className="truncate">{s.label}</span>
-            {dirtyGroups.has(s.key) && (
-              <span className="size-2 shrink-0 rounded-full bg-warning" aria-label="unsaved changes" />
-            )}
+            {dirtyGroups.has(s.key) && <span className="size-2 shrink-0 rounded-full bg-warning" aria-label="unsaved changes" />}
           </button>
         )
       })}

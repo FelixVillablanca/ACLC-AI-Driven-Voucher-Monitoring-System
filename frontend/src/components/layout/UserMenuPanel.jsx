@@ -62,23 +62,28 @@ export default function UserMenuPanel({ user, links, signingOut, onSignOut, onCl
 
       <div role="separator" className="h-px bg-border" />
 
-      <MenuLink to={links.profile} icon={UserRound} onClick={onClose}>
-        My profile
-      </MenuLink>
-      <MenuLink to={links.settings} icon={Settings} onClick={onClose}>
-        Account settings
-      </MenuLink>
-      <MenuLink to={links.changePassword} icon={KeyRound} onClick={onClose}>
-        Change password
-      </MenuLink>
-      <MenuLink to={links.activity} icon={ScrollText} onClick={onClose} hint="Audit log">
-        My activity
-      </MenuLink>
-      <MenuLink to={links.help} icon={CircleHelp} onClick={onClose}>
-        Help &amp; support
-      </MenuLink>
+      {/* No `links` = this role has no account pages yet (clerk / officer / supervisor): only Sign out */}
+      {links && (
+        <>
+          <MenuLink to={links.profile} icon={UserRound} onClick={onClose}>
+            My profile
+          </MenuLink>
+          <MenuLink to={links.settings} icon={Settings} onClick={onClose}>
+            Account settings
+          </MenuLink>
+          <MenuLink to={links.changePassword} icon={KeyRound} onClick={onClose}>
+            Change password
+          </MenuLink>
+          <MenuLink to={links.activity} icon={ScrollText} onClick={onClose} hint="Audit log">
+            My activity
+          </MenuLink>
+          <MenuLink to={links.help} icon={CircleHelp} onClick={onClose}>
+            Help &amp; support
+          </MenuLink>
 
-      <div role="separator" className="h-px bg-border" />
+          <div role="separator" className="h-px bg-border" />
+        </>
+      )}
 
       <button
         type="button"

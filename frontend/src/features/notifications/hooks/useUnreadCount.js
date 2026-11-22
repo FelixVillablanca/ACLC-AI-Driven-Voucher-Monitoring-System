@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { getUnreadCount } from '../api'
+import { NOTIFICATIONS_CHANGED_EVENT } from '../utils'
 
 const REFRESH_EVERY_MS = 60_000 // once a minute
 
@@ -26,10 +27,13 @@ export function useUnreadCount() {
     refresh()
     const timer = setInterval(() => refresh(true), REFRESH_EVERY_MS) // timer = background
     const onFocus = () => refresh(true)
+    const onChanged = () => refresh()
     window.addEventListener('focus', onFocus)
+    window.addEventListener(NOTIFICATIONS_CHANGED_EVENT, onChanged) // marked read on the All notifications page
     return () => {
       clearInterval(timer)
       window.removeEventListener('focus', onFocus)
+      window.removeEventListener(NOTIFICATIONS_CHANGED_EVENT, onChanged)
     }
   }, [refresh])
 

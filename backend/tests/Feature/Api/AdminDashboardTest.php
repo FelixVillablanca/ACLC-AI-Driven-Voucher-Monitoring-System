@@ -44,12 +44,15 @@ class AdminDashboardTest extends TestCase
             ->assertJsonPath('data.company', ['id' => $apex->id, 'name' => 'Apex', 'is_active' => true])
             ->assertJsonPath('data.companies', ['total' => 1, 'active' => 1, 'inactive' => 0])
             ->assertJsonPath('data.departments', ['total' => 2, 'without_head' => 1, 'companies' => 1])
-            ->assertJsonPath('data.users.total', 3)               // admin + clerk + Apex officer
+            ->assertJsonPath('data.users.total', 2)               // clerk + Apex officer (= the Users page; never the Admin)
+            ->assertJsonPath('data.users.never_signed_in', 2)
             ->assertJsonPath('data.company_access', ['total' => 1, 'users_without_access' => 1])
             ->assertJsonPath('data.needs_attention', [
                 ['type' => 'users_without_access', 'count' => 1],
                 ['type' => 'departments_without_head', 'count' => 1],
                 ['type' => 'company_without_payee_types', 'company' => ['id' => $apex->id, 'name' => 'Apex']],
+                ['type' => 'company_without_voucher_types'],
+                ['type' => 'company_without_categories'],
             ])
             ->assertJsonPath('data.recent_activity', []);
     }

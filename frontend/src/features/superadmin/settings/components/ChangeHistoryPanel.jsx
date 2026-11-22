@@ -206,7 +206,10 @@ function Entry({ entry: e, me, onRestore }) {
   if (e.action === 'defaults_applied') {
     return (
       <li className="flex gap-3 border-b py-4 last:border-b-0">
-        <span aria-hidden="true" className="flex size-8 shrink-0 items-center justify-center rounded-full border bg-muted text-muted-foreground">
+        <span
+          aria-hidden="true"
+          className="flex size-8 shrink-0 items-center justify-center rounded-full border bg-muted text-muted-foreground"
+        >
           <Settings2 className="size-4" />
         </span>
         <div className="flex min-w-0 flex-1 flex-col gap-1">

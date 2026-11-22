@@ -124,6 +124,10 @@ class AuditEntryPresenter
             $r->table_name === 'blocked_ips' => ['title' => $new['ip_address'] ?? $old['ip_address'] ?? 'IP address', 'subtitle' => $ref],
             $r->table_name === 'audit_logs' => ['title' => 'Audit log export', 'subtitle' => isset($new['count']) ? "{$new['count']} rows" : 'audit_logs'],
             str_starts_with($r->table_name, 'voucher') => ['title' => $new['voucher_number'] ?? $ref, 'subtitle' => 'Amounts hidden from Super Admin'],
+            $r->table_name === 'user_company_access' && isset($new['first_name']) => [
+                'title' => trim($new['first_name'].' '.($new['last_name'] ?? '')), 'subtitle' => 'Company access',
+            ],
+            isset($new['name']) || isset($old['name']) => ['title' => $new['name'] ?? $old['name'], 'subtitle' => $ref],
             default => ['title' => $ref, 'subtitle' => null],
         };
     }

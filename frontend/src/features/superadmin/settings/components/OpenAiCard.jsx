@@ -20,13 +20,13 @@ export default function OpenAiCard({ field, spent }) {
       icon={Wand2}
       title="OpenAI usage"
       caption="Report summaries. Only totals are sent, never voucher details."
+      notInUseYet="AI report summaries aren't built yet, so nothing is sent to OpenAI and nothing is spent."
     >
       <div className="mx-5 mb-3.5 flex flex-col gap-2 rounded-[10px] bg-muted px-3.5 py-3">
         {spent == null ? (
           <>
-            <p className="text-body-strong">Nothing spent yet</p>
-            <div className="h-2 rounded-full bg-primary-soft" aria-hidden="true" />
-            <p className="text-caption">Spending is tracked once AI report summaries are switched on.</p>
+            <p className="text-body-strong">Spending isn't tracked yet</p>
+            <p className="text-caption">It's measured once AI report summaries exist.</p>
           </>
         ) : (
           <p className="text-body-strong">{formatUsd(spent)} used this month</p>

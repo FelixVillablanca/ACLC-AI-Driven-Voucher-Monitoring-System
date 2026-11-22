@@ -17,14 +17,32 @@ use Illuminate\Support\Facades\DB;
  *   from / to   whole days, in the app's time zone (Asia/Manila)
  *   sensitive   only the ⚑ actions
  *
+ * Scope (set by the server, never by the browser), for the Admin's Audit logs page (2026-11-22):
+ *   company_only   only entries of this company
+ *   hide_groups    action groups left out (an Admin never sees voucher activity), and their tables
+ *
  * Read-only on purpose: nothing here can change or delete an entry.
  */
 class AuditLogSearch
 {
+    /** Voucher work an Admin must never see (Admin = setup only, no voucher or money access). */
+    public const VOUCHER_TABLES = ['vouchers', 'voucher_approvals', 'voucher_attachments', 'voucher_line_items', 'budget_allocations', 'financial_reports'];
+
     /** @param  array{search?: ?string, companies?: array, actions?: array, from?: ?string, to?: ?string, sensitive?: bool}  $f */
     public function filtered(array $f, array $skip = []): Builder
     {
         $q = DB::table('audit_logs');
+
+        if (! empty($f['company_only'])) {
+            $q->where('audit_logs.company_id', (int) $f['company_only']);
+        }
+        if (! empty($f['hide_groups'])) {
+            $hidden = collect($f['hide_groups'])->flatMap(fn (string $g) => AuditCatalog::actionsIn($g))->all();
+            $q->whereNotIn('audit_logs.action', $hidden ?: ['']);
+            if (in_array('vouchers', $f['hide_groups'], true)) {
+                $q->whereNotIn('audit_logs.table_name', self::VOUCHER_TABLES);
+            }
+        }
 
         if (! in_array('search', $skip, true) && ($search = trim((string) ($f['search'] ?? ''))) !== '') {
             $this->search($q, $search);

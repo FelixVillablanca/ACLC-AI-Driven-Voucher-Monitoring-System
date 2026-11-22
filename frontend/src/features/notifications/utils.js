@@ -33,6 +33,9 @@ const TYPE_STYLE = {
 }
 
 /** Each CATEGORY's label ("2 min ago · Security") and its icon once READ (grey circle). */
+/** Fired after notifications are marked read on the All notifications page, so the bell's number updates. */
+export const NOTIFICATIONS_CHANGED_EVENT = 'advms:notifications-changed'
+
 export const CATEGORIES = {
   security: { label: 'Security', icon: ShieldAlert },
   access: { label: 'Access', icon: ArrowLeftRight },

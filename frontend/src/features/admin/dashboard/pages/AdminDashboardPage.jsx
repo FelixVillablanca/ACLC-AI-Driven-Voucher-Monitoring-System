@@ -64,7 +64,7 @@ function DashboardContent({ data }) {
           icon={Building2}
           value={company?.name ?? 'Not assigned'}
           pill={company ? (company.is_active ? { tone: 'success', text: 'Active' } : { tone: 'warning', text: 'Suspended' }) : null}
-          caption={company ? 'You set up this company' : 'Ask a Super Admin to assign one'}
+          caption={company ? 'Assigned to you by a Super Admin' : 'Ask a Super Admin to assign one'}
         />
         <StatCard
           label="Departments"
@@ -77,27 +77,31 @@ function DashboardContent({ data }) {
                 ? { tone: 'warning', text: `${departments.without_head} no head` }
                 : { tone: 'success', text: 'All have heads' }
           }
-          caption={
-            departments.total === 0 ? 'None created yet' : `across ${plural(departments.companies, 'company', 'companies')}`
-          }
+          caption={departments.total === 0 ? 'None created yet' : `in ${company?.name ?? 'your company'}`}
         />
         <StatCard
           label="Users"
           icon={Users}
           value={users.total}
-          pill={{ tone: 'success', text: `+${users.added_this_month}` }}
-          caption="added this month"
+          pill={users.added_this_month > 0 ? { tone: 'success', text: `+${users.added_this_month}` } : null}
+          caption={
+            users.total === 0
+              ? 'None created yet'
+              : users.added_this_month > 0
+                ? 'added this month'
+                : `clerks, officers and supervisors${users.never_signed_in ? ` · ${users.never_signed_in} never signed in` : ''}`
+          }
         />
         <StatCard
-          label="Company Access"
+          label="Company access"
           icon={ArrowLeftRight}
           value={access.total}
           pill={
             access.users_without_access > 0
               ? { tone: 'warning', text: plural(access.users_without_access, 'user', 'users') }
-              : { tone: 'success', text: 'All users' }
+              : null
           }
-          caption={access.users_without_access > 0 ? 'without access' : 'have access'}
+          caption={access.users_without_access > 0 ? 'can’t open the company yet' : 'people can open the company'}
         />
       </div>
 

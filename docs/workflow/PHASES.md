@@ -168,6 +168,10 @@ Admins set up their one company; the Super Admin runs the whole platform.
 | System health tab (live checks every minute, uptime, incidents, jobs, blocked addresses) | `m80KDanOj` + SH1–SH10 | 2026-11-21 |
 | Global settings tab (9 rules, unsaved-edit tracking, G1 Change history + Restore, G2 Discard, G3 Save with reason + password) | `tsrXCiWWw`, `OtA4G9A9F`, `dLJvMyCj2`, `xICKww9ng` | 2026-11-21 |
 | Create user: no company select or Company access chips; users always join the Admin's company (department only) | `lmhV2DJV1` (code differs) | 2026-11-22 |
+| Working in more than one company: Admin invites people of other companies (limited card), people ask to join, approve / decline / withdraw, Company access split into In your company / From other companies / Requests, clerk "Join another company" window (migration `2026_11_22_000003`, testing DB only) | none (code-first) | 2026-11-22 |
+| Real-data polish: no sample notifications / audit entries, no invented numbers, "not in use yet" on stored-only settings, dashboard numbers match their pages, All notifications page | none (code-first) | 2026-11-22 |
+| Admin Audit logs (company only, no voucher activity, filters, entry panel with tamper check) | none (code-first) | 2026-11-22 |
+| Categories page: voucher categories, voucher types and payee types on one page (3 tabs, add / edit / delete when unused, deactivate categories, built-in read-only) | none (code-first) | 2026-11-22 |
 | Company access page (who can open the company, from other companies, grant, remove access with history kept) | none (code-first) | 2026-11-22 |
 | Users page (cards, views, role / department filters, search, side panel, edit incl. role change, deactivate / reactivate, set a new password) | none (code-first) | 2026-11-22 |
 | Departments page (cards, views, search, sort, side panel with people, edit with conflict check, deactivate / reactivate) | none (code-first) | 2026-11-22 |
@@ -181,8 +185,7 @@ one company per Admin, Gmail sending for invitation/reset emails, the queue work
 
 ### Still to do
 
-**Admin screens (Phase 2 CRUD):** voucher categories,
-voucher types, payee types. Plus the shared conventions: filtering / sorting / pagination and cached lookups.
+**Admin screens (Phase 2 CRUD):** all built (2026-11-22). Plus the shared conventions: filtering / sorting / pagination and cached lookups.
 (Since 2026-11-20 the Super Admin creates companies; Admins see only their own, so the Admin "Companies" page was removed 2026-11-22.)
 
 **Super Admin screens (designed, not built):**
@@ -268,7 +271,13 @@ Super Admin dashboard, the failed-jobs window. **Add every new AI job to the CAT
 ## Phase 6: Reports & dashboards
 
 **Goal:** each role sees the numbers that matter to them; financial reports can be generated and exported.
-**Status:** ⬜ Not started.
+**Status:** 🟡 Started (2026-11-22: the Accounting Clerk landing page `LolF6YFo5`).
+
+| What | Frame | Done |
+|---|---|---|
+| Accounting Clerk landing page (drafts, in review with Accounting / Supervisor, returned with the reviewer's note, approved this month, recent vouchers, company switcher) | `LolF6YFo5` | 2026-11-22 |
+
+Built for it (foundation from Phases 1 and 3): the `ResolveCompany` middleware (X-Company-ID must be a company the user has accepted access to), the `Voucher` / `VoucherApproval` models, `VoucherStatus`, and migration `2026_11_22_000002` (adds `returned`, testing DB only).
 
 **Planned**
 - Role-aware dashboard summaries (cached aggregates) with Recharts charts.
@@ -331,7 +340,7 @@ The full list of designed frames and their node ids is the "Designed frames" tab
 
 | # | Decision | Recommendation |
 |---|---|---|
-| 2 | **Voucher flow**: officer can final-approve normal vouchers; AI-flagged / high-value go to a supervisor; "returned" goes back to draft. "High-value" starts at ₱50,000.00 (a Global setting). | Confirm before Phase 3 |
+| 2 | **Voucher flow**: officer can final-approve normal vouchers; AI-flagged / high-value go to a supervisor. "High-value" starts at ₱50,000.00 (a Global setting). **Decided 2026-11-22:** "returned" is its own status (`vouchers.status = returned`, not back to draft); `pending` = with the Accounting Officer (step 1), `under_review` = with the Supervisor (step 2). | Partly decided; confirm the rest before Phase 3 |
 | 3 | **One source for roles**: the `users.role` column vs the `spatie/laravel-permission` package (both exist) | Keep `users.role`; remove Spatie later if unused |
 | 4 | **Schema additions** per phase: `vouchers.version`, voucher-number sequence, `idempotency_keys`, indexes | Approve per phase |
 | 5 | **Backend libraries**: scramble (API docs), larastan, Redis client, sentry-laravel, S3/R2 storage driver | Approve per phase |

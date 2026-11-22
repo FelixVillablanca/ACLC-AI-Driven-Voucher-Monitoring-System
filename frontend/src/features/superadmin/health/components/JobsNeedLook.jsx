@@ -20,7 +20,7 @@ export default function JobsNeedLook({ retrying, failed, onOpenJob }) {
           <h2 id="jobs-look-title" className="text-card-title">
             Jobs that need a look · {count}
           </h2>
-          <p className="text-caption">Vouchers still go through while their AI check waits.</p>
+          <p className="text-caption">Background jobs still retrying on their own, and ones that gave up.</p>
         </div>
         {retryable.length > 0 && (
           <Link

@@ -9,7 +9,7 @@ import { formatDate, formatInitials } from '@/lib/formatters'
 import { cn } from '@/lib/utils'
 import { getAuditEntry } from '../api'
 import { TONE_PILL } from '../utils'
-import WhatChanged from './WhatChanged'
+import WhatChanged from '@/components/common/WhatChanged'
 
 /**
  * Event details (AL7, frame cY8zDqTvU): a 480px panel from the right with who did it, what changed,

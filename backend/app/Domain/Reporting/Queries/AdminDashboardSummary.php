@@ -2,6 +2,10 @@
 
 namespace App\Domain\Reporting\Queries;
 
+use App\Domain\Audit\AuditCatalog;
+use App\Domain\Audit\Queries\AuditLogSearch;
+use App\Domain\Identity\Queries\CompanyUserDirectory;
+use App\Domain\Tenancy\Queries\AccessCandidates;
 use App\Models\Company;
 use App\Models\Department;
 use App\Models\User;
@@ -16,11 +20,13 @@ use Illuminate\Support\Facades\DB;
  *
  * Every number is a COUNT done by the database, so it stays fast even with
  * thousands of rows (we never load every row into PHP just to count it).
+ *
+ * Polished 2026-11-22: each number uses the SAME rule as the page it links to, so the dashboard and
+ * the page always agree: users = the Users page (clerks / officers / supervisors of this company),
+ * users without access = the Company access page ("can be granted now").
  */
 class AdminDashboardSummary
 {
-    private const OPERATIONAL_ROLES = ['accounting_clerk', 'accounting_officer', 'supervisor_manager'];
-
     private int $companyId = 0;
 
     /** @return array<string, mixed> */
@@ -34,7 +40,7 @@ class AdminDashboardSummary
         $departmentsWithoutHead = (clone $departments)->whereNull('head_user_id')->count();
         $companiesWithoutPayeeTypes = $this->activeCompaniesWithoutPayeeTypes();
         $company = Company::find($this->companyId);
-        $people = $this->peopleInCompany();
+        $people = (new CompanyUserDirectory($this->companyId))->base();
 
         return [
             'company' => $company ? ['id' => $company->id, 'name' => $company->name, 'is_active' => (bool) $company->is_active] : null,
@@ -51,40 +57,36 @@ class AdminDashboardSummary
             'users' => [
                 'total' => (clone $people)->count(),
                 'added_this_month' => (clone $people)->where('created_at', '>=', now()->startOfMonth())->count(),
+                'never_signed_in' => (clone $people)->withAccountStatus('pending')->count(),
             ],
             'company_access' => [
                 'total' => DB::table('user_company_access')->where('company_id', $this->companyId)->where('granted_status', 'accepted')->count(),
                 'users_without_access' => $usersWithoutAccess,
             ],
             'needs_attention' => array_values(array_filter([
+                ($joinRequests = DB::table('user_company_access')->where('company_id', $this->companyId)
+                    ->where('granted_status', 'pending')->where('kind', 'request')->count()) > 0
+                    ? ['type' => 'join_requests', 'count' => $joinRequests] : null,
                 $usersWithoutAccess > 0 ? ['type' => 'users_without_access', 'count' => $usersWithoutAccess] : null,
                 $departmentsWithoutHead > 0 ? ['type' => 'departments_without_head', 'count' => $departmentsWithoutHead] : null,
                 ...$companiesWithoutPayeeTypes->map(fn (Company $company) => [
                     'type' => 'company_without_payee_types',
                     'company' => ['id' => $company->id, 'name' => $company->name],
                 ]),
+                $company && ! DB::table('voucher_types')->where('company_id', $company->id)->exists()
+                    ? ['type' => 'company_without_voucher_types'] : null,
+                $company && ! DB::table('voucher_categories')->where('is_active', true)
+                    ->where(fn ($q) => $q->where('company_id', $company->id)->orWhereNull('company_id'))->exists()
+                    ? ['type' => 'company_without_categories'] : null,
             ])),
             'recent_activity' => $this->recentActivity(),
         ];
     }
 
-    /** Everyone whose home company is this one, or who was given access to it (Super Admins excluded). */
-    private function peopleInCompany()
-    {
-        return User::where('role', '!=', 'super_admin')
-            ->where(fn ($q) => $q->where('company_id', $this->companyId)
-                ->orWhereHas('accessibleCompanies', fn ($c) => $c
-                    ->where('companies.id', $this->companyId)
-                    ->where('user_company_access.granted_status', 'accepted')));
-    }
-
-    /** Clerks/officers/supervisors of THIS company who can't open ANY company yet (so they can't work). */
+    /** Active clerks / officers / supervisors of THIS company who can't open it yet (= Company access page). */
     private function operationalUsersWithoutAccess(): int
     {
-        return User::whereIn('role', self::OPERATIONAL_ROLES)
-            ->where('company_id', $this->companyId)
-            ->whereDoesntHave('accessibleCompanies', fn ($q) => $q->where('user_company_access.granted_status', 'accepted'))
-            ->count();
+        return AccessCandidates::query($this->companyId)->count();
     }
 
     /** Active companies with no payee types: their clerks can't fill in "payee type" on a voucher. */
@@ -100,8 +102,7 @@ class AdminDashboardSummary
     }
 
     /**
-     * The 5 newest audit-log entries. Rows are written by the audit observer
-     * (still to be built), so this list is empty until then.
+     * The 5 newest audit-log entries of this company (never voucher activity).
      *
      * @return array<int, array<string, mixed>>
      */
@@ -109,6 +110,8 @@ class AdminDashboardSummary
     {
         return DB::table('audit_logs')
             ->where('audit_logs.company_id', $this->companyId)
+            ->whereNotIn('audit_logs.action', AuditCatalog::actionsIn('vouchers'))
+            ->whereNotIn('audit_logs.table_name', AuditLogSearch::VOUCHER_TABLES)
             ->leftJoin('users', 'users.id', '=', 'audit_logs.user_id')
             ->leftJoin('companies', 'companies.id', '=', 'audit_logs.company_id')
             ->orderByDesc('audit_logs.created_at')

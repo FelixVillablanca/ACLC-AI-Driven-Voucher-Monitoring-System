@@ -64,7 +64,7 @@ And `SampleUsersSeeder` adds one user per role, following the email-domain conve
 
 > The domain is a **naming convention only**. Where a user goes and what they may do is decided by their `role` column, never by the email text (see CLAUDE.md, "Domain emails").
 
-`SampleNotificationsSeeder` also gives every admin 6 sample notifications for the bell panel (4 unread). Re-running it resets them to unread.
+There are no sample notifications or audit entries (removed 2026-11-22). They appear when you really do something: create a user, add a department, sign in, and so on.
 
 **Safe to run again and again.** The seeders use `firstOrCreate` ("find it, or create it if it's missing"), so a second run never makes duplicates. They only add rows and never delete anything.
 

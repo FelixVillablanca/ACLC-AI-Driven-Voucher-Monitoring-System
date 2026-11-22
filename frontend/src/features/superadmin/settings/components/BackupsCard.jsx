@@ -26,7 +26,10 @@ export default function BackupsCard({ backups }) {
       </SettingRow>
       <p className="text-caption border-t px-5 py-3">
         Need one now? Use <span className="text-body-strong text-foreground">Run backup</span> on the{' '}
-        <Link to={PATHS.SUPERADMIN} className="rounded text-primary outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring/50">
+        <Link
+          to={PATHS.SUPERADMIN}
+          className="rounded text-primary outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring/50"
+        >
           Overview
         </Link>
         .

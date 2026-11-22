@@ -23,6 +23,7 @@ frames are always read one at a time). New design work goes on the design page `
 |---|---|---|---|---|
 | Sign-in (Phase 1) | 2 | 1 | 0 | 1 |
 | Admin (Phase 2) | 4 | 4 | 0 | 0 |
+| Accounting Clerk (Phase 6 on Phase 3 data) | 1 | 1 | 0 | 0 |
 | Super Admin: landing + its click-flows | 12 | 7 | 0 | 4 |
 | Super Admin: Admins tab | 14 | 12 | 1 | 0 |
 | Super Admin: Companies tab | 10 | 10 | 0 | 0 |
@@ -180,6 +181,12 @@ designed. They were built straight in code with the design tokens, the same page
 | Help & support | `/admin/help` · `/superadmin/help` | ✅ code-first | Role-specific quick answers, who can help you (the level above you), "Copy problem details", status page link |
 
 Still "coming soon": **All notifications** (`/admin/notifications`, `/superadmin/notifications`), the bell's "View all".
+
+## 8c. Accounting Clerk (operational, Phase 6 dashboard on Phase 3 voucher data)
+
+| Frame | Node id | Status | Notes |
+|---|---|---|---|
+| Accounting Clerk landing page | `LolF6YFo5` | ✅ 2026-11-22 | `/clerk`, `features/dashboard/pages/ClerkDashboardPage.jsx`, shell `components/layout/OperationsLayout.jsx` + `CompanySwitcher.jsx`, menu `features/dashboard/components/ClerkNav.jsx`. API `GET /api/v1/clerk/dashboard`. **Code differs (real-data rule):** "approved", not "paid out"; no "AI checks every voucher" card (no AI yet); Create voucher / Continue draft / Fix & resubmit and the voucher menu items are disabled ("Soon") until the voucher pages exist; no top-bar search yet; the ⋮ menu has only Sign out (no clerk account pages yet). |
 
 ## 9. Design page `yEHg8D3pX` (work in progress)
 

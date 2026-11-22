@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom'
-import { ArrowLeftRight, CreditCard, LayoutDashboard, Layers, ScrollText, Tags, UserSquare2, Users, X } from 'lucide-react'
+import { ArrowLeftRight, LayoutDashboard, Layers, ScrollText, Tags, Users, X } from 'lucide-react'
 import { ACCOUNT_PATHS, PATHS, ROLES } from '@/lib/constants'
 import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/stores/useAuthStore'
@@ -20,14 +20,8 @@ const NAV = [
       { to: PATHS.ADMIN_COMPANY_ACCESS, label: 'Company access', icon: ArrowLeftRight },
     ],
   },
-  {
-    section: 'Configuration',
-    items: [
-      { to: PATHS.ADMIN_CATEGORIES, label: 'Categories', icon: Tags },
-      { to: PATHS.ADMIN_VOUCHER_TYPES, label: 'Voucher types', icon: CreditCard },
-      { to: PATHS.ADMIN_PAYEE_TYPES, label: 'Payee types', icon: UserSquare2 },
-    ],
-  },
+  // One page for categories, voucher types and payee types (user decision 2026-11-22)
+  { section: 'Configuration', items: [{ to: PATHS.ADMIN_CATEGORIES, label: 'Categories', icon: Tags }] },
   { section: 'System', items: [{ to: PATHS.ADMIN_AUDIT_LOGS, label: 'Audit logs', icon: ScrollText }] },
 ]
 

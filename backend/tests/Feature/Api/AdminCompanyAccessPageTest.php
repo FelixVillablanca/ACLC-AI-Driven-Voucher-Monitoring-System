@@ -52,28 +52,42 @@ class AdminCompanyAccessPageTest extends TestCase
         User::factory()->create(['first_name' => 'Nora', 'company_id' => $this->north->id]); // nothing to do with Apex
     }
 
-    public function test_lists_everyone_connected_to_the_company_with_their_access(): void
+    public function test_in_your_company_lists_your_own_people_with_their_access(): void
     {
         $this->actingAs($this->admin)->getJson(self::URL)
             ->assertOk()
-            ->assertJsonCount(4, 'data') // Ana, Ben, Cara, Gus (not Nora, not the Admin)
+            ->assertJsonCount(3, 'data') // Ana, Ben, Cara (not Gus from Northfield, not Nora, not the Admin)
             ->assertJsonPath('data.0.first_name', 'Ana')
             ->assertJsonPath('data.0.access', 'accepted')
             ->assertJsonPath('data.0.access_by', 'John Doe')
             ->assertJsonPath('data.1.access', 'denied')
             ->assertJsonPath('data.2.access', 'none')
-            ->assertJsonPath('data.3.home_company.name', 'Northfield')
             ->assertJsonPath('data.0.home_company', null)
-            ->assertJsonPath('meta.views', ['all' => 4, 'has_access' => 2, 'no_access' => 2, 'other_companies' => 1])
+            ->assertJsonPath('meta.views', ['in_company' => 3, 'other_companies' => 1, 'requests' => 0])
             ->assertJsonPath('meta.summary.can_be_granted', 2);
     }
 
-    public function test_views_search_and_bad_filters(): void
+    public function test_people_from_other_companies_show_work_email_and_role_only(): void
     {
-        $this->actingAs($this->admin)->getJson(self::URL.'?filter[view]=no_access')->assertJsonCount(2, 'data');
-        $this->actingAs($this->admin)->getJson(self::URL.'?filter[view]=other_companies')->assertJsonCount(1, 'data')->assertJsonPath('data.0.first_name', 'Gus');
+        $this->actingAs($this->admin)->getJson(self::URL.'?filter[view]=other_companies')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.first_name', 'Gus')
+            ->assertJsonPath('data.0.home_company.name', 'Northfield')
+            ->assertJsonPath('data.0.email', $this->guest->email)
+            ->assertJsonPath('data.0.employee_id', null)
+            ->assertJsonPath('data.0.status', null)
+            ->assertJsonPath('data.0.department', null);
+    }
+
+    public function test_access_filter_search_and_bad_filters(): void
+    {
+        $this->actingAs($this->admin)->getJson(self::URL.'?filter[access]=none')->assertJsonCount(2, 'data');
+        $this->actingAs($this->admin)->getJson(self::URL.'?filter[access]=has')->assertJsonCount(1, 'data');
         $this->actingAs($this->admin)->getJson(self::URL.'?search=nora')->assertJsonCount(0, 'data');
         $this->actingAs($this->admin)->getJson(self::URL.'?search=ben')->assertJsonCount(1, 'data');
+        // a guest's employee ID can't be searched (it belongs to their home company)
+        $this->actingAs($this->admin)->getJson(self::URL.'?filter[view]=other_companies&search='.$this->guest->employee_id)->assertJsonCount(0, 'data');
         $this->actingAs($this->admin)->getJson(self::URL.'?filter[view]=everyone')->assertUnprocessable();
     }
 

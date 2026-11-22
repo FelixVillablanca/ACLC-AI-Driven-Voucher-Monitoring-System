@@ -10,7 +10,7 @@ import NotificationPanel from './NotificationPanel'
  * A small badge shows how many notifications are unread.
  *
  *   links = {
- *     viewAll: '/admin/notifications', settings: '/admin/settings',
+ *     viewAll: '/admin/notifications',
  *     categories: { security: '/admin/audit-logs', access: '/admin/company-access', … },
  *   }
  */

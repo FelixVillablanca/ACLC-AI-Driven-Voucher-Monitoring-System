@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { BellOff, Loader2, Settings } from 'lucide-react'
+import { BellOff, Loader2 } from 'lucide-react'
 import EmptyState from '@/components/common/EmptyState'
 import ErrorState from '@/components/common/ErrorState'
 import { cn } from '@/lib/utils'
@@ -47,7 +47,10 @@ export default function NotificationPanel({ unreadCount, onCountChange, links, o
       initial={{ opacity: 0, y: -6 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.14, ease: 'easeOut' }}
-      className={cn('z-50 flex flex-col overflow-hidden rounded-xl border bg-card text-foreground shadow-xl shadow-foreground/10', className)}
+      className={cn(
+        'z-50 flex flex-col overflow-hidden rounded-xl border bg-card text-foreground shadow-xl shadow-foreground/10',
+        className,
+      )}
     >
       {/* Header + tabs */}
       <div className="flex flex-col gap-3 border-b px-4 pt-4">
@@ -129,14 +132,6 @@ export default function NotificationPanel({ unreadCount, onCountChange, links, o
       <div className="flex items-center justify-between gap-2 border-t bg-muted px-4 py-3">
         <Link to={links.viewAll} onClick={onClose} className="text-auth-link text-primary hover:underline">
           View all notifications
-        </Link>
-        <Link
-          to={links.settings}
-          onClick={onClose}
-          className="text-caption flex items-center gap-1 hover:text-foreground hover:underline"
-        >
-          <Settings className="size-3.5" aria-hidden="true" />
-          Notification settings
         </Link>
       </div>
     </motion.div>

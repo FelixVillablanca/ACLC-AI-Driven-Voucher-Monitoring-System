@@ -7,7 +7,8 @@ use Illuminate\Foundation\Http\FormRequest;
 
 /**
  * GET /api/v1/admin/company-access
- *   ?filter[view]=has_access|no_access|other_companies   ?search=maria   ?sort=name|name_desc|recent   ?page=2
+ *   ?filter[view]=in_company|other_companies (default in_company)   ?filter[access]=has|none (In your company only)
+ *   ?search=maria   ?sort=name|name_desc|recent   ?page=2
  */
 class ListCompanyAccessRequest extends FormRequest
 {
@@ -29,6 +30,7 @@ class ListCompanyAccessRequest extends FormRequest
         return [
             'filter' => ['sometimes', 'array'],
             'filter.view' => ['sometimes', 'in:'.implode(',', CompanyAccessDirectory::VIEWS)],
+            'filter.access' => ['sometimes', 'in:'.implode(',', CompanyAccessDirectory::ACCESS)],
             'search' => ['sometimes', 'nullable', 'string', 'max:100'],
             'sort' => ['sometimes', 'in:'.implode(',', CompanyAccessDirectory::SORTS)],
             'page' => ['sometimes', 'integer', 'min:1'],

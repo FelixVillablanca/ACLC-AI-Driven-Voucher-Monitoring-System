@@ -96,8 +96,8 @@ export default function SaveChangesModal({ changes, companies, onCancel, onSaved
         <div className="flex items-start gap-2 rounded-[10px] bg-warning-soft px-3.5 py-2.5">
           <AlertTriangle className="mt-0.5 size-4 shrink-0 text-warning" aria-hidden="true" />
           <p className="text-caption text-foreground">
-            {warnings.length === 1 ? 'This change means' : 'These changes mean'} fewer vouchers or sign-ins get a second
-            check. Make sure Finance and your security lead agree.
+            {warnings.length === 1 ? 'This change means' : 'These changes mean'} fewer vouchers or sign-ins get a second check. Make sure
+            Finance and your security lead agree.
           </p>
         </div>
       )}

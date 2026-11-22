@@ -22,7 +22,6 @@ export default function AiSettingsCard({ field, mlService }) {
   const confidence = field(KEYS.MIN_CONFIDENCE)
   const pill = ML_PILL[mlService] ?? ML_PILL.not_configured
   const picked = SENSITIVITIES.find((s) => s.key === sensitivity.value)
-  const balanced = SENSITIVITIES.find((s) => s.key === 'balanced')
 
   return (
     <SettingsCard
@@ -32,15 +31,12 @@ export default function AiSettingsCard({ field, mlService }) {
       title="AI & anomaly detection"
       caption="AI only gives advice. It never approves or rejects a voucher by itself."
       aside={<Pill tone={pill.tone}>{pill.text}</Pill>}
+      notInUseYet="The AI checks aren't built yet. These choices apply once the ML service is set up."
     >
       <SettingRow
         id={sensitivity.id}
         title="Anomaly sensitivity"
-        caption={
-          picked?.key === 'balanced'
-            ? `Balanced flags ${balanced.rate} of vouchers.`
-            : `${picked?.label} flags ${picked?.rate} of vouchers (Balanced flags ${balanced.rate}).`
-        }
+        caption={picked?.hint ?? 'How unusual a voucher must be before it is flagged.'}
         edited={sensitivity.edited}
         wasText={sensitivity.wasText}
       >

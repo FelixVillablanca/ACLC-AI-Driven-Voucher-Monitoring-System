@@ -52,3 +52,13 @@ export async function signOut() {
   useCompanyStore.getState().clear()
   useAuthStore.getState().clear() // the route guards now send them to /login
 }
+
+/**
+ * Reload the signed-in user quietly (no loading screen), e.g. after joining another company,
+ * so the company switcher lists the new company. Keeps the active company.
+ */
+export async function refreshUser() {
+  const user = await me()
+  useAuthStore.getState().setUser(user)
+  return user
+}

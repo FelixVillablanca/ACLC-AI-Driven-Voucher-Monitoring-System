@@ -8,15 +8,15 @@ import { ACCESS_CHANGED_EVENT } from '../utils'
  * Older answers are ignored, the cards stay visible while the next page loads, and the list
  * refreshes quietly after a grant or a removal.
  */
-export function useCompanyAccess({ view, search, sort, page }) {
-  const key = JSON.stringify([view, search, sort, page])
+export function useCompanyAccess({ view, access, search, sort, page }) {
+  const key = JSON.stringify([view, access, search, sort, page])
   const [state, setState] = useState({ key: null, status: 'loading', people: [], meta: null, error: null })
   const requestRef = useRef(0)
 
   const fetchPage = useCallback(
     (quiet = false) => {
       const id = ++requestRef.current
-      return listCompanyAccess({ view, search, sort, page })
+      return listCompanyAccess({ view, access, search, sort, page })
         .then(({ people, meta }) => {
           if (id === requestRef.current) setState({ key, status: 'success', people, meta, error: null })
         })
@@ -25,7 +25,7 @@ export function useCompanyAccess({ view, search, sort, page }) {
           setState((prev) => (quiet && prev.status === 'success' ? prev : { ...prev, key, status: 'error', error }))
         })
     },
-    [key, view, search, sort, page],
+    [key, view, access, search, sort, page],
   )
 
   useEffect(() => {

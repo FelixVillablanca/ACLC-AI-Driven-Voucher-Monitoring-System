@@ -19,13 +19,7 @@ export default function SecurityCard({ field, admins }) {
   const missing = admins?.without_two_factor ?? 0
 
   return (
-    <SettingsCard
-      id="security"
-      icon={Lock}
-      tone="danger"
-      title="Security & sessions"
-      caption="Sign-in rules for the platform."
-    >
+    <SettingsCard id="security" icon={Lock} tone="danger" title="Security & sessions" caption="Sign-in rules for the platform.">
       <SettingRow
         id={idle.id}
         title="Super Admins: sign out when idle after"
@@ -66,12 +60,7 @@ export default function SecurityCard({ field, admins }) {
 function Select({ id, value, onChange, options, unit }) {
   return (
     <div className="relative w-[150px]">
-      <select
-        id={id}
-        value={value}
-        onChange={(e) => onChange(Number(e.target.value))}
-        className={cn(inputClass, 'appearance-none pr-8')}
-      >
+      <select id={id} value={value} onChange={(e) => onChange(Number(e.target.value))} className={cn(inputClass, 'appearance-none pr-8')}>
         {options.map((o) => (
           <option key={o} value={o}>
             {o} {unit}

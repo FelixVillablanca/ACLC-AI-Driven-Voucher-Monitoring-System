@@ -14,12 +14,17 @@ export function announceAccessChanged() {
   window.dispatchEvent(new CustomEvent(ACCESS_CHANGED_EVENT))
 }
 
-/** The segmented views on the Company access page (`count` = the key in meta.views). */
+/** Add this to the address to open "Invite from other companies". */
+export const INVITE_PEOPLE_SEARCH = '?invite=people'
+
+/**
+ * The 3 tabs on the Company access page (user decision 2026-11-22: your own people and people from
+ * other companies are kept apart). `count` = the key in meta.views.
+ */
 export const VIEWS = [
-  { key: null, label: 'Everyone', count: 'all' },
-  { key: 'has_access', label: 'Has access', count: 'has_access' },
-  { key: 'no_access', label: 'No access', count: 'no_access', tone: 'warning' },
+  { key: null, label: 'In your company', count: 'in_company' },
   { key: 'other_companies', label: 'From other companies', count: 'other_companies' },
+  { key: 'requests', label: 'Requests', count: 'requests', tone: 'warning' },
 ]
 
 export const SORTS = [
