@@ -3,15 +3,23 @@
 namespace App\Http\Controllers\Api\V1\Admin;
 
 use App\Domain\Tenancy\Actions\GrantCompanyAccess;
+use App\Domain\Tenancy\Actions\RevokeCompanyAccess;
 use App\Domain\Tenancy\Queries\AccessCandidates;
+use App\Domain\Tenancy\Queries\CompanyAccessDirectory;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\DepartmentStatusRequest;
 use App\Http\Requests\Admin\GrantCompanyAccessRequest;
 use App\Http\Requests\Admin\ListAccessCandidatesRequest;
+use App\Http\Requests\Admin\ListCompanyAccessRequest;
 use App\Http\Resources\Admin\AccessCandidateResource;
+use App\Http\Resources\Admin\CompanyAccessRowResource;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
-/** Quick actions → "Grant company access": only ever the Admin's own company. */
+/**
+ * People & Access → Company access page + Quick actions "Grant company access".
+ * Only ever the Admin's own company.
+ */
 class CompanyAccessController extends Controller
 {
     /**
@@ -39,5 +47,28 @@ class CompanyAccessController extends Controller
             'data' => collect($users)->map(fn ($u) => ['id' => $u->id, 'full_name' => $u->full_name, 'role' => $u->role])->values(),
             'meta' => ['granted' => count($users)],
         ]);
+    }
+
+    /** GET /api/v1/admin/company-access  (the page: everyone + their access to this company) */
+    public function index(ListCompanyAccessRequest $request): AnonymousResourceCollection
+    {
+        $directory = new CompanyAccessDirectory((int) ($request->user()->company_id ?? 0));
+        $search = $request->validated('search');
+
+        $page = $directory->sort($directory->view($directory->base($search), $request->validated('filter.view')), $request->validated('sort'))
+            ->paginate((int) $request->validated('per_page', 20))->withQueryString();
+
+        return CompanyAccessRowResource::collection($page)->additional(['meta' => [
+            'views' => $directory->viewCounts($search),
+            'summary' => $directory->summary(),
+        ]]);
+    }
+
+    /** POST /api/v1/admin/company-access/{user}/revoke  { reason? } -> 200 { data: { id, full_name } } */
+    public function revoke(DepartmentStatusRequest $request, int $user, RevokeCompanyAccess $revoke): JsonResponse
+    {
+        $person = $revoke->handle($user, $request->validated('reason'), $request->user(), $request->ip());
+
+        return response()->json(['data' => ['id' => $person->id, 'full_name' => $person->full_name]]);
     }
 }

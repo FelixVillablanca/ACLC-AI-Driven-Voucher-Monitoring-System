@@ -129,7 +129,7 @@ export const router = createBrowserRouter([
                   // Not built yet: each gets its own Framer frame
                   { path: PATHS.ADMIN_DEPARTMENTS, lazy: page(() => import('@/features/admin/departments/pages/DepartmentsPage')) },
                   { path: PATHS.ADMIN_USERS, lazy: page(() => import('@/features/admin/users/pages/UsersPage')) },
-                  comingSoon(PATHS.ADMIN_COMPANY_ACCESS, 'Company Access'),
+                  { path: PATHS.ADMIN_COMPANY_ACCESS, lazy: page(() => import('@/features/admin/access/pages/CompanyAccessPage')) },
                   comingSoon(PATHS.ADMIN_CATEGORIES, 'Categories'),
                   comingSoon(PATHS.ADMIN_VOUCHER_TYPES, 'Voucher types'),
                   comingSoon(PATHS.ADMIN_PAYEE_TYPES, 'Payee types'),

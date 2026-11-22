@@ -113,7 +113,9 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
             Route::patch('/departments/{department}', [AdminDepartmentController::class, 'update'])->whereNumber('department')->middleware('throttle:30,1')->name('departments.update');
             Route::post('/departments/{department}/deactivate', [AdminDepartmentController::class, 'deactivate'])->whereNumber('department')->middleware('throttle:30,1')->name('departments.deactivate');
             Route::post('/departments/{department}/reactivate', [AdminDepartmentController::class, 'reactivate'])->whereNumber('department')->middleware('throttle:30,1')->name('departments.reactivate');
+            Route::get('/company-access', [AdminCompanyAccessController::class, 'index'])->name('company-access.index');
             Route::get('/company-access/candidates', [AdminCompanyAccessController::class, 'candidates'])->name('company-access.candidates');
+            Route::post('/company-access/{user}/revoke', [AdminCompanyAccessController::class, 'revoke'])->whereNumber('user')->middleware('throttle:30,1')->name('company-access.revoke');
             Route::post('/company-access', [AdminCompanyAccessController::class, 'store'])->middleware('throttle:30,1')->name('company-access.store');
         });
 

@@ -168,6 +168,7 @@ Admins set up their one company; the Super Admin runs the whole platform.
 | System health tab (live checks every minute, uptime, incidents, jobs, blocked addresses) | `m80KDanOj` + SH1–SH10 | 2026-11-21 |
 | Global settings tab (9 rules, unsaved-edit tracking, G1 Change history + Restore, G2 Discard, G3 Save with reason + password) | `tsrXCiWWw`, `OtA4G9A9F`, `dLJvMyCj2`, `xICKww9ng` | 2026-11-21 |
 | Create user: no company select or Company access chips; users always join the Admin's company (department only) | `lmhV2DJV1` (code differs) | 2026-11-22 |
+| Company access page (who can open the company, from other companies, grant, remove access with history kept) | none (code-first) | 2026-11-22 |
 | Users page (cards, views, role / department filters, search, side panel, edit incl. role change, deactivate / reactivate, set a new password) | none (code-first) | 2026-11-22 |
 | Departments page (cards, views, search, sort, side panel with people, edit with conflict check, deactivate / reactivate) | none (code-first) | 2026-11-22 |
 | Quick actions dialogs: Add department (code suggestion, optional head) + Grant company access (people without access, search, select all, one-click grant) | none (code-first) | 2026-11-22 |
@@ -180,7 +181,7 @@ one company per Admin, Gmail sending for invitation/reset emails, the queue work
 
 ### Still to do
 
-**Admin screens (Phase 2 CRUD):** company access, voucher categories,
+**Admin screens (Phase 2 CRUD):** voucher categories,
 voucher types, payee types. Plus the shared conventions: filtering / sorting / pagination and cached lookups.
 (Since 2026-11-20 the Super Admin creates companies; Admins see only their own, so the Admin "Companies" page was removed 2026-11-22.)
 
