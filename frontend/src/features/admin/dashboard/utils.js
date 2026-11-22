@@ -20,6 +20,9 @@ const ACTIONS = {
   activated: { verb: 'Activated', badge: 'Activated', tone: 'success', icon: Plus },
   updated: { verb: 'Updated', badge: 'Updated', tone: 'primary', icon: Pencil },
   department_created: { verb: 'Created', badge: 'Created', tone: 'success', icon: Plus },
+  department_updated: { verb: 'Updated', badge: 'Updated', tone: 'primary', icon: Pencil },
+  department_deactivated: { verb: 'Deactivated', badge: 'Deactivated', tone: 'warning', icon: CircleAlert },
+  department_reactivated: { verb: 'Reactivated', badge: 'Reactivated', tone: 'success', icon: Plus },
   access_granted: { verb: 'Granted', badge: 'Access', tone: 'primary', icon: ArrowLeftRight },
   access_revoked: { verb: 'Removed', badge: 'Access removed', tone: 'warning', icon: CircleAlert },
   deactivated: { verb: 'Deactivated', badge: 'Deactivated', tone: 'warning', icon: CircleAlert },
@@ -60,7 +63,7 @@ export function describeAttention(item) {
       return {
         text: `${plural(item.count, 'department', 'departments')} without a head`,
         link: 'Review departments',
-        to: PATHS.ADMIN_DEPARTMENTS,
+        to: `${PATHS.ADMIN_DEPARTMENTS}?view=no_head`,
         tone: 'warning',
       }
     case 'company_without_payee_types':

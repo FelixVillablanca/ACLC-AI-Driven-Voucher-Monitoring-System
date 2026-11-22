@@ -99,7 +99,13 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
             Route::post('/users', [AdminUserController::class, 'store'])->name('users.store');
             // Quick actions (2026-11-22): always the Admin's own company
             Route::get('/lookups/people', [LookupController::class, 'people'])->name('lookups.people');
+            Route::get('/departments', [AdminDepartmentController::class, 'index'])->name('departments.index');
             Route::post('/departments', [AdminDepartmentController::class, 'store'])->middleware('throttle:30,1')->name('departments.store');
+            Route::get('/departments/{department}', [AdminDepartmentController::class, 'show'])->whereNumber('department')->name('departments.show');
+            Route::get('/departments/{department}/members', [AdminDepartmentController::class, 'members'])->whereNumber('department')->name('departments.members');
+            Route::patch('/departments/{department}', [AdminDepartmentController::class, 'update'])->whereNumber('department')->middleware('throttle:30,1')->name('departments.update');
+            Route::post('/departments/{department}/deactivate', [AdminDepartmentController::class, 'deactivate'])->whereNumber('department')->middleware('throttle:30,1')->name('departments.deactivate');
+            Route::post('/departments/{department}/reactivate', [AdminDepartmentController::class, 'reactivate'])->whereNumber('department')->middleware('throttle:30,1')->name('departments.reactivate');
             Route::get('/company-access/candidates', [AdminCompanyAccessController::class, 'candidates'])->name('company-access.candidates');
             Route::post('/company-access', [AdminCompanyAccessController::class, 'store'])->middleware('throttle:30,1')->name('company-access.store');
         });

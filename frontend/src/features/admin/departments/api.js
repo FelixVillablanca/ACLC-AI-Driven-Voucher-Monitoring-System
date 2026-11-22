@@ -14,3 +14,43 @@ export async function createDepartment(values) {
   const { data } = await apiClient.post('/admin/departments', values)
   return data.data
 }
+
+/**
+ * One page of the Departments page. { view: 'active'|'inactive'|'no_head', search, sort, page }
+ * Returns { departments, meta: { current_page, last_page, from, to, total, views, summary } }
+ */
+export async function listDepartments({ view, search, sort, page = 1 } = {}) {
+  const params = { page }
+  if (view) params['filter[view]'] = view
+  if (search) params.search = search
+  if (sort) params.sort = sort
+  const { data } = await apiClient.get('/admin/departments', { params })
+  return { departments: data.data, meta: data.meta }
+}
+
+/** The side panel: one department of YOUR company (404 for any other). */
+export async function getDepartment(id) {
+  const { data } = await apiClient.get(`/admin/departments/${id}`)
+  return data.data
+}
+
+/** The side panel's people list, A–Z, 20 a page. Returns { items, meta } */
+export async function listDepartmentMembers(id, page = 1) {
+  const { data } = await apiClient.get(`/admin/departments/${id}/members`, { params: { page } })
+  return { items: data.data, meta: data.meta }
+}
+
+/**
+ * Edit. Send the department's `updated_at` from when the form opened.
+ * Returns { department, changed }. 409 DEPARTMENT_CHANGED = someone saved it meanwhile.
+ */
+export async function updateDepartment(id, values, updatedAt) {
+  const { data } = await apiClient.patch(`/admin/departments/${id}`, { ...values, updated_at: updatedAt })
+  return { department: data.data, changed: data.meta?.changed ?? [] }
+}
+
+/** Deactivate (reason optional) / reactivate. 409 = it's already in that state. */
+export async function setDepartmentActive(id, active, reason) {
+  const { data } = await apiClient.post(`/admin/departments/${id}/${active ? 'reactivate' : 'deactivate'}`, { reason: reason || null })
+  return data.data
+}
