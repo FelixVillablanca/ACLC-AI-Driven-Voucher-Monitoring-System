@@ -4,7 +4,7 @@ namespace App\Domain\Identity\Actions;
 
 use App\Domain\Audit\AuditTrail;
 use App\Domain\Identity\Support\EmployeeIdGenerator;
-use App\Exceptions\ApiException;
+use App\Domain\Tenancy\Support\AdminCompany;
 use App\Models\Company;
 use App\Models\Notification;
 use App\Models\User;
@@ -39,15 +39,7 @@ class CreateUser
     /** @param  array<string, mixed>  $data  validated StoreUserRequest data */
     public function handle(array $data, User $admin, ?string $ip = null, ?string $userAgent = null): User
     {
-        $company = $admin->company_id ? Company::find($admin->company_id) : null;
-        if (! $company || ! $company->is_active || $company->isSuspended()) {
-            throw new ApiException(
-                $company ? "{$company->name} isn't active, so new users can't be added." : "Your account isn't linked to a company yet. Ask a Super Admin to assign one.",
-                'NO_ACTIVE_COMPANY',
-                403,
-            );
-        }
-        $data['company_id'] = $company->id;
+        $data['company_id'] = AdminCompany::activeFor($admin, 'users')->id;
 
         // If two admins somehow still collide on the same Employee ID, the UNIQUE index
         // refuses the second one; we simply try again with the next number (max 3 times).

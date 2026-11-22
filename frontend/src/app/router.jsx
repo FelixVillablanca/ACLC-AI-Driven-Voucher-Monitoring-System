@@ -92,11 +92,20 @@ export const router = createBrowserRouter([
                 // Sidebar + top bar around every admin page (Framer Nhw7N27tM)
                 lazy: async () => {
                   // Downloaded only when the admin area opens (keeps the login page small)
-                  const [{ default: AdminLayout }, { NotificationBell }, { CreateUserModal }, { AdminSearchBox }] = await Promise.all([
+                  const [
+                    { default: AdminLayout },
+                    { NotificationBell },
+                    { CreateUserModal },
+                    { AdminSearchBox },
+                    { AddDepartmentModal },
+                    { GrantAccessModal },
+                  ] = await Promise.all([
                     import('@/components/layout/AdminLayout'),
                     import('@/features/notifications'),
                     import('@/features/admin/users'),
                     import('@/features/admin/search'),
+                    import('@/features/admin/departments'),
+                    import('@/features/admin/access'),
                   ])
                   return {
                     Component: () => (
@@ -104,7 +113,13 @@ export const router = createBrowserRouter([
                         onSignOut={signOut}
                         search={<AdminSearchBox />}
                         notifications={<NotificationBell links={ADMIN_NOTIFICATION_LINKS} />}
-                        overlays={<CreateUserModal />}
+                        overlays={
+                          <>
+                            <CreateUserModal />
+                            <AddDepartmentModal />
+                            <GrantAccessModal />
+                          </>
+                        }
                       />
                     ),
                   }

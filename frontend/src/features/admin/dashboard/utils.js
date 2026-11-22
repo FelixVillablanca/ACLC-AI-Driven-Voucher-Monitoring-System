@@ -1,5 +1,6 @@
 import { formatDistanceToNow } from 'date-fns'
 import { ArrowLeftRight, CircleAlert, Pencil, Plus } from 'lucide-react'
+import { GRANT_ACCESS_SEARCH } from '@/features/admin/access'
 import { PATHS } from '@/lib/constants'
 import { plural } from '@/lib/formatters'
 
@@ -18,6 +19,7 @@ const ACTIONS = {
   created: { verb: 'Created', badge: 'Created', tone: 'success', icon: Plus },
   activated: { verb: 'Activated', badge: 'Activated', tone: 'success', icon: Plus },
   updated: { verb: 'Updated', badge: 'Updated', tone: 'primary', icon: Pencil },
+  department_created: { verb: 'Created', badge: 'Created', tone: 'success', icon: Plus },
   access_granted: { verb: 'Granted', badge: 'Access', tone: 'primary', icon: ArrowLeftRight },
   access_revoked: { verb: 'Removed', badge: 'Access removed', tone: 'warning', icon: CircleAlert },
   deactivated: { verb: 'Deactivated', badge: 'Deactivated', tone: 'warning', icon: CircleAlert },
@@ -51,7 +53,7 @@ export function describeAttention(item) {
       return {
         text: `${plural(item.count, 'user has', 'users have')} no company access`,
         link: 'Assign access',
-        to: PATHS.ADMIN_COMPANY_ACCESS,
+        to: { search: GRANT_ACCESS_SEARCH }, // opens the Grant company access modal
         tone: 'warning',
       }
     case 'departments_without_head':

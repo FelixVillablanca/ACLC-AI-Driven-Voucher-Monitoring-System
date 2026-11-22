@@ -63,6 +63,7 @@ class AuditCatalog
         // Settings & companies
         'setting_changed' => ['label' => 'Global setting changed', 'group' => 'settings', 'tone' => 'primary', 'sensitive' => true],
         'defaults_applied' => ['label' => 'Platform defaults applied', 'group' => 'settings', 'tone' => 'neutral'],
+        'department_created' => ['label' => 'Department added', 'group' => 'settings', 'tone' => 'success'],
         'company_created' => ['label' => 'Company added', 'group' => 'settings', 'tone' => 'success', 'sensitive' => true],
         'company_suspended' => ['label' => 'Company suspended', 'group' => 'settings', 'tone' => 'danger', 'sensitive' => true],
         'company_reactivated' => ['label' => 'Company reactivated', 'group' => 'settings', 'tone' => 'success', 'sensitive' => true],

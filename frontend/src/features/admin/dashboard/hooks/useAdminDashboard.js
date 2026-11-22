@@ -1,5 +1,10 @@
 import { useCallback, useEffect, useState } from 'react'
+import { ACCESS_CHANGED_EVENT } from '@/features/admin/access'
+import { DEPARTMENTS_CHANGED_EVENT } from '@/features/admin/departments'
 import { USERS_CHANGED_EVENT } from '@/features/admin/users'
+
+// Something was added in a Quick actions modal: quietly refresh the numbers
+const REFRESH_EVENTS = [USERS_CHANGED_EVENT, DEPARTMENTS_CHANGED_EVENT, ACCESS_CHANGED_EVENT]
 import { getAdminDashboard } from '../api'
 
 /**
@@ -20,9 +25,8 @@ export function useAdminDashboard() {
 
   useEffect(() => {
     load()
-    // A user was created elsewhere (Create user modal): quietly refresh the numbers
-    window.addEventListener(USERS_CHANGED_EVENT, load)
-    return () => window.removeEventListener(USERS_CHANGED_EVENT, load)
+    REFRESH_EVENTS.forEach((name) => window.addEventListener(name, load))
+    return () => REFRESH_EVENTS.forEach((name) => window.removeEventListener(name, load))
   }, [load])
 
   const retry = useCallback(() => {

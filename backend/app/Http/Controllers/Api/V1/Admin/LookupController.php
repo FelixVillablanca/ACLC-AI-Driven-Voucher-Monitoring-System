@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers\Api\V1\Admin;
 
+use App\Domain\Tenancy\Queries\CompanyDirectory;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\StoreDepartmentRequest;
 use App\Models\Company;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -32,6 +34,24 @@ class LookupController extends Controller
                 'is_active' => (bool) $c->is_active,
                 'departments' => $c->departments->map(fn ($d) => ['id' => $d->id, 'name' => $d->name, 'code' => $d->code])->values(),
             ])->values(),
+        ]);
+    }
+
+    /**
+     * GET /api/v1/admin/lookups/people
+     *   active clerks / officers / supervisors of the Admin's company, A–Z (e.g. "Department head").
+     */
+    public function people(Request $request): JsonResponse
+    {
+        $people = CompanyDirectory::usersOf((int) ($request->user()->company_id ?? 0))
+            ->whereIn('role', StoreDepartmentRequest::OPERATIONAL_ROLES)
+            ->where('is_active', true)
+            ->orderBy('first_name')->orderBy('last_name')
+            ->limit(500)
+            ->get(['id', 'first_name', 'last_name', 'role']);
+
+        return response()->json([
+            'data' => $people->map(fn ($u) => ['id' => $u->id, 'full_name' => $u->full_name, 'role' => $u->role])->values(),
         ]);
     }
 }

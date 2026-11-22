@@ -168,6 +168,7 @@ Admins set up their one company; the Super Admin runs the whole platform.
 | System health tab (live checks every minute, uptime, incidents, jobs, blocked addresses) | `m80KDanOj` + SH1–SH10 | 2026-11-21 |
 | Global settings tab (9 rules, unsaved-edit tracking, G1 Change history + Restore, G2 Discard, G3 Save with reason + password) | `tsrXCiWWw`, `OtA4G9A9F`, `dLJvMyCj2`, `xICKww9ng` | 2026-11-21 |
 | Create user: no company select or Company access chips; users always join the Admin's company (department only) | `lmhV2DJV1` (code differs) | 2026-11-22 |
+| Quick actions dialogs: Add department (code suggestion, optional head) + Grant company access (people without access, search, select all, one-click grant) | none (code-first) | 2026-11-22 |
 | Companies: + Add company (name, type, address, contacts, TIN, fiscal year; success view → "Add its admin" with the company pre-chosen; "Add admin" link on companies without one); unique company names (migration `2026_11_22_000001`, testing DB only so far) | none (code-first) | 2026-11-22 |
 | Account menu pages for Admin + Super Admin: My profile, Account settings (two-step, signed-in devices), Change password, My activity, Help & support | none (code-first) | 2026-11-22 |
 

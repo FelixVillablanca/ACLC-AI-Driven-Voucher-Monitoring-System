@@ -1,7 +1,9 @@
 <?php
 
 use App\Http\Controllers\Api\V1\AccountController;
+use App\Http\Controllers\Api\V1\Admin\CompanyAccessController as AdminCompanyAccessController;
 use App\Http\Controllers\Api\V1\Admin\DashboardController as AdminDashboardController;
+use App\Http\Controllers\Api\V1\Admin\DepartmentController as AdminDepartmentController;
 use App\Http\Controllers\Api\V1\Admin\LookupController;
 use App\Http\Controllers\Api\V1\Admin\SearchController as AdminSearchController;
 use App\Http\Controllers\Api\V1\Admin\UserController as AdminUserController;
@@ -95,6 +97,11 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
             Route::get('/search', AdminSearchController::class)->middleware('throttle:admin-search')->name('search');
             Route::get('/users/next-employee-id', [AdminUserController::class, 'nextEmployeeId'])->name('users.next-employee-id');
             Route::post('/users', [AdminUserController::class, 'store'])->name('users.store');
+            // Quick actions (2026-11-22): always the Admin's own company
+            Route::get('/lookups/people', [LookupController::class, 'people'])->name('lookups.people');
+            Route::post('/departments', [AdminDepartmentController::class, 'store'])->middleware('throttle:30,1')->name('departments.store');
+            Route::get('/company-access/candidates', [AdminCompanyAccessController::class, 'candidates'])->name('company-access.candidates');
+            Route::post('/company-access', [AdminCompanyAccessController::class, 'store'])->middleware('throttle:30,1')->name('company-access.store');
         });
 
         // SUPER ADMIN area: the platform owner (docs/System_Flow_Roles_and_UML_Design.docx §4).

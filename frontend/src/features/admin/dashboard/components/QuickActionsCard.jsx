@@ -1,13 +1,14 @@
 import { Link } from 'react-router-dom'
 import { ArrowLeftRight, ArrowRight, Layers, Users } from 'lucide-react'
+import { GRANT_ACCESS_SEARCH } from '@/features/admin/access'
+import { CREATE_DEPARTMENT_SEARCH } from '@/features/admin/departments'
 import { CREATE_USER_SEARCH } from '@/features/admin/users'
-import { PATHS } from '@/lib/constants'
 
 const ACTIONS = [
   { label: 'Create user', icon: Users, to: { search: CREATE_USER_SEARCH } }, // opens the Create user modal
   // "Add company" removed 2026-11-22: an Admin runs one company; new companies come from the Super Admin
-  { label: 'Add department', icon: Layers, to: PATHS.ADMIN_DEPARTMENTS },
-  { label: 'Grant company access', icon: ArrowLeftRight, to: PATHS.ADMIN_COMPANY_ACCESS },
+  { label: 'Add department', icon: Layers, to: { search: CREATE_DEPARTMENT_SEARCH } }, // opens the Add department modal
+  { label: 'Grant company access', icon: ArrowLeftRight, to: { search: GRANT_ACCESS_SEARCH } }, // opens the Grant access modal
 ]
 
 /** "Quick actions": shortcuts to the most common admin tasks. */
