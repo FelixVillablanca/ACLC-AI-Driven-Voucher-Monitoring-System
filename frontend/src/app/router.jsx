@@ -128,7 +128,7 @@ export const router = createBrowserRouter([
                   { path: PATHS.ADMIN, lazy: page(() => import('@/features/admin/dashboard/pages/AdminDashboardPage')) },
                   // Not built yet: each gets its own Framer frame
                   { path: PATHS.ADMIN_DEPARTMENTS, lazy: page(() => import('@/features/admin/departments/pages/DepartmentsPage')) },
-                  comingSoon(PATHS.ADMIN_USERS, 'Users'),
+                  { path: PATHS.ADMIN_USERS, lazy: page(() => import('@/features/admin/users/pages/UsersPage')) },
                   comingSoon(PATHS.ADMIN_COMPANY_ACCESS, 'Company Access'),
                   comingSoon(PATHS.ADMIN_CATEGORIES, 'Categories'),
                   comingSoon(PATHS.ADMIN_VOUCHER_TYPES, 'Voucher types'),

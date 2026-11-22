@@ -6,7 +6,7 @@ import toast from 'react-hot-toast'
  * The password is generated for the admin (read-only, so it's always strong):
  * "Generate new" makes another one, "Copy" puts it on the clipboard to hand over.
  */
-export default function PasswordGenerator({ value, onGenerate, error, disabled }) {
+export default function PasswordGenerator({ value, onGenerate, error, disabled, generateDisabled = false }) {
   const copy = async () => {
     try {
       await navigator.clipboard.writeText(value)
@@ -51,7 +51,7 @@ export default function PasswordGenerator({ value, onGenerate, error, disabled }
           <button
             type="button"
             onClick={onGenerate}
-            disabled={disabled}
+            disabled={disabled || generateDisabled}
             className="text-body-strong flex h-[38px] items-center gap-1.5 rounded-lg border bg-card px-3 outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring/50 disabled:opacity-60"
           >
             <RefreshCw className="size-4" aria-hidden="true" /> Generate new

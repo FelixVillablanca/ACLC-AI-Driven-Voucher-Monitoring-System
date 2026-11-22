@@ -38,13 +38,13 @@ export default function AdminSearchBox() {
         kind: 'user',
         key: `u${u.id}`,
         item: u,
-        to: `${PATHS.ADMIN_USERS}?search=${encodeURIComponent(u.full_name)}`,
+        to: `${PATHS.ADMIN_USERS}?user=${u.id}`, // opens their side panel
       })),
       ...search.departments.map((d) => ({
         kind: 'department',
         key: `d${d.id}`,
         item: d,
-        to: `${PATHS.ADMIN_DEPARTMENTS}?search=${encodeURIComponent(d.name)}`,
+        to: `${PATHS.ADMIN_DEPARTMENTS}?department=${d.id}`, // opens its side panel
       })),
     ],
     [search.users, search.departments],

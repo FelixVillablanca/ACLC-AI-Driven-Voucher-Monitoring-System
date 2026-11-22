@@ -97,6 +97,13 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
             Route::get('/search', AdminSearchController::class)->middleware('throttle:admin-search')->name('search');
             Route::get('/users/next-employee-id', [AdminUserController::class, 'nextEmployeeId'])->name('users.next-employee-id');
             Route::post('/users', [AdminUserController::class, 'store'])->name('users.store');
+            // People & Access -> Users page (2026-11-22): the Admin's own company's clerks / officers / supervisors
+            Route::get('/users', [AdminUserController::class, 'index'])->name('users.index');
+            Route::get('/users/{user}', [AdminUserController::class, 'show'])->whereNumber('user')->name('users.show');
+            Route::patch('/users/{user}', [AdminUserController::class, 'update'])->whereNumber('user')->middleware('throttle:30,1')->name('users.update');
+            Route::post('/users/{user}/deactivate', [AdminUserController::class, 'deactivate'])->whereNumber('user')->middleware('throttle:30,1')->name('users.deactivate');
+            Route::post('/users/{user}/reactivate', [AdminUserController::class, 'reactivate'])->whereNumber('user')->middleware('throttle:30,1')->name('users.reactivate');
+            Route::post('/users/{user}/password', [AdminUserController::class, 'password'])->whereNumber('user')->middleware('throttle:10,1')->name('users.password');
             // Quick actions (2026-11-22): always the Admin's own company
             Route::get('/lookups/people', [LookupController::class, 'people'])->name('lookups.people');
             Route::get('/departments', [AdminDepartmentController::class, 'index'])->name('departments.index');

@@ -140,13 +140,7 @@ function ModalWindow({ onClose }) {
           />
         )}
 
-        {result && (
-          <UserCreatedPanel
-            result={result}
-            onCreateAnother={createAnother}
-            onDone={onClose}
-          />
-        )}
+        {result && <UserCreatedPanel result={result} onCreateAnother={createAnother} onDone={onClose} />}
       </motion.div>
     </motion.div>
   )

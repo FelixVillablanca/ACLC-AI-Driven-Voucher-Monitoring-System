@@ -28,6 +28,7 @@ class AuditCatalog
         'login' => ['label' => 'Signed in', 'group' => 'security', 'tone' => 'neutral'],
         'login_failed' => ['label' => 'Sign-in failed', 'group' => 'security', 'tone' => 'danger', 'sensitive' => true],
         'login_blocked' => ['label' => 'Sign-in refused (blocked IP)', 'group' => 'security', 'tone' => 'danger', 'sensitive' => true],
+        'password_set_by_admin' => ['label' => 'Password set by Admin', 'group' => 'security', 'tone' => 'warning', 'sensitive' => true],
         'password_set' => ['label' => 'Password set', 'group' => 'security', 'tone' => 'success'],
         'password_reset_sent' => ['label' => 'Password reset sent', 'group' => 'security', 'tone' => 'warning', 'sensitive' => true],
         'password_reset_completed' => ['label' => 'Password changed', 'group' => 'security', 'tone' => 'warning'],
