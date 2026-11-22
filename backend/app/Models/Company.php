@@ -5,6 +5,7 @@ namespace App\Models;
 use Database\Factories\CompanyFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
@@ -50,5 +51,22 @@ class Company extends Model
         return $this->belongsToMany(User::class, 'user_company_access')
             ->withPivot(['granted_status', 'granted_by', 'granted_at'])
             ->withTimestamps();
+    }
+
+    /** The Admin(s) in charge: since 2026-11-20 each Admin runs exactly ONE company (users.company_id). */
+    public function admins(): HasMany
+    {
+        return $this->hasMany(User::class)->where('role', 'admin')->orderBy('created_at')->orderBy('id');
+    }
+
+    /** The Super Admin who suspended it (null when active, or when that account was removed). */
+    public function suspendedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'suspended_by');
+    }
+
+    public function isSuspended(): bool
+    {
+        return $this->suspended_at !== null;
     }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Domain\Platform\Backups;
 
+use App\Domain\Audit\AuditTrail;
 use App\Exceptions\ApiException;
 use App\Jobs\RunDatabaseBackup;
 use App\Models\Backup;
@@ -42,7 +43,7 @@ class StartBackup
                 'notify_requester' => $by !== null && $notify,
             ]);
 
-            DB::table('audit_logs')->insert([
+            AuditTrail::record([
                 'user_id' => $by?->id, // NULL = the nightly schedule
                 'company_id' => null,  // platform-level
                 'action' => 'backup_started',

@@ -2,6 +2,7 @@
 
 namespace App\Domain\Security\Support;
 
+use App\Domain\Audit\AuditTrail;
 use App\Exceptions\ApiException;
 use App\Models\Notification;
 use App\Models\SecurityAlert;
@@ -28,7 +29,7 @@ class OwnerActivity
     /** One audit_logs row for something a Super Admin did. */
     public static function audit(User $by, string $action, string $table, ?int $recordId, ?array $old, ?array $new, ?string $ip, ?int $companyId = null): void
     {
-        DB::table('audit_logs')->insert([
+        AuditTrail::record([
             'user_id' => $by->id,
             'company_id' => $companyId,
             'action' => $action,

@@ -13,18 +13,8 @@ export function announceBackupsChanged() {
   window.dispatchEvent(new CustomEvent(BACKUPS_CHANGED_EVENT))
 }
 
-/** "412 MB" / "1.2 GB" / "860 KB" */
-export function formatBytes(bytes) {
-  if (bytes === null || bytes === undefined) return '—'
-  const units = ['bytes', 'KB', 'MB', 'GB', 'TB']
-  let value = Number(bytes)
-  let unit = 0
-  while (value >= 1024 && unit < units.length - 1) {
-    value /= 1024
-    unit++
-  }
-  return `${unit === 0 ? value : value.toFixed(value < 10 ? 1 : 0)} ${units[unit]}`
-}
+// formatBytes moved to lib/formatters (System health uses it too); re-exported for this feature
+export { formatBytes } from '@/lib/formatters'
 
 /** "Under a minute" / "About 2 minutes" */
 export function formatEstimate(seconds) {

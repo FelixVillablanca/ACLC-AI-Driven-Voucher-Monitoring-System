@@ -10,7 +10,7 @@ import AdminTopBar from './AdminTopBar'
  * Wide screens (lg+): the sidebar is always visible.
  * Small screens: it's hidden, and the ☰ button slides it in as a drawer.
  */
-export default function AdminLayout({ onSignOut, notifications, overlays }) {
+export default function AdminLayout({ onSignOut, search, notifications, overlays }) {
   const [menuOpen, setMenuOpen] = useState(false)
 
   return (
@@ -34,7 +34,7 @@ export default function AdminLayout({ onSignOut, notifications, overlays }) {
       )}
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <AdminTopBar onOpenMenu={() => setMenuOpen(true)} notifications={notifications} />
+        <AdminTopBar onOpenMenu={() => setMenuOpen(true)} search={search} notifications={notifications} />
         <main className="min-h-0 flex-1 overflow-y-auto">
           <Outlet />
         </main>

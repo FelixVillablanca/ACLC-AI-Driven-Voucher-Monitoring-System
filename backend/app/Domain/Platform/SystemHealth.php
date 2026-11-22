@@ -27,6 +27,9 @@ class SystemHealth
     /** Cache key the scheduler writes every minute (routes/console.php). A "heartbeat". */
     public const SCHEDULER_HEARTBEAT = 'health:scheduler:last_run_at';
 
+    /** The scheduler's own list of what runs next: [{name, next}] (written with the heartbeat). */
+    public const SCHEDULER_NEXT = 'health:scheduler:next';
+
     /** Backups run every night (02:00); a little slack before we call it overdue. */
     public const BACKUP_OVERDUE_AFTER_HOURS = 25;
 
@@ -45,7 +48,7 @@ class SystemHealth
     }
 
     /** The Python ML microservice (Phase 5). Asked "are you alive?" with a short timeout, cached for a minute. */
-    public function mlService(): array
+    public function mlService(bool $fresh = false): array
     {
         $url = config('services.ml.url');
 
@@ -53,27 +56,122 @@ class SystemHealth
             return ['key' => 'ml', 'status' => 'not_configured'];
         }
 
-        $healthy = Cache::remember('health:ml:ok', 60, function () use ($url) {
+        if ($fresh) {
+            Cache::forget('health:ml');
+        }
+
+        // [ok, milliseconds], asked at most once a minute (unless "Check now")
+        [$healthy, $ms] = Cache::remember('health:ml', 60, function () use ($url) {
+            $start = microtime(true);
             try {
-                return Http::timeout(2)->get(rtrim($url, '/').'/health')->successful();
+                $ok = Http::timeout(2)->get(rtrim($url, '/').'/health')->successful();
             } catch (Throwable) {
-                return false; // unreachable counts as down
+                $ok = false; // unreachable counts as down
             }
+
+            return [$ok, (int) round((microtime(true) - $start) * 1000)];
         });
 
-        return ['key' => 'ml', 'status' => $healthy ? 'ok' : 'danger'];
+        return ['key' => 'ml', 'status' => $healthy ? 'ok' : 'danger', 'latency_ms' => $ms];
     }
 
-    /** Background jobs (AI checks, OpenAI summaries, exports): how many failed, how many are waiting. */
+    /** More jobs waiting than this = "Slow" (normally there are only a few). */
+    public const QUEUE_SLOW_WHEN_WAITING = 10;
+
+    /** A page that takes longer than this to answer = "Slow". */
+    public const WEB_SLOW_AFTER_MS = 1000;
+
+    /** Cache keys the queue worker fills (AppServiceProvider: Queue::after). */
+    public const JOBS_DONE_KEY = 'health:jobs:done:';      // + Y-m-d
+
+    public const JOBS_DONE_MS_KEY = 'health:jobs:done_ms:'; // + Y-m-d (total time, for the average)
+
+    /** Background jobs (AI checks, OpenAI summaries, exports): failed, waiting, running, done today. */
     public function queue(): array
     {
         $failed = $this->failedJobCount();
+        $failedLastHour = DB::table('failed_jobs')->where('failed_at', '>=', now()->subHour())->count();
+        $waiting = DB::table('jobs')->whereNull('reserved_at')->count();
+        $running = DB::table('jobs')->whereNotNull('reserved_at')->count();
+        $day = now()->toDateString();
+        $done = (int) Cache::get(self::JOBS_DONE_KEY.$day, 0);
+        $doneMs = (int) Cache::get(self::JOBS_DONE_MS_KEY.$day, 0);
 
         return [
             'key' => 'queue',
-            'status' => $failed > 0 ? 'warning' : 'ok',
+            // warning ("Slow") = a pile-up, or jobs failed recently; old failures alone stay amber too
+            'status' => $waiting >= self::QUEUE_SLOW_WHEN_WAITING || $failedLastHour > 0 || $failed > 0 ? 'warning' : 'ok',
             'failed' => $failed,
-            'waiting' => DB::table('jobs')->count(),
+            'failed_last_hour' => $failedLastHour,
+            'waiting' => $waiting,
+            'running' => $running,
+            'done_today' => $done,
+            'avg_ms' => $done > 0 ? (int) round($doneMs / $done) : null,
+        ];
+    }
+
+    /**
+     * The web app & API. From the scheduler (a separate process) it really asks the API over HTTP
+     * and times the answer. Inside a web request that would ask the same single-threaded dev server
+     * to answer itself (it would wait forever), so there `$overHttp` is false: it shows the LAST
+     * check the scheduler recorded (status + time), never a made-up "ok".
+     * The address comes from HEALTH_WEB_URL (config/services.php), falling back to APP_URL.
+     */
+    public function web(bool $overHttp = true): array
+    {
+        if (! $overHttp) {
+            $last = DB::table('health_checks')->where('service', 'web')->latest('id')->first(['status', 'latency_ms']);
+
+            // nothing recorded yet (the scheduler hasn't run): say so instead of guessing
+            return [
+                'key' => 'web',
+                'status' => $last->status ?? 'not_configured',
+                'latency_ms' => $last?->latency_ms !== null ? (int) $last->latency_ms : null,
+            ];
+        }
+
+        $url = rtrim((string) config('services.health.web_url'), '/').'/api/v1/health';
+        $start = microtime(true);
+        try {
+            $ok = Http::timeout(5)->acceptJson()->get($url)->successful();
+        } catch (Throwable) {
+            $ok = false;
+        }
+        $ms = (int) round((microtime(true) - $start) * 1000);
+
+        return [
+            'key' => 'web',
+            'status' => ! $ok ? 'danger' : ($ms > self::WEB_SLOW_AFTER_MS ? 'warning' : 'ok'),
+            'latency_ms' => $ms,
+        ];
+    }
+
+    /** The database: answers? how big? how many connections? (and how full the server's disk is) */
+    public function database(): array
+    {
+        $start = microtime(true);
+        try {
+            DB::select('SELECT 1');
+            $ms = (int) round((microtime(true) - $start) * 1000);
+            $size = (int) DB::table('information_schema.tables')->where('table_schema', DB::getDatabaseName())
+                ->sum(DB::raw('data_length + index_length'));
+            $connections = (int) (DB::selectOne("SHOW STATUS LIKE 'Threads_connected'")->Value ?? 0);
+        } catch (Throwable) {
+            return ['key' => 'database', 'status' => 'danger', 'latency_ms' => null];
+        }
+
+        $total = @disk_total_space(storage_path());
+        $free = @disk_free_space(storage_path());
+
+        return [
+            'key' => 'database',
+            'status' => $ms > self::WEB_SLOW_AFTER_MS ? 'warning' : 'ok',
+            'latency_ms' => $ms,
+            'size_bytes' => $size,
+            'connections' => $connections,
+            // the disk the server stores everything on (the database's own limit isn't known)
+            'disk_used_pct' => $total ? (int) round((1 - $free / $total) * 100) : null,
+            'disk_total_bytes' => $total ? (int) $total : null,
         ];
     }
 

@@ -131,7 +131,7 @@ class SuperAdminDashboardTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.services', [
                 ['key' => 'ml', 'status' => 'not_configured'],
-                ['key' => 'queue', 'status' => 'ok', 'failed' => 0, 'waiting' => 0],
+                ['key' => 'queue', 'status' => 'ok', 'failed' => 0, 'failed_last_hour' => 0, 'waiting' => 0, 'running' => 0, 'done_today' => 0, 'avg_ms' => null],
                 ['key' => 'scheduler', 'status' => 'not_configured', 'last_run_at' => null],
                 ['key' => 'backup', 'status' => 'not_configured', 'last_success_at' => null, 'running' => false],
             ]);

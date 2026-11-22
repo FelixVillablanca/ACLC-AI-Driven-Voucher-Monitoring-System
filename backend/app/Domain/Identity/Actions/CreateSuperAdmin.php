@@ -2,6 +2,7 @@
 
 namespace App\Domain\Identity\Actions;
 
+use App\Domain\Audit\AuditTrail;
 use App\Domain\Identity\Support\EmployeeIdGenerator;
 use App\Domain\Identity\Support\RoleEmailDomains;
 use App\Domain\Reporting\Queries\SuperAdminDashboardSummary;
@@ -53,7 +54,7 @@ class CreateSuperAdmin
                 'last_login_at' => null,
             ]);
 
-            DB::table('audit_logs')->insert([
+            AuditTrail::record([
                 'user_id' => null,
                 'company_id' => null,
                 'action' => 'created',

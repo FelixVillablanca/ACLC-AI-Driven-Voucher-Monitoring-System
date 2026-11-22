@@ -2,6 +2,8 @@
 
 namespace App\Domain\Security\Actions;
 
+use App\Domain\Audit\AuditTrail;
+use App\Domain\Platform\SystemSettings;
 use App\Domain\Security\Support\DeviceLabel;
 use App\Models\SecurityAlert;
 use App\Models\User;
@@ -22,7 +24,11 @@ use Illuminate\Support\Str;
  */
 class WatchSignIns
 {
-    public const FAILED_LIMIT = 5;
+    /** How many failures raise the alert: a Global setting (Security & sessions: 3, 5 or 10). */
+    public static function failedLimit(): int
+    {
+        return (int) app(SystemSettings::class)->value(SystemSettings::FAILED_SIGN_IN_ALERT_AFTER);
+    }
 
     public const FAILED_WINDOW_MINUTES = 5;
 
@@ -35,7 +41,7 @@ class WatchSignIns
     /** New-device alerts only for the accounts that can change the system. */
     private const WATCHED_ROLES = ['admin', 'super_admin'];
 
-    public function __construct(private RaiseSecurityAlert $raise) {}
+    public function __construct(private RaiseSecurityAlert $raise, private ReblockWatchedAddress $reblock) {}
 
     /** @param  string  $reason  wrong_password | unknown_email */
     public function failed(string $email, ?User $user, string $reason, ?string $ip, ?string $userAgent): void
@@ -45,10 +51,13 @@ class WatchSignIns
 
         $this->audit('login_failed', $user, ['email' => $email, 'reason' => $reason, 'device' => $device], $ip, $userAgent);
 
+        // an address unblocked "with watching" (System health SH9) gets blocked again after 3 failures
+        $this->reblock->check($ip);
+
         $since = now()->subMinutes(self::FAILED_WINDOW_MINUTES);
         $recent = $this->failuresFor($email)->where('created_at', '>=', $since)->count();
 
-        if ($recent < self::FAILED_LIMIT) {
+        if ($recent < self::failedLimit()) {
             return;
         }
 
@@ -139,7 +148,7 @@ class WatchSignIns
 
     private function audit(string $action, ?User $user, array $values, ?string $ip, ?string $userAgent): void
     {
-        DB::table('audit_logs')->insert([
+        AuditTrail::record([
             'user_id' => $user?->id,
             'company_id' => $user?->company_id,
             'action' => $action,

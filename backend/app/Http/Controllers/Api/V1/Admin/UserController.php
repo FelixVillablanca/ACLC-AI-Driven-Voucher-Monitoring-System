@@ -25,6 +25,7 @@ class UserController extends Controller
     public function store(StoreUserRequest $request, CreateUser $createUser): JsonResponse
     {
         // The email is built on the server (name + the role's domain), never taken from the browser
+        // ...and the company is always the Admin's own one (CreateUser checks it's active)
         $data = [...$request->validated(), 'email' => $request->email()];
         $user = $createUser->handle($data, $request->user(), $request->ip(), $request->userAgent());
 

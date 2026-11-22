@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom'
-import { PATHS } from '@/lib/constants'
+import { ACCOUNT_PATHS, PATHS, ROLES } from '@/lib/constants'
 import { cn } from '@/lib/utils'
 import TopNavUserMenu from './TopNavUserMenu'
 
@@ -13,14 +13,8 @@ const TABS = [
   { to: PATHS.SUPERADMIN_SYSTEM_HEALTH, label: 'System health' },
 ]
 
-// Where the account menu items go
-const ACCOUNT_LINKS = {
-  profile: PATHS.SUPERADMIN_PROFILE,
-  settings: PATHS.SUPERADMIN_ACCOUNT,
-  changePassword: PATHS.SUPERADMIN_CHANGE_PASSWORD,
-  activity: `${PATHS.SUPERADMIN_AUDIT_LOGS}?user=me`,
-  help: PATHS.SUPERADMIN_HELP,
-}
+// Where the account menu items go (the account pages, features/account)
+const ACCOUNT_LINKS = ACCOUNT_PATHS[ROLES.SUPER_ADMIN]
 
 /**
  * 64px white top bar (Framer uH0wO9f5O): VM tile, "Super Admin console", amber "Platform owner" pill,

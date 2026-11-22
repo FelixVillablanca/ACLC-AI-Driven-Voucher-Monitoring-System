@@ -52,16 +52,18 @@ export const PATHS = Object.freeze({
   LOGIN: '/login',
   SET_PASSWORD: '/set-password', // link in the invitation email
   ADMIN: '/admin',
-  ADMIN_COMPANIES: '/admin/companies',
   ADMIN_DEPARTMENTS: '/admin/departments',
   ADMIN_USERS: '/admin/users',
   ADMIN_COMPANY_ACCESS: '/admin/company-access',
   ADMIN_CATEGORIES: '/admin/categories',
+  ADMIN_VOUCHER_TYPES: '/admin/voucher-types',
+  ADMIN_PAYEE_TYPES: '/admin/payee-types',
   ADMIN_AUDIT_LOGS: '/admin/audit-logs',
   ADMIN_PROFILE: '/admin/profile',
   ADMIN_SETTINGS: '/admin/settings',
   ADMIN_CHANGE_PASSWORD: '/admin/change-password',
   ADMIN_HELP: '/admin/help',
+  ADMIN_ACTIVITY: '/admin/activity',
   ADMIN_NOTIFICATIONS: '/admin/notifications',
   // Super Admin console (Framer uH0wO9f5O top nav + account menu)
   SUPERADMIN: '/superadmin',
@@ -74,12 +76,32 @@ export const PATHS = Object.freeze({
   SUPERADMIN_ACCOUNT: '/superadmin/account',
   SUPERADMIN_CHANGE_PASSWORD: '/superadmin/change-password',
   SUPERADMIN_HELP: '/superadmin/help',
+  SUPERADMIN_ACTIVITY: '/superadmin/activity',
   SUPERADMIN_NOTIFICATIONS: '/superadmin/notifications',
   CLERK: '/clerk',
   OFFICER: '/officer',
   SUPERVISOR: '/supervisor',
   FORBIDDEN: '/403',
   STATUS: '/status',
+})
+
+// The account menu pages for each role that has them (My profile, Account settings, Change password,
+// My activity, Help & support). Used by the account menus and by the pages' own tab row.
+export const ACCOUNT_PATHS = Object.freeze({
+  [ROLES.ADMIN]: Object.freeze({
+    profile: PATHS.ADMIN_PROFILE,
+    settings: PATHS.ADMIN_SETTINGS,
+    changePassword: PATHS.ADMIN_CHANGE_PASSWORD,
+    activity: PATHS.ADMIN_ACTIVITY,
+    help: PATHS.ADMIN_HELP,
+  }),
+  [ROLES.SUPER_ADMIN]: Object.freeze({
+    profile: PATHS.SUPERADMIN_PROFILE,
+    settings: PATHS.SUPERADMIN_ACCOUNT,
+    changePassword: PATHS.SUPERADMIN_CHANGE_PASSWORD,
+    activity: PATHS.SUPERADMIN_ACTIVITY,
+    help: PATHS.SUPERADMIN_HELP,
+  }),
 })
 
 // Each role's own landing page. Only that role may open it (see app/router.jsx).

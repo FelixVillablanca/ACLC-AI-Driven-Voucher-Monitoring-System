@@ -147,6 +147,7 @@ Admins set up their one company; the Super Admin runs the whole platform.
 | Account menu | `nj06iziQJ` | 2026-11-15 |
 | Notifications bell panel | `D7aTKQEDz` | 2026-11-16 |
 | Create user modal (auto Employee ID, generated password, 3 operational roles) | `lmhV2DJV1` | 2026-11-16 |
+| Top-bar search limited to the Admin's own company (users + departments, `GET /admin/search`); sidebar top redesigned (company card, no Companies item, + Voucher types / Payee types) | none (code-first) | 2026-11-22 |
 
 ### Done: Super Admin
 
@@ -161,6 +162,14 @@ Admins set up their one company; the Super Admin runs the whole platform.
 | Retry failed background jobs | `fzdOvPqCX` | 2026-11-21 |
 | Admins tab, full version (cards, views, sort, bulk, export, profile, edit, reset, two-step, Make Super Admin, deactivate, cancel invite) | `U7glXUOSF` + A1–A12 (`x8wWbSPsg` for A11) | 2026-11-21 |
 | Two-step sign-in (authenticator app, backup codes, setup deadline) | A11 | 2026-11-21 |
+| Companies tab (cards / list, search, sort, views, suspend with reason + type-to-confirm, reactivate, email to the Admin in charge) | `vnNFYExpX` + C2–C7 | 2026-11-21 |
+| Companies: C1 Export (Excel / CSV / PDF) + C8 company side panel (Overview / Departments / Users / History) | `UpMMFLXSI`, `a17W5hpkA` (+ base copy `ZzwBy6v6q`) | 2026-11-21 |
+| Audit logs tab (filters, IP search + block, event details with tamper check, CSV export, live refresh) | `iVFf6FzsH`, `EJ0asP2ZH` + AL2–AL9 | 2026-11-21 |
+| System health tab (live checks every minute, uptime, incidents, jobs, blocked addresses) | `m80KDanOj` + SH1–SH10 | 2026-11-21 |
+| Global settings tab (9 rules, unsaved-edit tracking, G1 Change history + Restore, G2 Discard, G3 Save with reason + password) | `tsrXCiWWw`, `OtA4G9A9F`, `dLJvMyCj2`, `xICKww9ng` | 2026-11-21 |
+| Create user: no company select or Company access chips; users always join the Admin's company (department only) | `lmhV2DJV1` (code differs) | 2026-11-22 |
+| Companies: + Add company (name, type, address, contacts, TIN, fiscal year; success view → "Add its admin" with the company pre-chosen; "Add admin" link on companies without one); unique company names (migration `2026_11_22_000001`, testing DB only so far) | none (code-first) | 2026-11-22 |
+| Account menu pages for Admin + Super Admin: My profile, Account settings (two-step, signed-in devices), Change password, My activity, Help & support | none (code-first) | 2026-11-22 |
 
 Also done in this phase: platform default settings (high-value threshold ₱50,000.00, AI sensitivity balanced,
 OpenAI cap $25.00, Super Admin idle timeout 15 min), Asia/Manila timezone, company suspension blocking,
@@ -168,9 +177,9 @@ one company per Admin, Gmail sending for invitation/reset emails, the queue work
 
 ### Still to do
 
-**Admin screens (Phase 2 CRUD):** companies*, departments, users list / edit, company access, voucher categories,
+**Admin screens (Phase 2 CRUD):** departments, users list / edit, company access, voucher categories,
 voucher types, payee types. Plus the shared conventions: filtering / sorting / pagination and cached lookups.
-(*Since 2026-11-20 the Super Admin creates companies; Admins manage only their own.)
+(Since 2026-11-20 the Super Admin creates companies; Admins see only their own, so the Admin "Companies" page was removed 2026-11-22.)
 
 **Super Admin screens (designed, not built):**
 
@@ -180,10 +189,9 @@ voucher types, payee types. Plus the shared conventions: filtering / sorting / p
 | Company panel (suspend / reactivate) | `FC7jMBFYg` |
 | Edit global settings (password to save) | `C3d2wopED` |
 | Account menu (v2 nav) | `PSEjFM9zW` |
-| Companies tab + click-flows C1–C8 | `vnNFYExpX`, `CGGx439Db` + 8 |
-| Global settings tab + sections (AI & anomaly, OpenAI usage) + click-flows | `tsrXCiWWw`, `BfnusLHkd`, `bKB5a9QuJ` + their sets |
-| Audit logs tab + click-flows AL1–AL9 | `EJ0asP2ZH` + 8 |
-| System health tab + click-flows SH1–SH10 | `m80KDanOj` + 10 |
+| Global settings: AI & anomaly section page, OpenAI usage section page + their click-flows (main page + G1–G3 done) | `BfnusLHkd`, `bKB5a9QuJ` + their sets |
+| ~~Audit logs tab + click-flows AL1–AL9~~ (built 2026-11-21) | `iVFf6FzsH`, `EJ0asP2ZH` + 8 |
+| ~~System health tab + click-flows SH1–SH10~~ (built 2026-11-21) | `m80KDanOj` + 10 |
 | Not designed yet: success/error message sheet, tablet/phone nav | — |
 
 **Concepts:** REST resource design (§4.1), pagination (§4.5), caching + invalidation, queues & background jobs (§3.6),

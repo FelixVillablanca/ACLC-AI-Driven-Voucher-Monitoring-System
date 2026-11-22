@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { Check, Copy, Download, ShieldCheck } from 'lucide-react'
-import toast from 'react-hot-toast'
+import { Check, ShieldCheck } from 'lucide-react'
+import BackupCodes from '@/components/common/BackupCodes'
 
 /**
  * After setting up two-step sign-in: the 8 backup codes, shown ONCE.
@@ -8,26 +8,6 @@ import toast from 'react-hot-toast'
  */
 export default function RecoveryCodesPanel({ codes, email, onContinue }) {
   const [saved, setSaved] = useState(false)
-  const text = `Backup codes for ${email}\nAI-Driven Voucher Monitoring System\nEach code works once.\n\n${codes.join('\n')}\n`
-
-  const copy = async () => {
-    try {
-      await navigator.clipboard.writeText(codes.join('\n'))
-      toast.success('Backup codes copied')
-    } catch {
-      toast.error('Couldn’t copy. Select the codes and copy them by hand.')
-    }
-  }
-
-  const download = () => {
-    const url = URL.createObjectURL(new Blob([text], { type: 'text/plain' }))
-    const link = Object.assign(document.createElement('a'), {
-      href: url,
-      download: 'voucher-system-backup-codes.txt',
-    })
-    link.click()
-    URL.revokeObjectURL(url)
-  }
 
   return (
     <div className="flex w-full flex-col gap-4">
@@ -39,38 +19,12 @@ export default function RecoveryCodesPanel({ codes, email, onContinue }) {
           Two-step sign-in is on
         </h1>
         <p className="text-body text-muted-foreground">
-          Save these backup codes somewhere safe (not on the same phone). If you lose your phone, each code lets you
-          sign in once. You won’t see them again.
+          Save these backup codes somewhere safe (not on the same phone). If you lose your phone, each code lets you sign in once. You won’t
+          see them again.
         </p>
       </div>
 
-      <ul
-        className="grid grid-cols-2 gap-2 rounded-[10px] border bg-muted p-3.5 font-mono text-sm"
-        aria-label="Backup codes"
-      >
-        {codes.map((code) => (
-          <li key={code} className="text-center tracking-wide">
-            {code}
-          </li>
-        ))}
-      </ul>
-
-      <div className="flex gap-2">
-        <button
-          type="button"
-          onClick={copy}
-          className="text-body-strong flex h-10 flex-1 items-center justify-center gap-1.5 rounded-lg border bg-card outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring/50"
-        >
-          <Copy className="size-4" aria-hidden="true" /> Copy
-        </button>
-        <button
-          type="button"
-          onClick={download}
-          className="text-body-strong flex h-10 flex-1 items-center justify-center gap-1.5 rounded-lg border bg-card outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring/50"
-        >
-          <Download className="size-4" aria-hidden="true" /> Download .txt
-        </button>
-      </div>
+      <BackupCodes codes={codes} email={email} />
 
       <label className="text-body flex cursor-pointer items-center gap-2.5">
         <input type="checkbox" checked={saved} onChange={(e) => setSaved(e.target.checked)} className="peer sr-only" />

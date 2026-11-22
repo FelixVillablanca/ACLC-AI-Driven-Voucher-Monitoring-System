@@ -40,4 +40,10 @@ return [
         'url' => env('ML_SERVICE_URL'),
     ],
 
+    // System health: the address the scheduler calls every minute to check the web app & API.
+    // Must be where Laravel itself answers (dev: php artisan serve on :8000), NOT XAMPP's Apache on :80.
+    'health' => [
+        'web_url' => env('HEALTH_WEB_URL', env('APP_URL', 'http://localhost')),
+    ],
+
 ];

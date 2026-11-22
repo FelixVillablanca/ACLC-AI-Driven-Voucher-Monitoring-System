@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Domain\Audit\AuditTrail;
 use App\Domain\Identity\Actions\AuthenticateUser;
 use App\Domain\Identity\Support\AccountStanding;
 use App\Domain\Identity\Support\PendingTwoFactorLogin;
@@ -147,7 +148,7 @@ class TwoFactorLoginController extends Controller
 
     private function audit(User $user, string $action, Request $request, ?array $values = null): void
     {
-        DB::table('audit_logs')->insert([
+        AuditTrail::record([
             'user_id' => $user->id,
             'company_id' => $user->company_id,
             'action' => $action,

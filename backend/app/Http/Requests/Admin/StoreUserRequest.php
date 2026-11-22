@@ -17,10 +17,12 @@ use Illuminate\Validation\Validator;
  *   so the domain can never be changed.
  * - The password is generated in the form (letters + numbers) and checked here.
  * - Department is optional (agreed 2026-11-16: companies may have none yet),
- *   but if given it must belong to the primary company.
+ *   but if given it must belong to the Admin's company.
  * - Admins can NOT create Admin accounts (spec §4.5, done 2026-11-20). Only a Super Admin
  *   can, from the Super Admin console. So the roles here are the 3 operational ones,
  *   and every new user needs company access.
+ * - No company fields (2026-11-22): the user always joins the Admin's own company and gets
+ *   access to it automatically (CreateUser). A company sent from the browser is ignored.
  */
 class StoreUserRequest extends FormRequest
 {
@@ -51,9 +53,9 @@ class StoreUserRequest extends FormRequest
     /** @return array<string, array<int, mixed>> */
     public function rules(): array
     {
-        // Since 2026-11-20 an Admin runs ONE company: new users can only be put in that company
-        $activeCompany = Rule::exists('companies', 'id')->where('is_active', true);
-        $ownCompany = Rule::in([(int) $this->user()?->company_id]);
+        // The company is NOT sent (2026-11-22): every new user joins the Admin's own company,
+        // with access to it, so the department must be one of that company's departments.
+        $companyId = (int) $this->user()?->company_id;
 
         return [
             'first_name' => ['required', 'string', 'max:100'],
@@ -62,14 +64,11 @@ class StoreUserRequest extends FormRequest
             // At least 12 characters, with at least one letter AND one number
             'password' => ['required', 'string', 'min:12', 'max:64', 'regex:/[A-Za-z]/', 'regex:/[0-9]/'],
             'role' => ['required', Rule::in(self::ROLES)],
-            'company_id' => ['required', 'integer', $activeCompany, $ownCompany],
             'department_id' => [
                 'nullable',
                 'integer',
-                Rule::exists('departments', 'id')->where('company_id', (int) $this->input('company_id')),
+                Rule::exists('departments', 'id')->where('company_id', $companyId),
             ],
-            'company_ids' => ['required', 'array', 'max:100'],
-            'company_ids.*' => ['integer', 'distinct', $activeCompany, $ownCompany],
         ];
     }
 
@@ -84,11 +83,6 @@ class StoreUserRequest extends FormRequest
                 // Case-insensitive: "Maria.Santos@clerk.com" and "maria.santos@Clerk.com" are the same person
                 if (User::where('email', $this->email())->exists()) {
                     $validator->errors()->add('email_username', 'A user with this email already exists.');
-
-                    return;
-                }
-                if (! in_array((int) $this->input('company_id'), array_map('intval', (array) $this->input('company_ids')), true)) {
-                    $validator->errors()->add('company_ids', 'Company access must include the primary company.');
                 }
             },
         ];
@@ -108,13 +102,7 @@ class StoreUserRequest extends FormRequest
             'password.regex' => 'The password must contain both letters and numbers.',
             'role.required' => 'Choose a role.',
             'role.in' => 'Choose Clerk, Officer or Supervisor. Admin accounts are created by a Super Admin.',
-            'company_id.required' => 'Choose the primary company.',
-            'company_id.exists' => 'Choose an active company.',
-            'department_id.exists' => 'Choose a department from the primary company.',
-            'company_ids.required' => 'Give access to at least one company.',
-            'company_ids.*.exists' => 'Only active companies can be selected.',
-            'company_id.in' => 'You can only add users to your own company.',
-            'company_ids.*.in' => 'You can only give access to your own company.',
+            'department_id.exists' => 'Choose a department of your company.',
         ];
     }
 }

@@ -21,6 +21,10 @@ class SecurityAlert extends Model
 
     public const TYPE_SUPER_ADMIN_ADDED = 'super_admin_added';
 
+    public const TYPE_TWO_FACTOR_OFF = 'two_factor_turned_off';
+
+    public const TYPE_PERSONAL_EMAIL_CHANGED = 'personal_email_changed';
+
     protected $fillable = [
         'type', 'severity', 'status', 'user_id', 'subject_email', 'ip_address', 'device',
         'event_count', 'first_seen_at', 'last_seen_at', 'details', 'reviewed_by', 'reviewed_at',

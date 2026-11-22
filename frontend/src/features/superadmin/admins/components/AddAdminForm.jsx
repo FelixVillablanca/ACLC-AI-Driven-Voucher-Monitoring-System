@@ -17,9 +17,11 @@ import { createAdminSchema } from '../schemas'
  * Errors: wrong fields -> red text under the field (zod now, server 422 after saving);
  * anything else (server down, no permission) -> red box above the footer, with a reference number.
  */
-export default function AddAdminForm({ defaults, onCancel, onCreated, onDirtyChange }) {
+export default function AddAdminForm({ defaults, forCompany = null, onCancel, onCreated, onDirtyChange }) {
   const [formError, setFormError] = useState(null)
-  const onlyCompany = defaults.companies.length === 1 ? defaults.companies[0].id : ''
+  // Pre-chosen company (?for=) if it's in the list (active, not suspended); else the only one, if there's just one
+  const preset = defaults.companies.some((c) => c.id === forCompany) ? forCompany : null
+  const startCompany = preset ?? (defaults.companies.length === 1 ? defaults.companies[0].id : '')
   const {
     register,
     control,
@@ -28,7 +30,7 @@ export default function AddAdminForm({ defaults, onCancel, onCreated, onDirtyCha
     formState: { errors, isSubmitting, isDirty },
   } = useForm({
     resolver: zodResolver(createAdminSchema),
-    defaultValues: { first_name: '', last_name: '', email_username: '', company_id: onlyCompany, personal_email: '' },
+    defaultValues: { first_name: '', last_name: '', email_username: '', company_id: startCompany, personal_email: '' },
   })
 
   useEffect(() => {
@@ -111,7 +113,7 @@ export default function AddAdminForm({ defaults, onCancel, onCreated, onDirtyCha
                 <option value="">Choose a company</option>
                 {defaults.companies.map((c) => (
                   <option key={c.id} value={c.id}>
-                    {c.name}
+                    {c.admins_count === 0 ? `${c.name} (no Admin yet)` : c.name}
                   </option>
                 ))}
               </select>

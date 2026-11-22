@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { ChevronDown, Loader2, TriangleAlert } from 'lucide-react'
+import { Building2, ChevronDown, Loader2, TriangleAlert } from 'lucide-react'
 import { applyFieldErrors } from '@/lib/apiError'
 import { cn } from '@/lib/utils'
 import { createUser } from '../api'
@@ -9,32 +9,25 @@ import { createUserSchema } from '../schemas'
 import EmailNameField from '@/components/common/EmailNameField'
 import FieldShell, { inputClass } from '@/components/common/FieldShell'
 import { generatePassword } from '@/lib/password'
-import CompanyAccessChips from './CompanyAccessChips'
 import PasswordGenerator from './PasswordGenerator'
 import RoleRadioCards from './RoleRadioCards'
 
-// An Admin runs ONE company (2026-11-20), so that company is filled in already
-const emptyForm = (companies = []) => {
-  const active = companies.filter((c) => c.is_active)
-  const only = active.length === 1 ? active[0].id : ''
-  return {
-    first_name: '',
-    last_name: '',
-    email_username: '',
-    password: generatePassword(), // a fresh random password every time the form opens
-    role: 'accounting_clerk',
-    company_id: only,
-    department_id: '',
-    company_ids: only ? [only] : [],
-  }
-}
+// The company isn't chosen (2026-11-22): every new user joins the Admin's own company and gets access to it
+const emptyForm = () => ({
+  first_name: '',
+  last_name: '',
+  email_username: '',
+  password: generatePassword(), // a fresh random password every time the form opens
+  role: 'accounting_clerk',
+  department_id: '',
+})
 
 /**
  * The Create user form body + footer (Framer lmhV2DJV1).
  * react-hook-form keeps the values; zod checks them in the browser; the
  * server's 422 errors are put under the matching fields.
  */
-export default function CreateUserForm({ companies, employeeIdPreview, onCancel, onCreated, onDirtyChange }) {
+export default function CreateUserForm({ company, employeeIdPreview, onCancel, onCreated, onDirtyChange }) {
   const [formError, setFormError] = useState(null)
   const {
     register,
@@ -43,7 +36,7 @@ export default function CreateUserForm({ companies, employeeIdPreview, onCancel,
     setValue,
     setError,
     formState: { errors, isSubmitting, isDirty },
-  } = useForm({ resolver: zodResolver(createUserSchema), defaultValues: emptyForm(companies) })
+  } = useForm({ resolver: zodResolver(createUserSchema), defaultValues: emptyForm() })
 
   // Tell the modal whether anything was typed (so a stray click outside doesn't lose it).
   // Curly braces on purpose: an effect may only return nothing or a clean-up function.
@@ -52,35 +45,16 @@ export default function CreateUserForm({ companies, employeeIdPreview, onCancel,
   }, [isDirty, onDirtyChange])
 
   // useWatch = "re-draw when these fields change" (e.g. role -> the email domain shown)
-  const [role, rawCompanyId, companyIds, password, emailUsername] = useWatch({
+  const [role, password, emailUsername] = useWatch({
     control,
-    name: ['role', 'company_id', 'company_ids', 'password', 'email_username'],
+    name: ['role', 'password', 'email_username'],
   })
-  const companyId = Number(rawCompanyId) || null
 
-  const activeCompanies = companies.filter((c) => c.is_active)
-  const departments = useMemo(() => companies.find((c) => c.id === companyId)?.departments ?? [], [companies, companyId])
-
-  // Choosing a primary company: reset the department, and make sure the company is in "Company access"
-  const onPrimaryCompanyChange = (event) => {
-    const id = Number(event.target.value) || ''
-    setValue('company_id', id, { shouldDirty: true, shouldValidate: Boolean(errors.company_id) })
-    setValue('department_id', '', { shouldDirty: true })
-    if (id && !companyIds.includes(id)) setValue('company_ids', [...companyIds, id], { shouldDirty: true })
-  }
-
-  const toggleCompany = (id) => {
-    const next = companyIds.includes(id) ? companyIds.filter((x) => x !== id) : [...companyIds, id]
-    setValue('company_ids', next, { shouldDirty: true, shouldValidate: Boolean(errors.company_ids) })
-  }
+  const departments = company.departments ?? []
 
   const onSubmit = async (values) => {
     setFormError(null)
-    const payload = {
-      ...values,
-      department_id: values.department_id || null,
-      company_ids: values.company_ids,
-    }
+    const payload = { ...values, department_id: values.department_id || null }
     try {
       onCreated(await createUser(payload), values)
     } catch (error) {
@@ -114,11 +88,7 @@ export default function CreateUserForm({ companies, employeeIdPreview, onCancel,
                 id="employee_id"
                 readOnly
                 tabIndex={-1}
-                value={
-                  employeeIdPreview.status === 'loading'
-                    ? 'Generating…'
-                    : (employeeIdPreview.employeeId ?? 'Assigned automatically')
-                }
+                value={employeeIdPreview.status === 'loading' ? 'Generating…' : (employeeIdPreview.employeeId ?? 'Assigned automatically')}
                 className={cn(inputClass, 'cursor-default bg-muted font-mono text-muted-foreground')}
               />
             </FieldShell>
@@ -139,42 +109,39 @@ export default function CreateUserForm({ companies, employeeIdPreview, onCancel,
           error={errors.role?.message}
         />
 
-        {/* Assignment & access */}
+        {/* Assignment: the company is fixed (the Admin's own), only the department is chosen */}
         <section className="flex flex-col gap-3">
-          <h3 className="text-table-head text-muted-foreground">Assignment &amp; access</h3>
+          <h3 className="text-table-head text-muted-foreground">Assignment</h3>
           <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2">
-            <FieldShell id="company_id" label="Primary company" required error={errors.company_id?.message}>
-              <SelectWrap>
-                <select {...fieldProps('company_id')} value={companyId ?? ''} onChange={onPrimaryCompanyChange}>
-                  <option value="">Select a company</option>
-                  {activeCompanies.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name}
-                    </option>
-                  ))}
-                </select>
-              </SelectWrap>
+            <FieldShell id="company_name" label="Company" hint="New users join your company and can use it right away.">
+              <div className="relative">
+                <Building2
+                  className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
+                  aria-hidden="true"
+                />
+                <input
+                  id="company_name"
+                  readOnly
+                  tabIndex={-1}
+                  value={company.name}
+                  className={cn(inputClass, 'cursor-default bg-muted pl-9 text-muted-foreground')}
+                />
+              </div>
             </FieldShell>
 
             <FieldShell
               id="department_id"
               label="Department"
               error={errors.department_id?.message}
-              hint="Optional. You can assign one later."
+              hint={
+                departments.length === 0
+                  ? 'Your company has no departments yet. You can assign one later.'
+                  : 'Optional. You can assign one later.'
+              }
             >
               <SelectWrap>
-                <select
-                  {...fieldProps('department_id')}
-                  {...register('department_id')}
-                  disabled={isSubmitting || !companyId || departments.length === 0}
-                >
-                  <option value="">
-                    {!companyId
-                      ? 'Choose a company first'
-                      : departments.length === 0
-                        ? 'No departments yet'
-                        : 'No department (optional)'}
-                  </option>
+                <select {...fieldProps('department_id')} {...register('department_id')} disabled={isSubmitting || departments.length === 0}>
+                  <option value="">{departments.length === 0 ? 'No departments yet' : 'No department (optional)'}</option>
                   {departments.map((d) => (
                     <option key={d.id} value={d.id}>
                       {d.name} ({d.code})
@@ -184,14 +151,6 @@ export default function CreateUserForm({ companies, employeeIdPreview, onCancel,
               </SelectWrap>
             </FieldShell>
           </div>
-
-          <CompanyAccessChips
-            companies={companies}
-            selectedIds={companyIds}
-            primaryId={companyId}
-            onToggle={toggleCompany}
-            error={errors.company_ids?.message}
-          />
         </section>
 
         <PasswordGenerator
@@ -243,7 +202,10 @@ function SelectWrap({ children }) {
   return (
     <div className={cn('relative [&>select]:appearance-none [&>select]:pr-9')}>
       {children}
-      <ChevronDown className="pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+      <ChevronDown
+        className="pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2 text-muted-foreground"
+        aria-hidden="true"
+      />
     </div>
   )
 }

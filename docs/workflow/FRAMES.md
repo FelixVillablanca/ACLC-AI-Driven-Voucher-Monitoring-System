@@ -25,10 +25,11 @@ frames are always read one at a time). New design work goes on the design page `
 | Admin (Phase 2) | 4 | 4 | 0 | 0 |
 | Super Admin: landing + its click-flows | 12 | 7 | 0 | 4 |
 | Super Admin: Admins tab | 14 | 12 | 1 | 0 |
-| Super Admin: Companies tab | 9 | 0 | 0 | 9 |
-| Super Admin: Global settings tab | 12 | 0 | 0 | 12 |
-| Super Admin: Audit logs tab | 9 | 0 | 0 | 9 |
-| Super Admin: System health tab | 11 | 0 | 2 | 9 |
+| Super Admin: Companies tab | 10 | 10 | 0 | 0 |
+| Super Admin: Global settings tab | 12 | 4 | 0 | 8 |
+| Super Admin: Audit logs tab | 10 | 10 | 0 | 0 |
+| Super Admin: System health tab | 11 | 11 | 0 | 0 |
+| Account menu pages (Admin + Super Admin, code-first) | 0 | 5 built without frames | — | — |
 | Phases 3–6 (vouchers, approvals, AI, reports) | 0 | — | — | — |
 
 Phases 3–6 have **no frames designed yet**. Since 2026-11-20 screens can also be built code-first from a
@@ -98,25 +99,26 @@ Not designed yet: Users list, Departments, Company access, Categories, Voucher t
 
 | Code | Frame | Node id | Status | Notes |
 |---|---|---|---|---|
-| — | **Companies tab page** (summary cards, views, 2×2 company cards) | `vnNFYExpX` | ⬜ | Since 2026-11-20 the Super Admin creates companies: needs "+ Add company" (not in the frame) |
+| — | **Companies tab page** (summary cards, views, 2×2 company cards) | `vnNFYExpX` | ✅ | Built 2026-11-21. Code differs: subtitle no longer says Admins set companies up; "Set up by" → "Admin: <name>" (the Admin in charge, or amber "No Admin yet"); the address is shown instead of a city (no city field); suspended note says "N users blocked · data kept". Still needs "+ Add company" (not designed) |
 | — | Base copy for the click-flow set | `CGGx439Db` | — | |
-| C1 | Export list dialog | `UpMMFLXSI` | ⬜ | |
-| C2 | Search results ("north", 1 result) | `FXRghzjCE` | ⬜ | |
-| C3 | Sort menu | `oqxhehYHx` | ⬜ | |
-| C4 | List view (table instead of cards) | `jlXT7qlCt` | ⬜ | |
-| C5 | Suspended filter | `Dr5av5JaU` | ⬜ | |
-| C6 | Suspend confirm (reason, notify admin, type the name) | `eGUijf8Wd` | ⬜ | |
-| C7 | Reactivate confirm | `B3zqVOXN4` | ⬜ | |
-| C8 | Open company side panel (Overview / Departments / Users / History) | `a17W5hpkA` | ⬜ | Same idea as 08 `FC7jMBFYg` |
+| — | Another copy of the base page (Greenline shows the "New" pill) | `ZzwBy6v6q` | ✅ | Same as `vnNFYExpX`; the "New" pill (companies added in the last 30 days) was already built |
+| C1 | Export list dialog | `UpMMFLXSI` | ✅ | Built 2026-11-21. Excel / CSV / PDF; Companies select = All / Active only / Suspended only (+ "Matching …" when a search is typed); "Name, type, **address** and status" (no city field) also adds the Admin in charge and the date added; "Suspension history" = times suspended + the current suspension (from the audit log). Keeps the screen's sort. Audit row `companies_exported` |
+| C2 | Search results ("north", 1 result) | `FXRghzjCE` | ✅ | Searches name and address; footer "1 result for … · Clear search" |
+| C3 | Sort menu | `oqxhehYHx` | ✅ | 6 orders + "Suspended first" switch |
+| C4 | List view (table instead of cards) | `jlXT7qlCt` | ✅ | "Set up by" column → "Admin" |
+| C5 | Suspended filter | `Dr5av5JaU` | ✅ | |
+| C6 | Suspend confirm (reason, notify admin, type the name) | `eGUijf8Wd` | ✅ | Code differs: the "vouchers frozen" line became "people in another active company keep working there" (no vouchers yet); the Admin is told by EMAIL (they can't sign in to see the bell) |
+| C7 | Reactivate confirm | `B3zqVOXN4` | ✅ | Adds an "Email <Admin>" checkbox; no frozen-vouchers line |
+| C8 | Open company side panel (Overview / Departments / Users / History) | `a17W5hpkA` | ✅ | Built 2026-11-21, opens with `?company={id}`. Code differs: Overview adds Contact email/phone (when set) and Last activity, and an amber note when suspended; the footer button becomes **Reactivate company** for a suspended company (so this also covers 08 `FC7jMBFYg`); Users tab shows role, department, status and an "Access only" pill; History = suspensions / reactivations + "Added to the platform". "View audit log" goes to the Audit logs tab (`?company=`), which is still a coming-soon page |
 
 ## 6. Super Admin: Global settings tab (Phase 2)
 
 | Code | Frame | Node id | Status | Notes |
 |---|---|---|---|---|
-| — | **Global settings page** (Approval rules section) | `tsrXCiWWw` | ⬜ | Platform defaults already exist in the database |
-| G1 | Change history side panel | `OtA4G9A9F` | ⬜ | |
-| G2 | Discard changes confirm | `dLJvMyCj2` | ⬜ | |
-| G3 | Save changes review modal (reason + password) | `xICKww9ng` | ⬜ | |
+| — | **Global settings page** (all sections) | `tsrXCiWWw` | ✅ | Built 2026-11-21 (`/superadmin/settings`). Code differs: 9 real settings; the Security card is "Super Admins: sign out when idle after" (only Super Admins have an idle timeout; others keep the normal session) and "Security alert after failed sign-ins" (it raises an alert; nothing is locked); OpenAI shows "Nothing spent yet" until Phase 5; adds a read-only **Data & backups** card (from config/backup.php); sections are 1 column with OpenAI + Security side by side on wide screens; leaving with unsaved edits asks first |
+| G1 | Change history side panel | `OtA4G9A9F` | ✅ | From the audit log (`setting_changed` + `defaults_applied`). Count shown on "All" only, as in the frame. "↺ Restore" only on a setting's newest change while it's still live; it puts the old value in the form (you still Save with your password) |
+| G2 | Discard changes confirm | `dLJvMyCj2` | ✅ | Screen only (nothing was saved) |
+| G3 | Save changes review modal (reason + password) | `xICKww9ng` | ✅ | Impact line per setting; amber note whenever a change means LESS checking (higher threshold, relaxed sensitivity, a safety switch turned off). Wrong password / missing reason show under the field; someone else saving first = 409 with "Load their values" |
 | — | **AI & anomaly detection section** | `BfnusLHkd` | ⬜ | Values to confirm against the Phase 5 ML service |
 | AI1 | Change history (AI tab) | `sgLGec5BS` | ⬜ | |
 | AI2 | Discard (choose: this section / all sections) | `X5hiUZw_M` | ⬜ | |
@@ -133,34 +135,51 @@ Security & sessions and Data & backups sections appear in the left list but have
 
 | Code | Frame | Node id | Status | Notes |
 |---|---|---|---|---|
-| AL1 | Export CSV dialog **on top of the Audit logs page** | `EJ0asP2ZH` | ⬜ | ⚠️ Checked 2026-11-21: this frame is now AL1, so there's **no clean page-only frame**. Build the page from this frame with the dialog hidden |
-| AL2 | Search an IP (3 events, Block this IP) | `F1sqrL47f` | ⬜ | |
-| AL3 | Company filter dropdown | `YVcTExXXk` | ⬜ | |
-| AL4 | Action filter (5 groups with counts) | `W47j24JwQ` | ⬜ | |
-| AL5 | Date range panel (presets + calendar) | `WSbuSUy5K` | ⬜ | |
-| AL6 | Sensitive only | `BcPDn1MbQ` | ⬜ | |
-| AL7 | Event details side panel (before → after, tamper check) | `cY8zDqTvU` | ⬜ | |
-| AL8 | Block IP confirm | `jx8DjvvgZ` | ⬜ | Needs IP blocking (not built) |
-| AL9 | No results empty state | `F1CVD5vpw` | ⬜ | |
+| — | **Audit logs page** (clean, no dialog) | `iVFf6FzsH` | ✅ | Built 2026-11-21 (`/superadmin/audit-logs`). Code differs: "Kept for 7 years" → **"Kept: Forever · Append-only · since …"** (user decision: nothing deletes entries); the Sensitive card is a button that turns on Sensitive only; failed sign-ins are one row each (no "×5" grouping); 25 rows a page with Newer / Older; ● Live refreshes page 1 every 30 s (background request, doesn't count as activity); clicking a row expands it, › / "Open details" opens AL7 |
+| AL1 | Export CSV dialog **on top of the Audit logs page** | `EJ0asP2ZH` | ✅ | Date range adds "As on the page"; the row count is known for the page's range, otherwise counted on export (max 50,000 rows, 422 above). Audit row `audit_exported`. Amounts never exported |
+| AL2 | Search an IP (3 events, Block this IP) | `F1sqrL47f` | ✅ | The banner also covers "no failed sign-ins" (green) and "already blocked" (red, with Unblock + confirm). "Password reset asked" rows don't exist yet (no public forgot-password page) |
+| AL3 | Company filter dropdown | `YVcTExXXk` | ✅ | Counts follow the other filters; suspended companies show the pill instead of a count |
+| AL4 | Action filter (5 groups with counts) | `W47j24JwQ` | ✅ | Groups from `AuditCatalog`; ▸ opens a group to tick single actions. Vouchers group is empty until Phase 3 |
+| AL5 | Date range panel (presets + calendar) | `WSbuSUy5K` | ✅ | Caption says "logs are kept forever"; no event estimate |
+| AL6 | Sensitive only | `BcPDn1MbQ` | ✅ | "Filtered by" chips for every filter, not just Sensitive |
+| AL7 | Event details side panel (before → after, tamper check) | `cY8zDqTvU` | ✅ | Opens with `?event={id}`. No city next to the IP (no GeoIP, user decision). Tamper check = HMAC fingerprint (`AuditTrail`): Untouched / Changed / Can't be checked (written before fingerprints). Button goes to the Admin profile or the company panel when the record is one of those |
+| AL8 | Block IP confirm | `jx8DjvvgZ` | ✅ | `blocked_ips` table; blocked sign-ins get 403 `IP_BLOCKED` and an audit row `login_blocked`. Adds an amber warning when real users signed in from that address in the last 30 days; you can't block your own current address (422 `IP_IS_YOURS`); unblock from the AL2 banner until System health is built |
+| AL9 | No results empty state | `F1CVD5vpw` | ✅ | The sentence is built from the filters; mentions a suspended company |
 
-The audit data already exists: sign-ins, failed sign-ins, admin/account actions, backups and job actions are all recorded.
+Every audit entry is written through `AppDomainAuditAuditTrail::record()` (request ID + fingerprint). New actions must be added to `AuditCatalog`.
 
 ## 8. Super Admin: System health tab (Phase 2)
 
 | Code | Frame | Node id | Status | Notes |
 |---|---|---|---|---|
-| — | **System health page** (6 service cards, jobs table, uptime, blocked addresses, incidents) | `m80KDanOj` | ⬜ | The health checks behind it partly exist (Services panel) |
+| — | **System health page** (6 service cards, jobs table, uptime, blocked addresses, incidents) | `m80KDanOj` | ✅ | Built 2026-11-21 (`/superadmin/system-health`). Real data only: the scheduler records a check per service every minute (`health_checks`), so uptime / strip / chart start empty ("No history yet") and fill up. Code differs: Database card = server disk used + database size + connections (the DB's own limit isn't known); Backups card has no "saved off-site" (Phase 8); ML card says "Arrives in Phase 5"; job rows show what Laravel keeps (no voucher/company per job, no try-by-try history); the page refreshes every 60 s (background request) |
 | — | Spare copy (unused) | `oNDavkrey` | — | Ignore |
-| SH1 | Check now running | `J3we7ru59` | ⬜ | |
-| SH2 | Run backup confirm | `HPceTpaUq` | 🟡 | Backups work; this is the System health version of the dialog |
-| SH3 | Backup running (45% bar) | `NZZ80sadt` | ⬜ | The backup dialog shows a moving bar, no percentage |
-| SH4 | Background jobs details side panel | `y5H_QPGwO` | ⬜ | |
-| SH5 | Job details side panel (one failed job) | `pZGUgQsG5` | ⬜ | |
-| SH6 | Retry failed confirm | `vmsWCAimJ` | 🟡 | Retrying works (`fzdOvPqCX`); this is the System health version |
-| SH7 | Uptime day details | `yW7sjQycG` | ⬜ | Needs uptime tracking (not built) |
-| SH8 | Block an address | `TMl_TrDqz` | ⬜ | Needs IP blocking (not built) |
-| SH9 | Unblock confirm | `BUnDf0lzZ` | ⬜ | Needs IP blocking |
-| SH10 | Incident details side panel | `d3u7JybYW` | ⬜ | Needs incident tracking (not built) |
+| SH1 | Check now running | `J3we7ru59` | ✅ | All 6 checks run in one request, so the cards show "Checking…" together and update together (no "3 of 6 done"); 6 per minute |
+| SH2 | Run backup confirm | `HPceTpaUq` | ✅ | "Run backup now" opens the existing window (`?run=backup`, `TKziMjHUe`) |
+| SH3 | Backup running (45% bar) | `NZZ80sadt` | ✅ | Header shows "Backing up…" and the Backups card "Backing up…" + start time; no % (mysqldump doesn't report progress), no Cancel |
+| SH4 | Background jobs details side panel | `y5H_QPGwO` | ✅ | `?panel=jobs` (click the Background jobs card). "Done today" is counted by the queue worker (cache, Queue::after); chart = highest waiting per hour from the saved checks |
+| SH5 | Job details side panel (one failed job) | `pZGUgQsG5` | ✅ | `?job=<uuid>`. One "gave up" entry + error lines (server folders removed), Retry this job / Dismiss; no per-try timeline, cost or "what was sent" (no OpenAI jobs yet) |
+| SH6 | Retry failed confirm | `vmsWCAimJ` | ✅ | "Retry failed (N)" opens the existing window (`?retry=jobs`, `fzdOvPqCX`) |
+| SH7 | Uptime day details | `yW7sjQycG` | ✅ | Click a bar: the unhealthy stretches of every service that day (from–to, minutes, page time vs normal) + "Open incident". The cause is the incident's closing note (not guessed) |
+| SH8 | Block an address | `TMl_TrDqz` | ✅ | The Audit logs Block IP dialog in "type the address" mode (starts at 24 h). One address only, no ranges like /24 |
+| SH9 | Unblock confirm | `BUnDf0lzZ` | ✅ | "Watch it for 24 hours" = `blocked_ips.watch_until`; 3 failed sign-ins then → blocked again 7 days automatically + bell to every Super Admin |
+| SH10 | Incident details side panel | `d3u7JybYW` | ✅ | `?incident=<id>`. Incidents open by themselves after 3 unhealthy checks in a row (jobs: only a pile-up or failures in the last hour count), become Watching when healthy, Resolved by a Super Admin with a required note (audit `incident_resolved`) |
+
+## 8b. Account menu pages (no frames: built code-first 2026-11-22)
+
+The account menu (`nj06iziQJ` for Admins, the avatar menu for Super Admins) links to 5 pages that were never
+designed. They were built straight in code with the design tokens, the same pages for both roles
+(`features/account/`). If frames are drawn later, use the code as the reference.
+
+| Page | Address (Admin · Super Admin) | Status | What it has |
+|---|---|---|---|
+| My profile | `/admin/profile` · `/superadmin/profile` | ✅ code-first | Identity card, Personal details (edit name + personal email; the email needs your password), read-only Work details, Security at a glance |
+| Account settings | `/admin/settings` · `/superadmin/account` | ✅ code-first | Two-step sign-in (turn on with QR, new backup codes, turn off unless required), Where you're signed in (sign out one / all others), password + personal email shortcuts, sign-in rules |
+| Change password | `/admin/change-password` · `/superadmin/change-password` | ✅ code-first | Current + new twice, live rule checklist, strength bar, "Suggest a strong one", success state; other browsers are signed out |
+| My activity | `/admin/activity` · `/superadmin/activity` | ✅ code-first | Your own audit entries (All / Sign-in & security / Changes I made), 30-day numbers, pages of 20 |
+| Help & support | `/admin/help` · `/superadmin/help` | ✅ code-first | Role-specific quick answers, who can help you (the level above you), "Copy problem details", status page link |
+
+Still "coming soon": **All notifications** (`/admin/notifications`, `/superadmin/notifications`), the bell's "View all".
 
 ## 9. Design page `yEHg8D3pX` (work in progress)
 

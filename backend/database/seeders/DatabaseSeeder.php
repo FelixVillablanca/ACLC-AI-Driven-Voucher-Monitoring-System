@@ -17,6 +17,7 @@ class DatabaseSeeder extends Seeder
             DemoDataSeeder::class,    // companies, departments, 4 demo logins
             SampleUsersSeeder::class, // your own extra users (edit the list in that file)
             SampleNotificationsSeeder::class, // bell-panel samples for every admin
+            SampleAuditLogsSeeder::class, // a few audit entries for today (Audit logs tab), added once
         ]);
     }
 }

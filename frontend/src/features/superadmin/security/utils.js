@@ -46,6 +46,10 @@ export function alertTitle(alert) {
     }
     case 'super_admin_added':
       return 'New Super Admin added'
+    case 'two_factor_turned_off':
+      return 'Two-step sign-in turned off'
+    case 'personal_email_changed':
+      return 'Personal email changed'
     default:
       return 'Security alert'
   }
@@ -59,6 +63,8 @@ export function alertShortName(type) {
       new_device_sign_in: 'Sign-in from a new device',
       password_changed: 'Password changed',
       super_admin_added: 'New Super Admin added',
+      two_factor_turned_off: 'Two-step turned off',
+      personal_email_changed: 'Personal email changed',
     }[type] ?? 'Security alert'
   )
 }
@@ -126,8 +132,11 @@ export function timelineRows(alert) {
 
   const text = {
     new_device_sign_in: 'Signed in successfully',
-    password_changed: 'Chose a new password with a reset link',
+    password_changed:
+      alert.via === 'account_settings' ? 'Changed their password while signed in' : 'Chose a new password with a reset link',
     super_admin_added: 'Made a Super Admin from the server console',
+    two_factor_turned_off: 'Turned off two-step sign-in in Account settings',
+    personal_email_changed: 'Changed the personal email their reset links go to',
   }[alert.type]
 
   return [
@@ -147,7 +156,8 @@ export function suggestedStep(alert) {
 
   switch (alert.type) {
     case 'failed_sign_ins':
-      if (!account) return 'No account uses this email, so someone may be guessing addresses. Watch the audit log for more tries from this IP.'
+      if (!account)
+        return 'No account uses this email, so someone may be guessing addresses. Watch the audit log for more tries from this IP.'
       if (account.role === 'super_admin') return `This is a Super Admin account. Ask ${name} if it was them.`
       if (account.role !== 'admin') return 'This is a company user. Let their company’s Admin know.'
       if (alert.ip_seen_before === true)
@@ -159,6 +169,10 @@ export function suggestedStep(alert) {
       return `If ${name} didn’t choose a new password, deactivate the account right away.`
     case 'super_admin_added':
       return 'Make sure this person should have full access to the whole platform.'
+    case 'two_factor_turned_off':
+      return `Ask ${name} why. If it wasn’t them, deactivate the account, then require two-step again.`
+    case 'personal_email_changed':
+      return `Ask ${name} if they changed it. If not, deactivate the account: the next reset link would go to the new address.`
     default:
       return null
   }

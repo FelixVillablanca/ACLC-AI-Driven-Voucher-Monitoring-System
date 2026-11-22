@@ -57,6 +57,16 @@ class SampleUsersSeeder extends Seeder
             'access' => [],       // admins don't switch companies
         ],
         [
+            'email' => 'felixvillablanca@Administrator.com',
+            'password' => 'password1234',
+            'first_name' => 'Felix',
+            'last_name' => 'Villablanca',
+            'role' => 'admin',
+            'company' => 'Apex Holdings Inc.',
+            'department' => null,
+            'access' => [],
+        ],
+        [
             'email' => 'marialopez@Clerk.com',
             'password' => 'password',
             'first_name' => 'Maria',

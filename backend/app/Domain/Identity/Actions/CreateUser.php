@@ -2,7 +2,9 @@
 
 namespace App\Domain\Identity\Actions;
 
+use App\Domain\Audit\AuditTrail;
 use App\Domain\Identity\Support\EmployeeIdGenerator;
+use App\Exceptions\ApiException;
 use App\Models\Company;
 use App\Models\Notification;
 use App\Models\User;
@@ -16,7 +18,10 @@ use Illuminate\Support\Str;
  * In ONE transaction ("all or nothing"):
  *   1. the next Employee ID (EMP-2026-0001…), locked so nobody else gets it
  *   2. the user row (the password from the form is stored HASHED)
- *   3. their company access rows (user_company_access)
+ *   3. their company access row (user_company_access): the Admin's own company, always
+ *
+ * The company is never chosen in the form (2026-11-22): it's the Admin's company. If the Admin
+ * has none, or it's suspended / inactive, nothing is created (403 NO_ACTIVE_COMPANY).
  *   4. an audit-log entry, which shows up in the dashboard's "Recent activity"
  *   5. a "New user account created" notification for the OTHER admins
  */
@@ -34,6 +39,16 @@ class CreateUser
     /** @param  array<string, mixed>  $data  validated StoreUserRequest data */
     public function handle(array $data, User $admin, ?string $ip = null, ?string $userAgent = null): User
     {
+        $company = $admin->company_id ? Company::find($admin->company_id) : null;
+        if (! $company || ! $company->is_active || $company->isSuspended()) {
+            throw new ApiException(
+                $company ? "{$company->name} isn't active, so new users can't be added." : "Your account isn't linked to a company yet. Ask a Super Admin to assign one.",
+                'NO_ACTIVE_COMPANY',
+                403,
+            );
+        }
+        $data['company_id'] = $company->id;
+
         // If two admins somehow still collide on the same Employee ID, the UNIQUE index
         // refuses the second one; we simply try again with the next number (max 3 times).
         return retry(3, fn () => DB::transaction(fn () => $this->create($data, $admin, $ip, $userAgent)), 50,
@@ -60,13 +75,11 @@ class CreateUser
 
         if (! $isAdminRole) {
             $user->accessibleCompanies()->attach(
-                collect($data['company_ids'])->unique()->mapWithKeys(fn ($id) => [
-                    $id => ['granted_status' => 'accepted', 'granted_by' => $admin->id, 'granted_at' => now()],
-                ])->all()
+                [$data['company_id'] => ['granted_status' => 'accepted', 'granted_by' => $admin->id, 'granted_at' => now()]]
             );
         }
 
-        DB::table('audit_logs')->insert([
+        AuditTrail::record([
             'user_id' => $admin->id,
             'company_id' => $data['company_id'],
             'action' => 'created',
@@ -79,7 +92,7 @@ class CreateUser
                 'last_name' => $user->last_name,
                 'email' => $user->email,
                 'role' => $user->role,
-                'company_ids' => $isAdminRole ? [] : array_values(array_unique($data['company_ids'])),
+                'company_ids' => $isAdminRole ? [] : [$data['company_id']],
             ]),
             'ip_address' => $ip,
             'user_agent' => $userAgent ? Str::limit($userAgent, 500, '') : null,

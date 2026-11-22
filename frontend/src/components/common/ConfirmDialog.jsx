@@ -8,6 +8,13 @@ const CONFIRM_TONES = {
   primary: 'bg-primary text-primary-foreground hover:bg-primary/90',
 }
 
+const ICON_TONES = {
+  danger: 'bg-danger-soft text-danger',
+  success: 'bg-success-soft text-success',
+  warning: 'bg-warning-soft text-warning',
+  primary: 'bg-primary-soft text-primary',
+}
+
 /**
  * "Are you sure?" dialog (14px radius, Muted footer, like the other Framer modals).
  * Render it only while it's open, inside <AnimatePresence>.
@@ -31,6 +38,8 @@ export default function ConfirmDialog({
   confirmDisabled = false, // e.g. a checklist isn't complete yet
   extraAction = null, // { label, onClick }: one more button, before the confirm button
   width = 460,
+  icon = null, // optional 44px tile above the title, e.g. { icon: Ban, tone: 'danger' } (Companies C6 / C7)
+  description = null, // optional muted line under the title
   children,
 }) {
   const titleId = useId()
@@ -74,9 +83,20 @@ export default function ConfirmDialog({
         className="flex max-h-[calc(100dvh-2rem)] max-w-full flex-col overflow-hidden rounded-[14px] border bg-card text-foreground shadow-2xl"
       >
         <div className="flex min-h-0 flex-col gap-3 overflow-y-auto px-6 pt-6 pb-5">
-          <h2 id={titleId} className="text-card-title text-base">
-            {title}
-          </h2>
+          {icon && (
+            <div
+              className={cn('mb-0.5 flex size-11 items-center justify-center rounded-xl', ICON_TONES[icon.tone ?? 'primary'])}
+              aria-hidden="true"
+            >
+              <icon.icon className="size-5" />
+            </div>
+          )}
+          <div className="flex flex-col gap-1">
+            <h2 id={titleId} className={icon ? 'text-page-title' : 'text-card-title text-base'}>
+              {title}
+            </h2>
+            {description && <p className="text-body text-muted-foreground">{description}</p>}
+          </div>
           <div className="text-body flex flex-col gap-3 text-muted-foreground">{children}</div>
 
           {error && (

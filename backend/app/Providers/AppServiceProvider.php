@@ -2,8 +2,13 @@
 
 namespace App\Providers;
 
+use App\Domain\Platform\SystemHealth;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
+use Illuminate\Queue\Events\JobProcessed;
+use Illuminate\Queue\Events\JobProcessing;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
@@ -24,6 +29,28 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->configureRateLimiting();
+        $this->countFinishedJobs();
+    }
+
+    /**
+     * "Done today · avg 4 s each" on System health (Background jobs). Laravel deletes a job once it
+     * has run, so the queue worker counts them as they finish (per day, in the cache).
+     */
+    private function countFinishedJobs(): void
+    {
+        $started = [];
+        Queue::before(function (JobProcessing $event) use (&$started) {
+            $started[$event->job->getJobId()] = microtime(true);
+        });
+        Queue::after(function (JobProcessed $event) use (&$started) {
+            $day = now()->toDateString();
+            $ms = (int) round((microtime(true) - ($started[$event->job->getJobId()] ?? microtime(true))) * 1000);
+            unset($started[$event->job->getJobId()]);
+            Cache::add(SystemHealth::JOBS_DONE_KEY.$day, 0, now()->addDays(2));
+            Cache::add(SystemHealth::JOBS_DONE_MS_KEY.$day, 0, now()->addDays(2));
+            Cache::increment(SystemHealth::JOBS_DONE_KEY.$day);
+            Cache::increment(SystemHealth::JOBS_DONE_MS_KEY.$day, $ms);
+        });
     }
 
     /**
@@ -48,6 +75,8 @@ class AppServiceProvider extends ServiceProvider
 
         // Super Admin area: stricter, 60 requests per minute per Super Admin (spec §4.6).
         // A stolen Super Admin session can't be used to scrape or hammer the platform quickly.
+        // Admin top-bar search (asks while the Admin types, debounced): 60/min per Admin
+        RateLimiter::for('admin-search', fn (Request $request) => Limit::perMinute(60)->by('admin-search|'.$request->user()?->id));
         RateLimiter::for('superadmin', fn (Request $request) => Limit::perMinute(60)->by('superadmin|'.$request->user()?->id));
 
         // Everything else in the API: 120 requests per minute per user (or IP for guests)

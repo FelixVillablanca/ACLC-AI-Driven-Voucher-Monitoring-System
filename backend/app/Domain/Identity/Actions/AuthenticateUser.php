@@ -2,10 +2,14 @@
 
 namespace App\Domain\Identity\Actions;
 
+use App\Domain\Audit\AuditTrail;
 use App\Domain\Identity\Support\AccountStanding;
 use App\Domain\Security\Actions\WatchSignIns;
+use App\Exceptions\ApiException;
+use App\Models\BlockedIp;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -32,6 +36,20 @@ class AuthenticateUser
     public function check(string $email, string $password, ?string $ip = null, ?string $userAgent = null): array
     {
         $guard = Auth::guard('web');
+
+        // A Super Admin blocked this address (Audit logs AL8): refuse BEFORE checking the password,
+        // so a blocked address learns nothing. The refusal is still written to the audit log.
+        if ($ip !== null && BlockedIp::where('ip_address', $ip)->active()->exists()) {
+            AuditTrail::record([
+                'action' => 'login_blocked',
+                'table_name' => 'users',
+                'new_values' => ['email' => Str::lower(trim($email))],
+                'ip_address' => $ip,
+                'user_agent' => $userAgent,
+            ]);
+
+            throw new ApiException('Sign-ins from your network are blocked for now. Contact your administrator.', 'IP_BLOCKED', 403);
+        }
 
         // Wrong email OR wrong password -> the SAME message, on purpose.
         // Saying "email not found" would tell attackers which emails exist.

@@ -1,20 +1,14 @@
 import { useNavigate } from 'react-router-dom'
-import { Menu, Plus, Search } from 'lucide-react'
-import toast from 'react-hot-toast'
+import { Menu, Plus } from 'lucide-react'
 
 /**
  * 64px white top bar (Framer Nhw7N27tM): search, notifications bell, "+ Add user".
- * `notifications` is the bell (features/notifications), passed in by the router,
- * because shared layout components never import a feature directly.
- * Search comes with the list pages, so for now it says so (a toast).
+ * `search` (features/admin/search) and `notifications` (features/notifications) are passed in
+ * by the router, because shared layout components never import a feature directly.
+ * The search only covers the Admin's own company: its users and departments.
  */
-export default function AdminTopBar({ onOpenMenu, notifications, addUserSearch = '?create=user' }) {
+export default function AdminTopBar({ onOpenMenu, search, notifications, addUserSearch = '?create=user' }) {
   const navigate = useNavigate()
-
-  const handleSearch = (event) => {
-    event.preventDefault()
-    toast('Search will work once the Companies, Users and Departments pages are built.', { id: 'search' })
-  }
 
   return (
     <header className="flex h-16 shrink-0 items-center justify-between gap-3 border-b bg-card px-4 sm:px-7">
@@ -28,17 +22,7 @@ export default function AdminTopBar({ onOpenMenu, notifications, addUserSearch =
           <Menu className="size-4" aria-hidden="true" />
         </button>
 
-        <form role="search" onSubmit={handleSearch} className="hidden md:block">
-          <label className="flex h-[38px] w-[360px] max-w-full items-center gap-2.5 rounded-lg border bg-muted px-3 focus-within:border-primary focus-within:bg-card">
-            <Search className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
-            <span className="sr-only">Search</span>
-            <input
-              type="search"
-              placeholder="Search companies, users, departments…"
-              className="text-body h-full min-w-0 flex-1 bg-transparent outline-none placeholder:text-muted-foreground"
-            />
-          </label>
-        </form>
+        {search}
       </div>
 
       <div className="flex items-center gap-3">

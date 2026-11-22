@@ -2,6 +2,7 @@
 
 namespace App\Domain\Platform;
 
+use App\Domain\Audit\AuditTrail;
 use App\Exceptions\ApiException;
 use App\Jobs\RunDatabaseBackup;
 use App\Models\User;
@@ -98,6 +99,32 @@ class FailedJobs
         return $rows->count();
     }
 
+    /**
+     * SH5 Job details: the row plus the first lines of the error (server paths removed) and the
+     * job's saved settings. 404 when it's gone (retried or deleted meanwhile).
+     */
+    public function detail(string $uuid): array
+    {
+        $row = DB::table('failed_jobs')->where('uuid', $uuid)->first();
+        if (! $row) {
+            throw new ApiException('This job isn’t in the failed list any more (retried or deleted).', 'JOB_NOT_FOUND', 404);
+        }
+        $payload = json_decode($row->payload, true) ?? [];
+        $lines = collect(preg_split('/\R/', (string) $row->exception))->take(6)
+            // "C:\xampp\…\app\Jobs\Dump.php:42" → "Dump.php:42" (never show server folders)
+            ->map(fn ($l) => preg_replace('~\S*[/\\\\]([^/\\\\\s]+:\d+)~', '$1', trim($l)))
+            ->filter()->values()->all();
+
+        return [
+            ...$this->describe($row),
+            'connection' => $row->connection,
+            'class' => $payload['displayName'] ?? null,
+            'timeout' => $payload['timeout'] ?? null,
+            'backoff' => $payload['backoff'] ?? null,
+            'error_lines' => $lines,
+        ];
+    }
+
     /** One row as the window shows it. The error is ONE line, with server file paths removed. */
     public function describe(object $row): array
     {
@@ -154,7 +181,7 @@ class FailedJobs
 
     private function audit(string $action, $rows, User $by, ?string $ip): void
     {
-        DB::table('audit_logs')->insert([
+        AuditTrail::record([
             'user_id' => $by->id,
             'company_id' => null, // platform-level
             'action' => $action,

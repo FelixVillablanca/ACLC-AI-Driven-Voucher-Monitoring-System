@@ -77,3 +77,16 @@ export function plural(count, one, many) {
 export function formatInitials(user) {
   return `${user?.first_name?.[0] ?? ''}${user?.last_name?.[0] ?? ''}`.toUpperCase() || '?'
 }
+
+/** "412 MB" / "1.2 GB" / "860 KB" */
+export function formatBytes(bytes) {
+  if (bytes === null || bytes === undefined) return '—'
+  const units = ['bytes', 'KB', 'MB', 'GB', 'TB']
+  let value = Number(bytes)
+  let unit = 0
+  while (value >= 1024 && unit < units.length - 1) {
+    value /= 1024
+    unit++
+  }
+  return `${unit === 0 ? value : value.toFixed(value < 10 ? 1 : 0)} ${units[unit]}`
+}

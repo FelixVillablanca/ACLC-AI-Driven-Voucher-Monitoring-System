@@ -4,7 +4,7 @@ import RequireAuth from '@/app/guards/RequireAuth'
 import RequireCompany from '@/app/guards/RequireCompany'
 import RequireRole from '@/app/guards/RequireRole'
 import { signOut } from '@/features/auth'
-import { PATHS, ROLES } from '@/lib/constants'
+import { ACCOUNT_PATHS, PATHS, ROLES } from '@/lib/constants'
 import RouteErrorPage from '@/pages/RouteErrorPage'
 
 /**
@@ -24,7 +24,7 @@ const ADMIN_NOTIFICATION_LINKS = {
     access: PATHS.ADMIN_COMPANY_ACCESS,
     users: PATHS.ADMIN_USERS,
     departments: PATHS.ADMIN_DEPARTMENTS,
-    companies: PATHS.ADMIN_COMPANIES,
+    companies: PATHS.ADMIN, // an Admin has one company: its news shows on the dashboard
   },
 }
 
@@ -55,6 +55,15 @@ const comingSoon = (path, title) => ({
   },
 })
 
+/** The 5 account menu pages (features/account, built code-first): the same pages for Admin and Super Admin. */
+const accountPages = (paths) => [
+  { path: paths.profile, lazy: page(() => import('@/features/account/pages/MyProfilePage')) },
+  { path: paths.settings, lazy: page(() => import('@/features/account/pages/AccountSettingsPage')) },
+  { path: paths.changePassword, lazy: page(() => import('@/features/account/pages/ChangePasswordPage')) },
+  { path: paths.activity, lazy: page(() => import('@/features/account/pages/MyActivityPage')) },
+  { path: paths.help, lazy: page(() => import('@/features/account/pages/HelpSupportPage')) },
+]
+
 /** A landing area that only ONE operational role can open, e.g. /clerk for accounting clerks. */
 const roleArea = (role, path) => ({
   element: <RequireRole roles={[role]} />,
@@ -83,15 +92,17 @@ export const router = createBrowserRouter([
                 // Sidebar + top bar around every admin page (Framer Nhw7N27tM)
                 lazy: async () => {
                   // Downloaded only when the admin area opens (keeps the login page small)
-                  const [{ default: AdminLayout }, { NotificationBell }, { CreateUserModal }] = await Promise.all([
+                  const [{ default: AdminLayout }, { NotificationBell }, { CreateUserModal }, { AdminSearchBox }] = await Promise.all([
                     import('@/components/layout/AdminLayout'),
                     import('@/features/notifications'),
                     import('@/features/admin/users'),
+                    import('@/features/admin/search'),
                   ])
                   return {
                     Component: () => (
                       <AdminLayout
                         onSignOut={signOut}
+                        search={<AdminSearchBox />}
                         notifications={<NotificationBell links={ADMIN_NOTIFICATION_LINKS} />}
                         overlays={<CreateUserModal />}
                       />
@@ -101,17 +112,15 @@ export const router = createBrowserRouter([
                 children: [
                   { path: PATHS.ADMIN, lazy: page(() => import('@/features/admin/dashboard/pages/AdminDashboardPage')) },
                   // Not built yet: each gets its own Framer frame
-                  comingSoon(PATHS.ADMIN_COMPANIES, 'Companies'),
                   comingSoon(PATHS.ADMIN_DEPARTMENTS, 'Departments'),
                   comingSoon(PATHS.ADMIN_USERS, 'Users'),
                   comingSoon(PATHS.ADMIN_COMPANY_ACCESS, 'Company Access'),
                   comingSoon(PATHS.ADMIN_CATEGORIES, 'Categories'),
+                  comingSoon(PATHS.ADMIN_VOUCHER_TYPES, 'Voucher types'),
+                  comingSoon(PATHS.ADMIN_PAYEE_TYPES, 'Payee types'),
                   comingSoon(PATHS.ADMIN_AUDIT_LOGS, 'Audit Logs'),
                   // Account menu (⋮ under the user name, Framer nj06iziQJ)
-                  comingSoon(PATHS.ADMIN_PROFILE, 'My profile'),
-                  comingSoon(PATHS.ADMIN_SETTINGS, 'Account settings'),
-                  comingSoon(PATHS.ADMIN_CHANGE_PASSWORD, 'Change password'),
-                  comingSoon(PATHS.ADMIN_HELP, 'Help & support'),
+                  ...accountPages(ACCOUNT_PATHS[ROLES.ADMIN]),
                   comingSoon(PATHS.ADMIN_NOTIFICATIONS, 'All notifications'),
                 ],
               },
@@ -167,14 +176,24 @@ export const router = createBrowserRouter([
                     path: PATHS.SUPERADMIN_ADMINS,
                     lazy: page(() => import('@/features/superadmin/admins/pages/AdminAccountsPage')),
                   },
-                  comingSoon(PATHS.SUPERADMIN_COMPANIES, 'Companies'),
-                  comingSoon(PATHS.SUPERADMIN_SETTINGS, 'Global settings'),
-                  comingSoon(PATHS.SUPERADMIN_AUDIT_LOGS, 'Audit logs'),
-                  comingSoon(PATHS.SUPERADMIN_SYSTEM_HEALTH, 'System health'),
-                  comingSoon(PATHS.SUPERADMIN_PROFILE, 'My profile'),
-                  comingSoon(PATHS.SUPERADMIN_ACCOUNT, 'Account settings'),
-                  comingSoon(PATHS.SUPERADMIN_CHANGE_PASSWORD, 'Change password'),
-                  comingSoon(PATHS.SUPERADMIN_HELP, 'Help & support'),
+                  {
+                    path: PATHS.SUPERADMIN_COMPANIES,
+                    lazy: page(() => import('@/features/superadmin/companies/pages/CompaniesPage')),
+                  },
+                  {
+                    path: PATHS.SUPERADMIN_SETTINGS,
+                    lazy: page(() => import('@/features/superadmin/settings/pages/GlobalSettingsPage')),
+                  },
+                  {
+                    path: PATHS.SUPERADMIN_AUDIT_LOGS,
+                    lazy: page(() => import('@/features/superadmin/audit/pages/AuditLogsPage')),
+                  },
+                  {
+                    path: PATHS.SUPERADMIN_SYSTEM_HEALTH,
+                    lazy: page(() => import('@/features/superadmin/health/pages/SystemHealthPage')),
+                  },
+                  // Account menu (avatar in the top nav)
+                  ...accountPages(ACCOUNT_PATHS[ROLES.SUPER_ADMIN]),
                   comingSoon(PATHS.SUPERADMIN_NOTIFICATIONS, 'All notifications'),
                 ],
               },

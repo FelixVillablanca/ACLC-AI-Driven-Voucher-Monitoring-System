@@ -23,10 +23,12 @@ class SecurityAlertDetailResource extends SecurityAlertResource
         return [
             ...parent::toArray($request),
             'rule' => $this->type === SecurityAlert::TYPE_FAILED_SIGN_INS
-                ? ['failures' => WatchSignIns::FAILED_LIMIT, 'minutes' => WatchSignIns::FAILED_WINDOW_MINUTES]
+                ? ['failures' => WatchSignIns::failedLimit(), 'minutes' => WatchSignIns::FAILED_WINDOW_MINUTES]
                 : null,
             'events' => $this->details['events'] ?? [],
             'ip_seen_before' => $this->ipSeenBefore(),
+            // password_changed: 'account_settings' (changed while signed in) or null (a reset link)
+            'via' => $this->details['via'] ?? null,
             'account' => $this->user ? $this->account($this->user) : null,
             'actions' => $this->actions(),
         ];

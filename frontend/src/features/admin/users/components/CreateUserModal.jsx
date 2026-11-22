@@ -36,6 +36,7 @@ export default function CreateUserModal() {
 
 function ModalWindow({ onClose }) {
   const { status, companies, error, retry } = useCompanyOptions()
+  const company = companies.find((c) => c.is_active) ?? null // the Admin's own company (the lookup only returns that one)
   const employeeIdPreview = useNextEmployeeId()
   const [result, setResult] = useState(null) // set after a successful create
   const [formKey, setFormKey] = useState(0) // changing it gives a fresh, empty form
@@ -109,11 +110,11 @@ function ModalWindow({ onClose }) {
           </button>
         </div>
 
-        {/* Body: loading / error / no companies / form / success */}
+        {/* Body: loading / error / no company / form / success. An Admin runs ONE company: new users join it */}
         {status === 'loading' && (
           <div role="status" className="flex items-center justify-center gap-2 p-16">
             <Loader2 className="size-5 animate-spin text-primary" aria-hidden="true" />
-            <span className="text-caption">Loading companies and departments…</span>
+            <span className="text-caption">Loading your company's departments…</span>
           </div>
         )}
 
@@ -121,17 +122,17 @@ function ModalWindow({ onClose }) {
           <ErrorState title="Couldn't load the form" message={error.message} requestId={error.requestId} onRetry={retry} />
         )}
 
-        {status === 'success' && !companies.some((c) => c.is_active) && (
+        {status === 'success' && !company && !result && (
           <EmptyState
-            title="No active companies yet"
-            description="Every user belongs to a company. Add a company first, then create users."
+            title="Your company isn't ready"
+            description="New users join your company, but your account has no active company. Ask a Super Admin to assign or reactivate it."
           />
         )}
 
-        {status === 'success' && companies.some((c) => c.is_active) && !result && (
+        {status === 'success' && company && !result && (
           <CreateUserForm
             key={formKey}
-            companies={companies}
+            company={company}
             employeeIdPreview={employeeIdPreview}
             onCancel={onClose}
             onCreated={onCreated}

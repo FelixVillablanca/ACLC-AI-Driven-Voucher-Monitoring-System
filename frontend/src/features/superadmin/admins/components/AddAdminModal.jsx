@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Building2, Loader2, X } from 'lucide-react'
 import toast from 'react-hot-toast'
 import EmptyState from '@/components/common/EmptyState'
 import ErrorState from '@/components/common/ErrorState'
+import { COMPANIES_CHANGED_EVENT } from '@/features/superadmin/companies'
+import { PATHS } from '@/lib/constants'
 import { useAdminFormDefaults } from '../hooks/useAdminFormDefaults'
 import { ADMINS_CHANGED_EVENT } from '../utils'
 import AddAdminForm from './AddAdminForm'
@@ -14,25 +16,30 @@ import AdminCreatedPanel from './AdminCreatedPanel'
  * "Create admin account" modal (Framer TkIHF89oH, 640px; company + personal email added 2026-11-20).
  * Opens on ANY Super Admin page when the address has ?create=admin
  * ("+ Add admin" buttons), and Back / Esc / ✕ / Cancel close it.
+ * ?for={companyId} chooses the company already (from "Add its admin" after Add company,
+ * or "Add admin" on a company with no Admin). The company list is loaded fresh every time
+ * the modal opens, so a company added a moment ago is always there.
  */
 export default function AddAdminModal() {
   const [params, setParams] = useSearchParams()
   const open = params.get('create') === 'admin'
+  const forCompany = Number(params.get('for')) || null
 
   const close = useCallback(() => {
     setParams(
       (p) => {
         p.delete('create')
+        p.delete('for')
         return p
       },
       { replace: true },
     )
   }, [setParams])
 
-  return <AnimatePresence>{open && <ModalWindow onClose={close} />}</AnimatePresence>
+  return <AnimatePresence>{open && <ModalWindow onClose={close} forCompany={forCompany} />}</AnimatePresence>
 }
 
-function ModalWindow({ onClose }) {
+function ModalWindow({ onClose, forCompany }) {
   const defaults = useAdminFormDefaults()
   const [result, setResult] = useState(null)
   const [formKey, setFormKey] = useState(0)
@@ -58,6 +65,7 @@ function ModalWindow({ onClose }) {
     if (invitationSent) toast.success(`${admin.full_name} was added. Invitation sent to ${admin.personal_email}`)
     else toast.error('The account was created, but the invitation email could not be sent.')
     window.dispatchEvent(new CustomEvent(ADMINS_CHANGED_EVENT))
+    window.dispatchEvent(new CustomEvent(COMPANIES_CHANGED_EVENT)) // its company card now shows the Admin
   }
 
   const createAnother = () => {
@@ -127,7 +135,15 @@ function ModalWindow({ onClose }) {
           <EmptyState
             icon={Building2}
             title="No active companies yet"
-            description="Every Admin runs one company. Create a company first (Companies tab), then add its Admin."
+            description="Every Admin runs one company. Add a company first, then add its Admin."
+            action={
+              <Link
+                to={`${PATHS.SUPERADMIN_COMPANIES}?create=company`}
+                className="text-auth-button flex h-[38px] items-center rounded-lg bg-primary px-3.5 text-primary-foreground outline-none hover:bg-primary/90 focus-visible:ring-3 focus-visible:ring-ring/50"
+              >
+                Add company
+              </Link>
+            }
           />
         )}
 
@@ -135,6 +151,7 @@ function ModalWindow({ onClose }) {
           <AddAdminForm
             key={formKey}
             defaults={defaults}
+            forCompany={formKey === 0 ? forCompany : null}
             onCancel={onClose}
             onCreated={onCreated}
             onDirtyChange={rememberDirty}

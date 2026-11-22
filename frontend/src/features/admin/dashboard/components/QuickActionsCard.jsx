@@ -1,11 +1,12 @@
 import { Link } from 'react-router-dom'
-import { ArrowLeftRight, ArrowRight, Building2, Users } from 'lucide-react'
+import { ArrowLeftRight, ArrowRight, Layers, Users } from 'lucide-react'
 import { CREATE_USER_SEARCH } from '@/features/admin/users'
 import { PATHS } from '@/lib/constants'
 
 const ACTIONS = [
-  { label: 'Add company', icon: Building2, to: PATHS.ADMIN_COMPANIES },
   { label: 'Create user', icon: Users, to: { search: CREATE_USER_SEARCH } }, // opens the Create user modal
+  // "Add company" removed 2026-11-22: an Admin runs one company; new companies come from the Super Admin
+  { label: 'Add department', icon: Layers, to: PATHS.ADMIN_DEPARTMENTS },
   { label: 'Grant company access', icon: ArrowLeftRight, to: PATHS.ADMIN_COMPANY_ACCESS },
 ]
 

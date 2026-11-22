@@ -1,5 +1,5 @@
 import { apiClient } from '@/lib/apiClient'
-import { normalizeApiError } from '@/lib/apiError'
+import { saveDownload } from '@/lib/download'
 
 /**
  * One page of the Admins table (Framer U7glXUOSF).
@@ -128,20 +128,5 @@ export async function exportAdmins({ format, accounts, view, search, ids, column
     responseType: 'blob',
     validateStatus: () => true,
   })
-
-  if (response.status >= 400) {
-    let data = null
-    try {
-      data = JSON.parse(await response.data.text())
-    } catch {
-      // not JSON: the generic message is used
-    }
-    throw normalizeApiError({ response: { status: response.status, data, headers: response.headers } })
-  }
-
-  const name = /filename="([^"]+)"/.exec(response.headers['content-disposition'] ?? '')?.[1] ?? `admin-list.${format}`
-  const url = URL.createObjectURL(response.data)
-  Object.assign(document.createElement('a'), { href: url, download: name }).click()
-  URL.revokeObjectURL(url)
-  return name
+  return saveDownload(response, `admin-list.${format}`)
 }

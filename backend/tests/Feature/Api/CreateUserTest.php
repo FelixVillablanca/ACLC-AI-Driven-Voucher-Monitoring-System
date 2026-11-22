@@ -47,9 +47,7 @@ class CreateUserTest extends TestCase
             'email_username' => 'Maria.Santos', // only the name; the server adds @Clerk.com
             'password' => self::PASSWORD,
             'role' => 'accounting_clerk',
-            'company_id' => $this->apex->id,
-            'department_id' => null,
-            'company_ids' => [$this->apex->id],
+            'department_id' => null, // no company fields: the server uses the Admin's company
         ], $overrides);
     }
 
@@ -152,7 +150,7 @@ class CreateUserTest extends TestCase
     public function test_an_admin_cannot_create_admin_or_super_admin_accounts(): void
     {
         foreach (['admin', 'super_admin'] as $role) {
-            $this->create(['role' => $role, 'company_ids' => [], 'email_username' => "jdoe.{$role}"])
+            $this->create(['role' => $role, 'email_username' => "jdoe.{$role}"])
                 ->assertUnprocessable()
                 ->assertJsonPath('errors.role.0', 'Choose Clerk, Officer or Supervisor. Admin accounts are created by a Super Admin.');
         }
@@ -166,7 +164,8 @@ class CreateUserTest extends TestCase
         $this->actingAs($this->admin)
             ->postJson('/api/v1/admin/users', [])
             ->assertUnprocessable()
-            ->assertJsonValidationErrors(['first_name', 'last_name', 'email_username', 'password', 'role', 'company_id']);
+            ->assertJsonValidationErrors(['first_name', 'last_name', 'email_username', 'password', 'role'])
+            ->assertJsonMissingValidationErrors(['company_id', 'company_ids']);
     }
 
     public function test_the_email_domain_always_comes_from_the_role(): void
@@ -201,16 +200,37 @@ class CreateUserTest extends TestCase
             ->assertJsonPath('errors.email_username.0', 'A user with this email already exists.');
     }
 
-    public function test_an_admin_can_only_add_users_to_their_own_company(): void
+    public function test_the_user_always_joins_the_admins_own_company_whatever_is_sent(): void
     {
-        $this->create(['company_id' => $this->north->id, 'company_ids' => [$this->north->id]])->assertUnprocessable()
-            ->assertJsonPath('errors.company_id.0', 'You can only add users to your own company.');
+        // a company sent from the browser (e.g. a hand-made request) is ignored
+        $id = $this->create([
+            'email_username' => 'sneaky',
+            'company_id' => $this->north->id,
+            'company_ids' => [$this->apex->id, $this->north->id],
+        ])->assertCreated()->json('data.id');
 
-        $this->create(['company_ids' => [$this->apex->id, $this->north->id]])->assertUnprocessable()
-            ->assertJsonValidationErrors(['company_ids.1' => 'You can only give access to your own company.']);
+        $this->assertDatabaseHas('users', ['id' => $id, 'company_id' => $this->apex->id]);
+        $this->assertSame([$this->apex->id], DB::table('user_company_access')->where('user_id', $id)->pluck('company_id')->all());
+    }
 
-        $this->create(['company_ids' => []])->assertUnprocessable()
-            ->assertJsonValidationErrors(['company_ids']);
+    public function test_a_department_of_another_company_is_refused(): void
+    {
+        $ops = Department::factory()->for($this->north)->create(['code' => 'OPS']);
+
+        $this->create(['department_id' => $ops->id])->assertUnprocessable()
+            ->assertJsonPath('errors.department_id.0', 'Choose a department of your company.');
+    }
+
+    public function test_no_user_is_created_when_the_admins_company_is_missing_or_suspended(): void
+    {
+        $this->apex->forceFill(['is_active' => false, 'suspended_at' => now(), 'suspension_reason' => 'Test'])->save();
+        // the account-standing guard already stops an Admin of a suspended company
+        $this->create()->assertForbidden()->assertJsonPath('code', 'COMPANY_SUSPENDED');
+
+        $this->admin->forceFill(['company_id' => null])->save();
+        $this->create(['email_username' => 'other'])->assertForbidden()->assertJsonPath('code', 'NO_ACTIVE_COMPANY');
+
+        $this->assertSame(0, User::where('role', 'accounting_clerk')->count());
     }
 
     public function test_nothing_is_saved_when_validation_fails(): void

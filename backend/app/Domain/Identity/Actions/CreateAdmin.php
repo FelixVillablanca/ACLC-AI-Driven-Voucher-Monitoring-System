@@ -2,7 +2,10 @@
 
 namespace App\Domain\Identity\Actions;
 
+use App\Domain\Audit\AuditTrail;
 use App\Domain\Identity\Support\EmployeeIdGenerator;
+use App\Domain\Platform\Actions\UpdateGlobalSettings;
+use App\Domain\Platform\SystemSettings;
 use App\Models\Notification;
 use App\Models\User;
 use Illuminate\Database\UniqueConstraintViolationException;
@@ -27,6 +30,7 @@ class CreateAdmin
     public function __construct(
         private EmployeeIdGenerator $employeeIds,
         private SendAccountInvitation $invitation,
+        private SystemSettings $settings,
     ) {}
 
     /**
@@ -59,7 +63,15 @@ class CreateAdmin
             'last_login_at' => null, // "Pending" until their first sign-in
         ]);
 
-        DB::table('audit_logs')->insert([
+        // Global rule "Require two-step for admins": they set it up at their first sign-in
+        if ($this->settings->value(SystemSettings::REQUIRE_TWO_FACTOR_FOR_ADMINS) === true) {
+            $admin->forceFill([
+                'two_factor_required_at' => now(),
+                'two_factor_setup_deadline' => now()->addDays(UpdateGlobalSettings::TWO_FACTOR_SETUP_DAYS),
+            ])->save();
+        }
+
+        AuditTrail::record([
             'user_id' => $superAdmin->id,
             'company_id' => $admin->company_id,
             'action' => 'created',

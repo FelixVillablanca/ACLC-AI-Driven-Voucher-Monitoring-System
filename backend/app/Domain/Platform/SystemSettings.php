@@ -10,51 +10,99 @@ use Illuminate\Support\Facades\DB;
  *
  * A KEY/VALUE table: instead of one column per setting, each setting is a row
  * ("approval.high_value_threshold" => "50000.00"). Adding a new setting later
- * needs no migration.
+ * needs no migration: add it to DEFAULTS and SystemSettingsSeeder writes its row.
  *
- * Starting values are in DEFAULTS below; SystemSettingsSeeder writes them once.
- * A setting with no row is NOT SET, get() returns null, and the screen says "Not set".
- * Writing settings comes with the Global settings page (Framer tsrXCiWWw).
+ * A setting with no row yet is NOT SET: get() returns the fallback you pass (or null), and
+ * value() returns the platform default. Writing is done by UpdateGlobalSettings (Global settings
+ * page, Framer tsrXCiWWw), which also checks each value (GlobalSettingRules).
  */
 class SystemSettings
 {
-    // The keys used so far. Keep them here so a typo can't create a second, different setting.
+    // The keys. Keep them here so a typo can't create a second, different setting.
     public const HIGH_VALUE_THRESHOLD = 'approval.high_value_threshold'; // "50000.00" (money as a string, never a float)
+
+    public const AI_FLAGGED_NEEDS_STEP_2 = 'approval.ai_flagged_needs_step2'; // true: an AI-flagged voucher always needs step 2
 
     public const ANOMALY_SENSITIVITY = 'ai.anomaly_sensitivity';         // relaxed | balanced | strict
 
+    public const CATEGORY_MIN_CONFIDENCE = 'ai.category_min_confidence'; // 70 (%): below this the clerk sees no suggestion
+
     public const OPENAI_MONTHLY_CAP_USD = 'openai.monthly_cap_usd';      // "25.00" (OpenAI bills in US dollars)
 
+    public const OPENAI_PAUSE_AT_CAP = 'openai.pause_at_cap';            // true: stop summaries when the cap is reached
+
     public const SUPER_ADMIN_IDLE_TIMEOUT = 'security.super_admin_idle_timeout_minutes'; // 15 (spec §4.6: shorter session)
+
+    public const FAILED_SIGN_IN_ALERT_AFTER = 'security.failed_sign_in_alert_after'; // 5 failed sign-ins in 5 min → High alert
+
+    public const REQUIRE_TWO_FACTOR_FOR_ADMINS = 'security.require_two_factor_for_admins'; // false
 
     /**
      * STARTING VALUES ("platform defaults"), written once by SystemSettingsSeeder.
      * Super Admins change them later on the Global settings page; the seeder never overwrites a saved value.
+     * `label` is the name people read (Change history, notifications).
      *
-     * @var array<string, array{value: mixed, group: string, description: string}>
+     * @var array<string, array{value: mixed, group: string, label: string, description: string}>
      */
     public const DEFAULTS = [
         self::HIGH_VALUE_THRESHOLD => [
             'value' => '50000.00',
             'group' => 'approval',
-            'description' => 'Vouchers above this amount also need the Supervisor/Manager (step 2).',
+            'label' => 'High-value threshold',
+            'description' => 'Vouchers at or above this amount also need the Supervisor/Manager (step 2).',
+        ],
+        self::AI_FLAGGED_NEEDS_STEP_2 => [
+            'value' => true,
+            'group' => 'approval',
+            'label' => 'Send AI-flagged vouchers to step 2',
+            'description' => 'Any voucher the anomaly check flags needs the Supervisor/Manager, whatever the amount.',
         ],
         self::ANOMALY_SENSITIVITY => [
             'value' => 'balanced',
             'group' => 'ai',
+            'label' => 'Anomaly sensitivity',
             'description' => 'How easily the AI flags a voucher as unusual: relaxed, balanced or strict.',
+        ],
+        self::CATEGORY_MIN_CONFIDENCE => [
+            'value' => 70,
+            'group' => 'ai',
+            'label' => 'Show category suggestions from',
+            'description' => 'Clerks only see an AI category suggestion when the AI is at least this sure (%).',
         ],
         self::OPENAI_MONTHLY_CAP_USD => [
             'value' => '25.00',
             'group' => 'openai',
+            'label' => 'Monthly spend cap',
             'description' => 'Most the platform may spend on OpenAI report summaries per month (US dollars).',
+        ],
+        self::OPENAI_PAUSE_AT_CAP => [
+            'value' => true,
+            'group' => 'openai',
+            'label' => 'Pause summaries at the cap',
+            'description' => 'When the cap is reached, reports still build, just without the AI summary.',
         ],
         self::SUPER_ADMIN_IDLE_TIMEOUT => [
             'value' => 15,
             'group' => 'security',
+            'label' => 'Super Admin idle sign-out',
             'description' => 'Super Admins are signed out after this many minutes without activity.',
         ],
+        self::FAILED_SIGN_IN_ALERT_AFTER => [
+            'value' => 5,
+            'group' => 'security',
+            'label' => 'Security alert after failed sign-ins',
+            'description' => 'This many failed sign-ins for one account within 5 minutes raises a High security alert.',
+        ],
+        self::REQUIRE_TWO_FACTOR_FOR_ADMINS => [
+            'value' => false,
+            'group' => 'security',
+            'label' => 'Require two-step for admins',
+            'description' => 'Every Admin must set up two-step sign-in (an authenticator app).',
+        ],
     ];
+
+    /** The Global settings sections, in screen order (Change history filter tabs too). */
+    public const GROUPS = ['approval', 'ai', 'openai', 'security'];
 
     /** @var array<string, mixed>|null all rows, loaded once per request */
     private ?array $values = null;
@@ -70,6 +118,24 @@ class SystemSettings
             ->all();
 
         return $this->values[$key] ?? $fallback;
+    }
+
+    /** The saved value, or the platform default when there's no row yet. */
+    public function value(string $key): mixed
+    {
+        return $this->get($key, self::DEFAULTS[$key]['value'] ?? null);
+    }
+
+    /** Every editable setting with its current value: [key => value]. */
+    public function all(): array
+    {
+        return collect(self::DEFAULTS)->mapWithKeys(fn ($d, $key) => [$key => $this->value($key)])->all();
+    }
+
+    /** Forget the values read earlier in this request (after a save). */
+    public function refresh(): void
+    {
+        $this->values = null;
     }
 
     /**

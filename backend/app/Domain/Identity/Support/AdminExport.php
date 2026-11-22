@@ -3,6 +3,7 @@
 namespace App\Domain\Identity\Support;
 
 use App\Models\User;
+use App\Support\Exports\TabularExport;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Collection;
 
@@ -62,18 +63,10 @@ class AdminExport
         return [$headers, $rows];
     }
 
+    /** The shared CSV writer (TabularExport) handles the UTF-8 marker and formula-injection guard. */
     public function csv(array $headers, array $rows): string
     {
-        $out = fopen('php://temp', 'r+');
-        fwrite($out, "\xEF\xBB\xBF"); // so Excel reads ñ, é … correctly (UTF-8 marker)
-        fputcsv($out, $headers);
-        foreach ($rows as $row) {
-            // A cell starting with = + - @ could run as a formula in Excel ("CSV injection"): prefix it
-            fputcsv($out, array_map(fn ($v) => preg_match('/^[=+\-@]/', (string) $v) ? "'".$v : $v, $row));
-        }
-        rewind($out);
-
-        return stream_get_contents($out);
+        return app(TabularExport::class)->csv($headers, $rows);
     }
 
     public function pdf(array $headers, array $rows, User $by): string

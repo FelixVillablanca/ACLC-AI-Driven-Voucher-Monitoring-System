@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Domain\Audit\AuditTrail;
 use App\Domain\Identity\Actions\SendAccountInvitation;
 use App\Domain\Identity\Actions\SendPasswordReset;
 use App\Domain\Security\Actions\RaiseSecurityAlert;
@@ -56,7 +57,7 @@ class InvitationController extends Controller
                 DB::transaction(function () use ($user, $password, $request, $isReset, $raise) {
                     $user->forceFill(['password' => $password, 'access_status' => 'accepted'])->save();
 
-                    DB::table('audit_logs')->insert([
+                    AuditTrail::record([
                         'user_id' => $user->id,
                         'company_id' => $user->company_id,
                         'action' => $isReset ? 'password_reset_completed' : 'password_set',

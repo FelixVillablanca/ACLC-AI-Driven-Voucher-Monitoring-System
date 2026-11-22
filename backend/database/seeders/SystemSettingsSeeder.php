@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Domain\Audit\AuditTrail;
 use App\Domain\Platform\SystemSettings;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
@@ -47,7 +48,7 @@ class SystemSettingsSeeder extends Seeder
                 ]);
             }
 
-            DB::table('audit_logs')->insert([
+            AuditTrail::record([
                 'user_id' => null,
                 'company_id' => null,
                 'action' => 'defaults_applied',

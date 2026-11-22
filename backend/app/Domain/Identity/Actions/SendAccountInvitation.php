@@ -2,9 +2,9 @@
 
 namespace App\Domain\Identity\Actions;
 
+use App\Domain\Audit\AuditTrail;
 use App\Mail\AccountInvitationMail;
 use App\Models\User;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Password;
@@ -44,7 +44,7 @@ class SendAccountInvitation
             return false;
         }
 
-        DB::table('audit_logs')->insert([
+        AuditTrail::record([
             'user_id' => $sentBy?->id,
             'company_id' => $user->company_id,
             'action' => 'invitation_sent',
