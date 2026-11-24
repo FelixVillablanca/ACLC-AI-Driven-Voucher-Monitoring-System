@@ -14,19 +14,26 @@ import SidebarUserMenu from './SidebarUserMenu'
  * `manageCompaniesSearch` + `overlays` add "Join another company…" to the switcher and its window.
  * Wide screens: the sidebar is always visible. Small screens: ☰ slides it in.
  */
-export default function OperationsLayout({ nav: Nav, notifications, onSignOut, manageCompaniesSearch = null, overlays = null }) {
+export default function OperationsLayout({
+  nav: Nav,
+  notifications,
+  onSignOut,
+  accountLinks = null,
+  manageCompaniesSearch = null,
+  overlays = null,
+}) {
   const [menuOpen, setMenuOpen] = useState(false)
 
   return (
     <div className="flex h-dvh overflow-hidden bg-muted">
       <div className="hidden shrink-0 lg:block">
-        <Sidebar Nav={Nav} onSignOut={onSignOut} />
+        <Sidebar Nav={Nav} onSignOut={onSignOut} accountLinks={accountLinks} />
       </div>
 
       {menuOpen && (
         <div className="fixed inset-0 z-40 flex lg:hidden" role="dialog" aria-modal="true" aria-label="Menu">
           <div className="relative z-10">
-            <Sidebar Nav={Nav} onSignOut={onSignOut} onClose={() => setMenuOpen(false)} />
+            <Sidebar Nav={Nav} onSignOut={onSignOut} accountLinks={accountLinks} onClose={() => setMenuOpen(false)} />
           </div>
           <button type="button" aria-label="Close menu" onClick={() => setMenuOpen(false)} className="flex-1 bg-foreground/40" />
         </div>
@@ -57,7 +64,7 @@ export default function OperationsLayout({ nav: Nav, notifications, onSignOut, m
   )
 }
 
-function Sidebar({ Nav, onSignOut, onClose }) {
+function Sidebar({ Nav, onSignOut, accountLinks, onClose }) {
   const role = useAuthStore((s) => s.user?.role)
 
   return (
@@ -86,8 +93,8 @@ function Sidebar({ Nav, onSignOut, onClose }) {
         </div>
         <Nav onNavigate={onClose} />
       </div>
-      {/* No account pages for this role yet, so the ⋮ menu shows who you are + Sign out */}
-      <SidebarUserMenu onSignOut={onSignOut} links={null} compact={Boolean(onClose)} />
+      {/* ⋮ = the role's account menu (`accountLinks`, e.g. ACCOUNT_PATHS[clerk]) + Sign out */}
+      <SidebarUserMenu onSignOut={onSignOut} links={accountLinks} compact={Boolean(onClose)} />
     </aside>
   )
 }

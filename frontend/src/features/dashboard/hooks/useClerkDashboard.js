@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import { create } from 'zustand'
+import { VOUCHERS_CHANGED_EVENT } from '@/features/vouchers'
 import { useCompanyStore } from '@/stores/useCompanyStore'
 import { getClerkDashboard } from '../api'
 
@@ -27,6 +28,10 @@ export function useClerkDashboard() {
 
   useEffect(() => {
     if (companyId && useStore.getState().companyId !== companyId) useStore.getState().load(companyId)
+    // a voucher was created / saved / submitted / cancelled: refresh the numbers quietly
+    const onChanged = () => companyId && useStore.getState().load(companyId, { quiet: true })
+    window.addEventListener(VOUCHERS_CHANGED_EVENT, onChanged)
+    return () => window.removeEventListener(VOUCHERS_CHANGED_EVENT, onChanged)
   }, [companyId])
 
   const current = state.companyId === companyId

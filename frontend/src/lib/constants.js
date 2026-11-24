@@ -78,6 +78,11 @@ export const PATHS = Object.freeze({
   SUPERADMIN_NOTIFICATIONS: '/superadmin/notifications',
   CLERK: '/clerk',
   CLERK_NOTIFICATIONS: '/clerk/notifications',
+  CLERK_VOUCHERS: '/clerk/vouchers',
+  CLERK_VOUCHER_NEW: '/clerk/vouchers/new',
+  CLERK_PROFILE: '/clerk/profile',
+  CLERK_CHANGE_PASSWORD: '/clerk/change-password',
+  CLERK_APPROVAL_GUIDE: '/clerk/how-vouchers-get-approved',
   OFFICER: '/officer',
   SUPERVISOR: '/supervisor',
   FORBIDDEN: '/403',
@@ -93,6 +98,13 @@ export const ACCOUNT_PATHS = Object.freeze({
     changePassword: PATHS.ADMIN_CHANGE_PASSWORD,
     activity: PATHS.ADMIN_ACTIVITY,
     help: PATHS.ADMIN_HELP,
+  }),
+  // Clerks (2026-11-22): the pages that apply to them, plus notifications and the approval guide
+  [ROLES.CLERK]: Object.freeze({
+    profile: PATHS.CLERK_PROFILE,
+    changePassword: PATHS.CLERK_CHANGE_PASSWORD,
+    notifications: PATHS.CLERK_NOTIFICATIONS,
+    approvalGuide: PATHS.CLERK_APPROVAL_GUIDE,
   }),
   [ROLES.SUPER_ADMIN]: Object.freeze({
     profile: PATHS.SUPERADMIN_PROFILE,

@@ -147,10 +147,13 @@ function SecurityGlance({ account, links }) {
     },
   ]
 
+  // a row whose page this role doesn't have (e.g. Account settings for a clerk) isn't shown
+  const shownRows = rows.filter((r) => r.to)
+
   return (
     <AccountCard title="Security at a glance" description={lastSignInText(account)}>
       <ul className="-mx-2 flex flex-col">
-        {rows.map((row) => (
+        {shownRows.map((row) => (
           <li key={row.text}>
             <Link
               to={row.to}

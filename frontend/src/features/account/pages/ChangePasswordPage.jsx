@@ -100,9 +100,11 @@ export default function ChangePasswordPage() {
                 <Link to={links.profile} className={buttonClass.primary}>
                   Back to My profile
                 </Link>
-                <Link to={links.activity} className={buttonClass.secondary}>
-                  See my activity
-                </Link>
+                {links.activity && (
+                  <Link to={links.activity} className={buttonClass.secondary}>
+                    See my activity
+                  </Link>
+                )}
               </div>
             </div>
           </AccountCard>
@@ -187,12 +189,13 @@ export default function ChangePasswordPage() {
             <li>You stay signed in on this browser.</li>
             <li>Every other browser is signed out, so a stolen session stops working.</li>
             <li>
-              The change is written to your activity
+              The change is written to {links.activity ? 'your activity' : 'the audit log'}
               {user?.role === 'admin' || user?.role === 'super_admin' ? ', and the Super Admins get a low-level security alert' : ''}.
             </li>
             <li>
-              Forgot your current password? Ask {user?.role === 'super_admin' ? 'another Super Admin' : 'your Super Admin'} to send a reset
-              link to your personal email.
+              {user?.role === 'admin' || user?.role === 'super_admin'
+                ? `Forgot your current password? Ask ${user?.role === 'super_admin' ? 'another Super Admin' : 'your Super Admin'} to send a reset link to your personal email.`
+                : 'Forgot your current password? Ask your company’s Admin to set a new one for you (Users page → New password).'}
             </li>
           </ul>
         </AccountCard>

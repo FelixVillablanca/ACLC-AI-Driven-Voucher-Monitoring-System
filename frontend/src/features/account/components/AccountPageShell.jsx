@@ -27,7 +27,7 @@ export default function AccountPageShell({ title, description, actions, children
 
         <nav aria-label="Account pages" className="-mx-4 overflow-x-auto border-b px-4 sm:mx-0 sm:px-0">
           <ul className="flex min-w-max gap-5">
-            {ACCOUNT_TABS.map((tab) => (
+            {ACCOUNT_TABS.filter((tab) => links[tab.key]).map((tab) => (
               <li key={tab.key}>
                 <NavLink
                   to={links[tab.key]}

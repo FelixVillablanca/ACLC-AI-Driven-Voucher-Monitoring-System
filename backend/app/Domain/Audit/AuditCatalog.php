@@ -89,6 +89,7 @@ class AuditCatalog
 
         // Vouchers (Phase 3–4 write these; amounts are never shown to the Super Admin)
         'voucher_created' => ['label' => 'Voucher created', 'group' => 'vouchers', 'tone' => 'neutral'],
+        'voucher_updated' => ['label' => 'Voucher changed', 'group' => 'vouchers', 'tone' => 'neutral'],
         'voucher_submitted' => ['label' => 'Voucher submitted', 'group' => 'vouchers', 'tone' => 'primary'],
         'voucher_approved' => ['label' => 'Voucher approved', 'group' => 'vouchers', 'tone' => 'success'],
         'voucher_rejected' => ['label' => 'Voucher rejected', 'group' => 'vouchers', 'tone' => 'danger'],

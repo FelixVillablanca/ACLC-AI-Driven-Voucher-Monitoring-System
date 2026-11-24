@@ -1,9 +1,11 @@
 import { format } from 'date-fns'
+import { Link, useNavigate } from 'react-router-dom'
 import { CheckCircle2, FilePen, FileText, Flag, Hourglass, Inbox, Plus, Undo2 } from 'lucide-react'
 import EmptyState from '@/components/common/EmptyState'
 import ErrorState from '@/components/common/ErrorState'
 import Pill from '@/components/common/Pill'
-import { formatDate, formatMoney, formatTimeAgo, greeting, plural } from '@/lib/formatters'
+import { PATHS } from '@/lib/constants'
+import { formatDate, formatMoney, formatTimeAgo, greeting } from '@/lib/formatters'
 import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/stores/useAuthStore'
 import { useClerkDashboard } from '../hooks/useClerkDashboard'
@@ -20,14 +22,12 @@ const STATUS = {
 
 const ROLE_AT_TIME = { accounting_officer: 'Accounting', supervisor_manager: 'Supervisor' }
 
-const SOON = 'Available once the voucher forms are built'
-
 /**
  * ACCOUNTING CLERK LANDING PAGE (Framer LolF6YFo5, Phase 6 dashboard on top of the Phase 3 voucher table).
  * Real numbers only, from GET /api/v1/clerk/dashboard, for the company in the switcher.
  * Differences from the frame (real-data rule): "Approved in <month>" says "approved", not "paid out"
  * (payments aren't tracked); the "AI checks every voucher" card is left out (no AI service yet); the
- * voucher buttons and links are disabled until their pages exist; there's no top-bar search yet.
+ * search is on My vouchers (not in the top bar). Rows open the voucher; Fix & resubmit opens its form.
  */
 export default function ClerkDashboardPage() {
   const user = useAuthStore((s) => s.user)
@@ -46,22 +46,20 @@ export default function ClerkDashboardPage() {
           <p className="text-body text-muted-foreground">{subtitle}</p>
         </div>
         <div className="flex flex-wrap items-center gap-2.5">
-          <button
-            type="button"
-            disabled
-            title={SOON}
-            className="text-body-strong flex h-[38px] cursor-not-allowed items-center gap-1.5 rounded-lg border bg-card px-3.5 opacity-60"
-          >
-            <FilePen className="size-4" aria-hidden="true" /> Continue draft{data?.counts.drafts ? ` (${data.counts.drafts})` : ''}
-          </button>
-          <button
-            type="button"
-            disabled
-            title={SOON}
-            className="text-auth-button flex h-[38px] cursor-not-allowed items-center gap-1.5 rounded-lg bg-primary px-3.5 text-primary-foreground opacity-60"
+          {data?.counts.drafts > 0 && (
+            <Link
+              to={`${PATHS.CLERK_VOUCHERS}?view=draft`}
+              className="text-body-strong flex h-[38px] items-center gap-1.5 rounded-lg border bg-card px-3.5 outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring/50"
+            >
+              <FilePen className="size-4" aria-hidden="true" /> Continue draft ({data.counts.drafts})
+            </Link>
+          )}
+          <Link
+            to={PATHS.CLERK_VOUCHER_NEW}
+            className="text-auth-button flex h-[38px] items-center gap-1.5 rounded-lg bg-primary px-3.5 text-primary-foreground outline-none hover:bg-primary/90 focus-visible:ring-3 focus-visible:ring-ring/50"
           >
             <Plus className="size-4" aria-hidden="true" /> Create voucher
-          </button>
+          </Link>
         </div>
       </div>
 
@@ -142,20 +140,33 @@ function Stat({ label, icon: Icon, value, caption, tone }) {
 }
 
 function RecentVouchers({ rows, total }) {
+  const navigate = useNavigate()
   return (
     <section aria-labelledby="recent-title" className="flex min-w-0 flex-1 flex-col overflow-hidden rounded-xl border bg-card">
       <header className="flex items-center justify-between gap-2.5 border-b px-4 py-3">
         <h2 id="recent-title" className="text-card-title">
           My recent vouchers
         </h2>
-        {total > 0 && <span className="text-caption">{plural(total, 'voucher', 'vouchers')} in all</span>}
+        {total > 0 && (
+          <Link to={PATHS.CLERK_VOUCHERS} className="text-auth-link text-primary hover:underline">
+            View all {total} →
+          </Link>
+        )}
       </header>
 
       {rows.length === 0 ? (
         <EmptyState
           icon={FileText}
           title="No vouchers yet"
-          description="Vouchers you create in this company will show up here. Creating vouchers comes with the voucher forms."
+          description="Vouchers you create in this company show up here."
+          action={
+            <Link
+              to={PATHS.CLERK_VOUCHER_NEW}
+              className="text-auth-button flex h-[38px] items-center gap-1.5 rounded-lg bg-primary px-3.5 text-primary-foreground hover:bg-primary/90"
+            >
+              <Plus className="size-4" aria-hidden="true" /> Create voucher
+            </Link>
+          }
         />
       ) : (
         <div className="overflow-x-auto">
@@ -180,7 +191,11 @@ function RecentVouchers({ rows, total }) {
               {rows.map((v) => {
                 const pill = STATUS[v.status] ?? { tone: 'neutral', text: v.status }
                 return (
-                  <tr key={v.id} className="border-b last:border-b-0">
+                  <tr
+                    key={v.id}
+                    onClick={() => navigate(`${PATHS.CLERK_VOUCHERS}/${v.id}`)}
+                    className="cursor-pointer border-b last:border-b-0 hover:bg-primary-faint"
+                  >
                     <td className="px-4 py-[9px]">
                       <span className="text-body-strong flex flex-wrap items-center gap-1.5">
                         {v.voucher_number ?? <span className="text-caption">Draft · no number yet</span>}
@@ -243,9 +258,9 @@ function NeedsAttention({ rows }) {
                 {r.returned_at && ` · ${formatTimeAgo(r.returned_at)}`}
               </p>
               {r.remarks && <p className="text-body rounded-lg bg-muted px-3 py-2">“{r.remarks}”</p>}
-              <span className="text-caption cursor-not-allowed opacity-70" title={SOON}>
-                Fix &amp; resubmit → (with the voucher forms)
-              </span>
+              <Link to={`${PATHS.CLERK_VOUCHERS}/${r.id}/edit`} className="text-auth-link w-fit text-primary hover:underline">
+                Fix &amp; resubmit →
+              </Link>
             </li>
           ))}
         </ul>

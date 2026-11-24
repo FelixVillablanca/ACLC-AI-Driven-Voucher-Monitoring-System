@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\V1\Admin\DepartmentController as AdminDepartmentCon
 use App\Http\Controllers\Api\V1\Admin\LookupController;
 use App\Http\Controllers\Api\V1\Admin\SearchController as AdminSearchController;
 use App\Http\Controllers\Api\V1\Admin\UserController as AdminUserController;
+use App\Http\Controllers\Api\V1\ApprovalRulesController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\Clerk\DashboardController as ClerkDashboardController;
 use App\Http\Controllers\Api\V1\HealthController;
@@ -26,6 +27,7 @@ use App\Http\Controllers\Api\V1\SuperAdmin\GlobalSettingsController;
 use App\Http\Controllers\Api\V1\SuperAdmin\SecurityAlertController;
 use App\Http\Controllers\Api\V1\SuperAdmin\SystemHealthController;
 use App\Http\Controllers\Api\V1\TwoFactorLoginController;
+use App\Http\Controllers\Api\V1\Vouchers\VoucherController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -237,6 +239,21 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
                 Route::delete('/requests/{company}', 'cancelRequest')->whereNumber('company')->name('cancel-request');
                 Route::post('/invitations/{company}/accept', 'accept')->whereNumber('company')->name('accept');
                 Route::post('/invitations/{company}/decline', 'decline')->whereNumber('company')->name('decline');
+            });
+
+        // The current approval rules, for "How vouchers get approved" (any signed-in user)
+        Route::get('/approval-rules', ApprovalRulesController::class)->name('approval-rules');
+
+        // VOUCHERS (Phase 3, 2026-11-22): a clerk's own vouchers in the company in X-Company-ID
+        Route::prefix('vouchers')->name('vouchers.')->controller(VoucherController::class)
+            ->middleware(['role:accounting_clerk', 'company'])->group(function () {
+                Route::get('/form-options', 'formOptions')->name('form-options');
+                Route::get('/', 'index')->name('index');
+                Route::post('/', 'store')->middleware('throttle:60,1')->name('store');
+                Route::get('/{voucher}', 'show')->whereNumber('voucher')->name('show');
+                Route::patch('/{voucher}', 'update')->whereNumber('voucher')->middleware('throttle:60,1')->name('update');
+                Route::post('/{voucher}/submit', 'submit')->whereNumber('voucher')->middleware('throttle:30,1')->name('submit');
+                Route::post('/{voucher}/cancel', 'cancel')->whereNumber('voucher')->middleware('throttle:30,1')->name('cancel');
             });
 
         // ACCOUNTING CLERK area (2026-11-22): always inside the company sent in X-Company-ID (ResolveCompany)

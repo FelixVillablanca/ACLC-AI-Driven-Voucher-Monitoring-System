@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { CircleHelp, KeyRound, Loader2, Power, ScrollText, Settings, UserRound } from 'lucide-react'
+import { Bell, CircleHelp, KeyRound, Loader2, Power, Route, ScrollText, Settings, UserRound } from 'lucide-react'
 import { formatInitials, formatSignInTime } from '@/lib/formatters'
 import { ROLE_SHORT_LABELS } from '@/lib/constants'
 import { cn } from '@/lib/utils'
@@ -53,7 +53,9 @@ export default function UserMenuPanel({ user, links, signingOut, onSignOut, onCl
         </div>
         <div className="min-w-0 flex-1">
           <p className="text-body-strong truncate">{user?.full_name}</p>
-          <p className="text-caption truncate" title={user?.email}>{user?.email}</p>
+          <p className="text-caption truncate" title={user?.email}>
+            {user?.email}
+          </p>
         </div>
         <span className="text-badge shrink-0 rounded-full bg-primary-soft px-2 py-0.5 text-primary">
           {ROLE_SHORT_LABELS[user?.role] ?? user?.role}
@@ -62,7 +64,8 @@ export default function UserMenuPanel({ user, links, signingOut, onSignOut, onCl
 
       <div role="separator" className="h-px bg-border" />
 
-      {/* No `links` = this role has no account pages yet (clerk / officer / supervisor): only Sign out */}
+      {/* Each item shows only if this role has that page (Admin / Super Admin: 5 pages; clerk: profile,
+          password, notifications and the approval guide). No `links` at all = only Sign out. */}
       {links && (
         <>
           <MenuLink to={links.profile} icon={UserRound} onClick={onClose}>
@@ -74,8 +77,14 @@ export default function UserMenuPanel({ user, links, signingOut, onSignOut, onCl
           <MenuLink to={links.changePassword} icon={KeyRound} onClick={onClose}>
             Change password
           </MenuLink>
+          <MenuLink to={links.notifications} icon={Bell} onClick={onClose}>
+            Notifications
+          </MenuLink>
           <MenuLink to={links.activity} icon={ScrollText} onClick={onClose} hint="Audit log">
             My activity
+          </MenuLink>
+          <MenuLink to={links.approvalGuide} icon={Route} onClick={onClose}>
+            How vouchers get approved
           </MenuLink>
           <MenuLink to={links.help} icon={CircleHelp} onClick={onClose}>
             Help &amp; support
@@ -104,6 +113,7 @@ export default function UserMenuPanel({ user, links, signingOut, onSignOut, onCl
 }
 
 function MenuLink({ to, icon: Icon, hint, onClick, children }) {
+  if (!to) return null // this role doesn't have that page
   return (
     <Link to={to} role="menuitem" onClick={onClick} className={itemClass}>
       <span className="flex size-[18px] items-center justify-center text-muted-foreground">

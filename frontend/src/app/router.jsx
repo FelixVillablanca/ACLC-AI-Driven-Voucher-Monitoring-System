@@ -61,7 +61,10 @@ const accountPages = (paths) => [
 /** Where the clerk's bell links go. Clerk pages beyond the dashboard come with the voucher forms. */
 const CLERK_NOTIFICATION_LINKS = {
   viewAll: PATHS.CLERK_NOTIFICATIONS,
-  categories: { access: '?companies=manage' }, // invitations / answers open the Join another company window
+  categories: {
+    access: '?companies=manage', // invitations / answers open the Join another company window
+    vouchers: PATHS.CLERK_VOUCHERS,
+  },
 }
 
 /** A landing area that only ONE operational role can open, e.g. /clerk for accounting clerks. */
@@ -237,6 +240,7 @@ export const router = createBrowserRouter([
                             nav={ClerkNav}
                             onSignOut={signOut}
                             notifications={<NotificationBell links={CLERK_NOTIFICATION_LINKS} />}
+                            accountLinks={ACCOUNT_PATHS[ROLES.CLERK]}
                             manageCompaniesSearch={MANAGE_COMPANIES_SEARCH}
                             overlays={<JoinCompanyModal />}
                           />
@@ -246,6 +250,15 @@ export const router = createBrowserRouter([
                     children: [
                       { path: PATHS.CLERK, lazy: page(() => import('@/features/dashboard/pages/ClerkDashboardPage')) },
                       notificationsPage(PATHS.CLERK_NOTIFICATIONS, CLERK_NOTIFICATION_LINKS),
+                      // Vouchers (Phase 3)
+                      { path: PATHS.CLERK_VOUCHERS, lazy: page(() => import('@/features/vouchers/pages/MyVouchersPage')) },
+                      { path: PATHS.CLERK_VOUCHER_NEW, lazy: page(() => import('@/features/vouchers/pages/VoucherFormPage')) },
+                      { path: `${PATHS.CLERK_VOUCHERS}/:id`, lazy: page(() => import('@/features/vouchers/pages/VoucherDetailPage')) },
+                      { path: `${PATHS.CLERK_VOUCHERS}/:id/edit`, lazy: page(() => import('@/features/vouchers/pages/VoucherFormPage')) },
+                      { path: PATHS.CLERK_APPROVAL_GUIDE, lazy: page(() => import('@/features/vouchers/pages/ApprovalGuidePage')) },
+                      // ⋮ menu: the account pages that apply to a clerk
+                      { path: PATHS.CLERK_PROFILE, lazy: page(() => import('@/features/account/pages/MyProfilePage')) },
+                      { path: PATHS.CLERK_CHANGE_PASSWORD, lazy: page(() => import('@/features/account/pages/ChangePasswordPage')) },
                     ],
                   },
                 ],

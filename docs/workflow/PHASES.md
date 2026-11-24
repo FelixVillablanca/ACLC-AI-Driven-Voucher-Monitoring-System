@@ -208,6 +208,8 @@ scheduler (§3.7), row locking for "only one at a time" rules (§3.4).
 
 ## Phase 3: Voucher core
 
+> **Started 2026-11-22:** clerk vouchers built code-first: drafts with line items (server-side totals, bcmath), edit with conflict check, submit (state machine, numbering `{INITIALS}-{YEAR}-{0001}`, officer notice), cancel, My vouchers (tabs, search, sort), voucher detail with review history, the approval guide page. Still to do: attachments, idempotency keys, PDF.
+
 **Goal:** clerks can create, edit, attach files to, submit and cancel vouchers.
 **Status:** ⬜ Not started.
 
