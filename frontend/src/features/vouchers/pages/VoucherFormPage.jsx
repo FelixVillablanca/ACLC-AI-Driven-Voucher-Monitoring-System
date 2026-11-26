@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useFieldArray, useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { ArrowLeft, Banknote, Check, ChevronDown, Info, Loader2, Plus, Send, Trash2, TriangleAlert } from 'lucide-react'
@@ -11,6 +11,8 @@ import { formatDate, formatMoney } from '@/lib/formatters'
 import { cn } from '@/lib/utils'
 import { useCompanyStore } from '@/stores/useCompanyStore'
 import { createVoucher, getVoucher, getVoucherFormOptions, submitVoucher, updateVoucher } from '../api'
+import ReturnedBanner from '../components/ReturnedBanner'
+import ReturnSummary from '../components/ReturnSummary'
 import { EMPTY_LINE, formValues, toPayload, voucherSchema } from '../schemas'
 import { announceVouchersChanged, centsToAmount, lineCents, PAYMENT_LABELS, PRIORITY_LABELS } from '../utils'
 
@@ -21,9 +23,13 @@ const AUTOSAVE_MS = 30_000
  * Save draft keeps it private and may be incomplete. Save & submit saves, then sends it to the Accounting
  * Officer; if something's missing, the server says what (under the fields) and it stays a draft.
  * The total shown here is worked out in centavos; the server adds it up again and its total is the one kept.
+ * A RETURNED voucher opens as "Fix & resubmit" (Framer EWrCKOIlI, 2026-11-26): wider, the reviewer's note on
+ * top, Save changes / Resubmit for review in the header, and a summary column (total then vs. now, route).
  */
 export default function VoucherFormPage() {
   const { id } = useParams()
+  const [search] = useSearchParams()
+  const prefillPayeeId = id ? null : Number(search.get('payee')) || null // "New voucher for Meralco" (Payees panel)
   const companyId = useCompanyStore((s) => s.activeCompanyId)
   const [load, setLoad] = useState({ key: null, status: 'loading', options: null, voucher: null, error: null })
   const [attempt, setAttempt] = useState(0)
@@ -40,14 +46,15 @@ export default function VoucherFormPage() {
   }, [id, key])
 
   const status = load.key === key ? load.status : 'loading'
+  const returned = status === 'success' && load.voucher?.status === 'returned'
 
   return (
-    <div className="mx-auto flex w-full max-w-[1000px] flex-col gap-4 px-4 py-6 sm:px-7">
+    <div className={cn('mx-auto flex w-full flex-col gap-4 px-4 py-6 sm:px-7', returned ? 'max-w-[1200px]' : 'max-w-[1000px]')}>
       <Link
-        to={id ? `${PATHS.CLERK_VOUCHERS}/${id}` : PATHS.CLERK_VOUCHERS}
+        to={returned ? PATHS.CLERK_RETURNED : id ? `${PATHS.CLERK_VOUCHERS}/${id}` : PATHS.CLERK_VOUCHERS}
         className="text-caption flex w-fit items-center gap-1 hover:text-foreground"
       >
-        <ArrowLeft className="size-3.5" aria-hidden="true" /> {id ? 'Back to the voucher' : 'My vouchers'}
+        <ArrowLeft className="size-3.5" aria-hidden="true" /> {returned ? 'Returned to me' : id ? 'Back to the voucher' : 'My vouchers'}
       </Link>
 
       {status === 'loading' && (
@@ -86,6 +93,7 @@ export default function VoucherFormPage() {
         <VoucherForm
           key={`${load.voucher?.id ?? 'new'}|${attempt}`}
           options={load.options}
+          prefillPayeeId={prefillPayeeId}
           voucher={load.voucher}
           onReload={() => setAttempt((n) => n + 1)}
         />
@@ -94,11 +102,17 @@ export default function VoucherFormPage() {
   )
 }
 
-function VoucherForm({ options, voucher, onReload }) {
+function VoucherForm({ options, voucher, prefillPayeeId, onReload }) {
   const navigate = useNavigate()
+  const isReturned = voucher?.status === 'returned'
+  const [savedNow, setSavedNow] = useState(false) // a save on this visit (Returned banner chip)
   const [busy, setBusy] = useState(null) // 'save' | 'submit'
   const [formError, setFormError] = useState(null)
-  const [defaults] = useState(() => formValues(voucher, options.my_department_id))
+  const [defaults] = useState(() => {
+    const values = formValues(voucher, options.my_department_id)
+    const payee = prefillPayeeId && options.payees?.find((p) => p.id === prefillPayeeId)
+    return payee ? { ...values, ...payeeFill(payee, values) } : values
+  })
   const {
     register,
     control,
@@ -110,7 +124,17 @@ function VoucherForm({ options, voucher, onReload }) {
   } = useForm({ resolver: zodResolver(voucherSchema), defaultValues: defaults })
   const { fields, append, remove } = useFieldArray({ control, name: 'line_items' })
 
-  const [method, lines, categoryId] = useWatch({ control, name: ['payment_method', 'line_items', 'category_id'] })
+  const [method, lines, categoryId, payeeName] = useWatch({ control, name: ['payment_method', 'line_items', 'category_id', 'payee_name'] })
+
+  // Saved payees (2026-11-26): a name that matches one fills its type, payment method and bank details
+  // (empty fields only, except the payment method); the server links the voucher to it when saving.
+  const savedPayee = findPayee(options.payees, payeeName)
+  const lastPayeeRef = useRef(savedPayee?.id ?? null)
+  useEffect(() => {
+    if (!savedPayee || savedPayee.id === lastPayeeRef.current) return
+    lastPayeeRef.current = savedPayee.id
+    Object.entries(payeeFill(savedPayee, getValues())).forEach(([k, v]) => setValue(k, v, { shouldDirty: true }))
+  }, [savedPayee, getValues, setValue])
   const totalCents = (lines ?? []).reduce((sum, l) => sum + lineCents(l.quantity, l.unit_price), 0)
   const category = options.categories.find((c) => c.id === Number(categoryId))
 
@@ -217,6 +241,7 @@ function VoucherForm({ options, voucher, onReload }) {
         saved = await save(values)
         lastSavedRef.current = snap
         setAuto({ state: 'saved', at: new Date() })
+        setSavedNow(true)
         announceVouchersChanged()
       } catch (error) {
         setBusy(null)
@@ -230,7 +255,13 @@ function VoucherForm({ options, voucher, onReload }) {
       }
 
       if (action === 'save') {
-        toast.success(voucher ? 'Draft saved.' : 'Draft saved. Only you can see it until you submit it.')
+        toast.success(
+          isReturned
+            ? 'Changes saved. It stays with you until you resubmit it.'
+            : voucher
+              ? 'Draft saved.'
+              : 'Draft saved. Only you can see it until you submit it.',
+        )
         setBusy(null)
         if (!voucher) navigate(`${PATHS.CLERK_VOUCHERS}/${saved.id}/edit`, { replace: true }) // its own address now
         return
@@ -239,13 +270,18 @@ function VoucherForm({ options, voucher, onReload }) {
       try {
         const sent = await submitVoucher(saved.id)
         announceVouchersChanged()
-        toast.success(`${sent.voucher_number} was sent to the Accounting Officers.`)
+        toast.success(`${sent.voucher_number} was ${isReturned ? 'resubmitted' : 'sent'} to the Accounting Officers.`)
         navigate(`${PATHS.CLERK_VOUCHERS}/${saved.id}`)
       } catch (error) {
         setBusy(null)
         // it's saved, but not complete enough to submit: say what's missing and stay here (the form keeps
         // the saved id, so fixing and submitting again updates the same draft)
-        toast.error('Saved as a draft. Fix the marked fields to submit it.', { duration: 6000 })
+        toast.error(
+          isReturned
+            ? 'Your changes are saved. Fix the marked fields to resubmit it.'
+            : 'Saved as a draft. Fix the marked fields to submit it.',
+          { duration: 6000 },
+        )
         if (!showServerErrors(error)) setFormError(error)
       }
     })()
@@ -260,255 +296,289 @@ function VoucherForm({ options, voucher, onReload }) {
 
   return (
     <form onSubmit={(e) => e.preventDefault()} noValidate className="flex flex-col gap-4">
-      <div className="flex flex-col gap-1">
-        <h1 className="text-page-title">
-          {voucher ? (voucher.voucher_number ? `Fix ${voucher.voucher_number}` : 'Edit draft') : 'Create voucher'}
-        </h1>
-        <p className="text-body text-muted-foreground">
-          {voucher?.status === 'returned'
-            ? 'A reviewer sent this back. Make the changes and submit it again; it keeps its number.'
-            : 'Save it as a draft any time. Submit it when it’s complete.'}
-        </p>
-      </div>
-
-      {voucher?.status === 'returned' && voucher.history?.length > 0 && <ReturnedNote history={voucher.history} />}
-
-      <Card title="Payee">
-        <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2">
-          <FieldShell id="v-payee_name" label="Who gets paid" error={errors.payee_name?.message}>
-            <input {...fieldProps('payee_name')} {...register('payee_name')} maxLength={255} placeholder="e.g. Metro Office Supplies" />
-          </FieldShell>
-          <FieldShell
-            id="v-payee_type_id"
-            label="Payee type"
-            error={errors.payee_type_id?.message}
-            hint={options.payee_types.length ? undefined : 'Your Admin hasn’t added payee types yet.'}
-          >
-            <Select {...fieldProps('payee_type_id')} {...register('payee_type_id')}>
-              <option value="">Choose…</option>
-              {options.payee_types.map((t) => (
-                <option key={t.id} value={t.id}>
-                  {t.name}
-                </option>
-              ))}
-            </Select>
-          </FieldShell>
-        </div>
-      </Card>
-
-      <Card title="Details">
-        <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2">
-          <FieldShell
-            id="v-category_id"
-            label="Category"
-            required
-            error={errors.category_id?.message}
-            hint={category?.description ?? (options.categories.length ? undefined : 'No categories yet: ask your Admin.')}
-          >
-            <Select {...fieldProps('category_id')} {...register('category_id')}>
-              <option value="">Choose…</option>
-              {options.categories.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                  {c.code ? ` (${c.code})` : ''}
-                </option>
-              ))}
-            </Select>
-          </FieldShell>
-          <FieldShell id="v-voucher_type_id" label="Voucher type" error={errors.voucher_type_id?.message}>
-            <Select {...fieldProps('voucher_type_id')} {...register('voucher_type_id')}>
-              <option value="">{options.voucher_types.length ? 'Choose… (optional)' : 'None set up yet'}</option>
-              {options.voucher_types.map((t) => (
-                <option key={t.id} value={t.id}>
-                  {t.name}
-                </option>
-              ))}
-            </Select>
-          </FieldShell>
-          <FieldShell id="v-department_id" label="Department" error={errors.department_id?.message}>
-            <Select {...fieldProps('department_id')} {...register('department_id')}>
-              <option value="">No department</option>
-              {options.departments.map((d) => (
-                <option key={d.id} value={d.id}>
-                  {d.name}
-                </option>
-              ))}
-            </Select>
-          </FieldShell>
-          <div className="grid grid-cols-2 gap-3.5">
-            <FieldShell id="v-due_date" label="Due date" error={errors.due_date?.message}>
-              <input {...fieldProps('due_date')} {...register('due_date')} type="date" />
-            </FieldShell>
-            <FieldShell id="v-priority" label="Priority" error={errors.priority?.message}>
-              <Select {...fieldProps('priority')} {...register('priority')}>
-                {options.priorities.map((p) => (
-                  <option key={p} value={p}>
-                    {PRIORITY_LABELS[p] ?? p}
-                  </option>
-                ))}
-              </Select>
-            </FieldShell>
+      {isReturned ? (
+        <div className="flex flex-wrap items-end justify-between gap-2.5">
+          <div className="flex flex-col gap-1">
+            <h1 className="text-page-title">Fix &amp; resubmit · {voucher.voucher_number}</h1>
+            <p className="text-body text-muted-foreground">
+              {voucher.payee_name ? `${voucher.payee_name} · ` : ''}make the changes and resubmit; it keeps its number
+            </p>
           </div>
-          <div className="sm:col-span-2">
-            <FieldShell id="v-description" label="What is it for" error={errors.description?.message}>
-              <textarea
-                {...fieldProps('description')}
-                {...register('description')}
-                rows={2}
-                maxLength={2000}
-                placeholder="e.g. November internet bill for the Makati office"
-                className={cn(inputClass, 'h-auto resize-y py-2')}
-              />
-            </FieldShell>
+          <div className="flex items-center gap-2.5">
+            <SaveButton busy={busy} onClick={() => run('save')} label="Save changes" />
+            <SubmitButton busy={busy} onClick={() => run('submit')} label="Resubmit for review" />
           </div>
-          <FieldShell id="v-purpose" label="Purpose / notes for the reviewer" error={errors.purpose?.message}>
-            <textarea
-              {...fieldProps('purpose')}
-              {...register('purpose')}
-              rows={2}
-              maxLength={2000}
-              className={cn(inputClass, 'h-auto resize-y py-2')}
-            />
-          </FieldShell>
-          <FieldShell id="v-reference_number" label="Reference (invoice / OR number)" error={errors.reference_number?.message}>
-            <input {...fieldProps('reference_number')} {...register('reference_number')} maxLength={100} placeholder="e.g. INV-55621" />
-          </FieldShell>
         </div>
-      </Card>
-
-      <Card title="Payment">
-        <div role="radiogroup" aria-label="Payment method" className="flex flex-wrap gap-2">
-          {options.payment_methods.map((m) => (
-            <button
-              key={m}
-              type="button"
-              role="radio"
-              aria-checked={method === m}
-              disabled={Boolean(busy)}
-              onClick={() => setValue('payment_method', m, { shouldDirty: true, shouldValidate: true })}
-              className={cn(
-                'text-body-strong flex h-9 items-center gap-1.5 rounded-full border px-3.5 outline-none focus-visible:ring-2 focus-visible:ring-ring/50',
-                method === m ? 'border-primary bg-primary-faint text-primary' : 'bg-card hover:bg-muted',
-              )}
-            >
-              {m === 'bank' && <Banknote className="size-4" aria-hidden="true" />}
-              {PAYMENT_LABELS[m] ?? m}
-            </button>
-          ))}
+      ) : (
+        <div className="flex flex-col gap-1">
+          <h1 className="text-page-title">{voucher ? 'Edit draft' : 'Create voucher'}</h1>
+          <p className="text-body text-muted-foreground">Save it as a draft any time. Submit it when it’s complete.</p>
         </div>
-        {errors.payment_method && <p className="text-caption text-danger">{errors.payment_method.message}</p>}
-        {method === 'bank' && (
-          <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-3">
-            <FieldShell id="v-bank_name" label="Bank" error={errors.bank_name?.message}>
-              <input {...fieldProps('bank_name')} {...register('bank_name')} maxLength={150} placeholder="e.g. BPI" />
-            </FieldShell>
-            <FieldShell id="v-bank_account_name" label="Account name" error={errors.bank_account_name?.message}>
-              <input {...fieldProps('bank_account_name')} {...register('bank_account_name')} maxLength={150} />
-            </FieldShell>
-            <FieldShell id="v-bank_account_number" label="Account number" error={errors.bank_account_number?.message}>
-              <input {...fieldProps('bank_account_number')} {...register('bank_account_number')} inputMode="numeric" maxLength={50} />
-            </FieldShell>
-          </div>
-        )}
-      </Card>
+      )}
 
-      <Card title="Lines" aside={<span className="text-caption">{fields.length} of 50</span>}>
-        {errors.line_items?.message && <p className="text-caption text-danger">{errors.line_items.message}</p>}
-        {errors.line_items?.root?.message && <p className="text-caption text-danger">{errors.line_items.root.message}</p>}
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[640px] text-left">
-            <thead>
-              <tr className="text-table-head text-muted-foreground">
-                <th className="pb-2 font-semibold">Description</th>
-                <th className="w-[90px] pb-2 font-semibold">Qty</th>
-                <th className="w-[90px] pb-2 font-semibold">Unit</th>
-                <th className="w-[140px] pb-2 font-semibold">Unit price (₱)</th>
-                <th className="w-[130px] pb-2 text-right font-semibold">Total</th>
-                <th className="w-10 pb-2">
-                  <span className="sr-only">Remove</span>
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {fields.map((f, i) => {
-                const e = errors.line_items?.[i]
-                return (
-                  <tr key={f.id} className="align-top">
-                    <td className="py-1 pr-2">
-                      <input
-                        {...fieldProps(`line_items.${i}.description`)}
-                        {...register(`line_items.${i}.description`)}
-                        aria-label={`Line ${i + 1} description`}
-                        maxLength={255}
-                      />
-                      {e?.description && <p className="text-caption mt-1 text-danger">{e.description.message}</p>}
-                    </td>
-                    <td className="py-1 pr-2">
-                      <input
-                        {...fieldProps(`line_items.${i}.quantity`)}
-                        {...register(`line_items.${i}.quantity`)}
-                        aria-label={`Line ${i + 1} quantity`}
-                        inputMode="decimal"
-                      />
-                      {e?.quantity && <p className="text-caption mt-1 text-danger">{e.quantity.message}</p>}
-                    </td>
-                    <td className="py-1 pr-2">
-                      <input
-                        {...fieldProps(`line_items.${i}.unit`)}
-                        {...register(`line_items.${i}.unit`)}
-                        aria-label={`Line ${i + 1} unit`}
-                        maxLength={30}
-                        placeholder="pc"
-                      />
-                    </td>
-                    <td className="py-1 pr-2">
-                      <input
-                        {...fieldProps(`line_items.${i}.unit_price`)}
-                        {...register(`line_items.${i}.unit_price`)}
-                        aria-label={`Line ${i + 1} unit price`}
-                        inputMode="decimal"
-                        placeholder="0.00"
-                      />
-                      {e?.unit_price && <p className="text-caption mt-1 text-danger">{e.unit_price.message}</p>}
-                    </td>
-                    <td className="text-body-strong py-3 pr-2 text-right tabular-nums">
-                      {formatMoney(centsToAmount(lineCents(lines?.[i]?.quantity, lines?.[i]?.unit_price)))}
-                    </td>
-                    <td className="py-1">
-                      <button
-                        type="button"
-                        onClick={() => remove(i)}
-                        disabled={Boolean(busy)}
-                        aria-label={`Remove line ${i + 1}`}
-                        className="flex size-10 items-center justify-center rounded-lg text-muted-foreground hover:bg-danger-soft hover:text-danger"
-                      >
-                        <Trash2 className="size-4" aria-hidden="true" />
-                      </button>
-                    </td>
+      {isReturned && <ReturnedBanner returned={voucher.returned} saved={savedNow || voucher.returned?.edited_since} />}
+
+      <div className={cn('flex flex-col gap-4', isReturned && 'lg:grid lg:grid-cols-[minmax(0,1fr)_300px] lg:items-start lg:gap-[18px]')}>
+        <div className="flex min-w-0 flex-col gap-4">
+          <Card title="Payee">
+            <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2">
+              <FieldShell id="v-payee_name" label="Who gets paid" error={errors.payee_name?.message}>
+                <input
+                  {...fieldProps('payee_name')}
+                  {...register('payee_name')}
+                  list="v-payee-list"
+                  maxLength={255}
+                  placeholder={options.payees?.length ? 'Start typing a saved payee…' : 'e.g. Metro Office Supplies'}
+                />
+                <datalist id="v-payee-list">
+                  {(options.payees ?? []).map((p) => (
+                    <option key={p.id} value={p.name} />
+                  ))}
+                </datalist>
+                {!errors.payee_name && payeeName?.trim() && (
+                  <p className={cn('text-caption', savedPayee && 'text-success')}>
+                    {savedPayee
+                      ? `✓ Saved payee${savedPayee.tin ? ` · TIN ${savedPayee.tin}` : ''}`
+                      : 'Not a saved payee: kept as typed. Add it under Reference → Payees to reuse it.'}
+                  </p>
+                )}
+              </FieldShell>
+              <FieldShell
+                id="v-payee_type_id"
+                label="Payee type"
+                error={errors.payee_type_id?.message}
+                hint={options.payee_types.length ? undefined : 'Your Admin hasn’t added payee types yet.'}
+              >
+                <Select {...fieldProps('payee_type_id')} {...register('payee_type_id')}>
+                  <option value="">Choose…</option>
+                  {options.payee_types.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.name}
+                    </option>
+                  ))}
+                </Select>
+              </FieldShell>
+            </div>
+          </Card>
+
+          <Card title="Details">
+            <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2">
+              <FieldShell
+                id="v-category_id"
+                label="Category"
+                required
+                error={errors.category_id?.message}
+                hint={category?.description ?? (options.categories.length ? undefined : 'No categories yet: ask your Admin.')}
+              >
+                <Select {...fieldProps('category_id')} {...register('category_id')}>
+                  <option value="">Choose…</option>
+                  {options.categories.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                      {c.code ? ` (${c.code})` : ''}
+                    </option>
+                  ))}
+                </Select>
+              </FieldShell>
+              <FieldShell id="v-voucher_type_id" label="Voucher type" error={errors.voucher_type_id?.message}>
+                <Select {...fieldProps('voucher_type_id')} {...register('voucher_type_id')}>
+                  <option value="">{options.voucher_types.length ? 'Choose… (optional)' : 'None set up yet'}</option>
+                  {options.voucher_types.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.name}
+                    </option>
+                  ))}
+                </Select>
+              </FieldShell>
+              <FieldShell id="v-department_id" label="Department" error={errors.department_id?.message}>
+                <Select {...fieldProps('department_id')} {...register('department_id')}>
+                  <option value="">No department</option>
+                  {options.departments.map((d) => (
+                    <option key={d.id} value={d.id}>
+                      {d.name}
+                    </option>
+                  ))}
+                </Select>
+              </FieldShell>
+              <div className="grid grid-cols-2 gap-3.5">
+                <FieldShell id="v-due_date" label="Due date" error={errors.due_date?.message}>
+                  <input {...fieldProps('due_date')} {...register('due_date')} type="date" />
+                </FieldShell>
+                <FieldShell id="v-priority" label="Priority" error={errors.priority?.message}>
+                  <Select {...fieldProps('priority')} {...register('priority')}>
+                    {options.priorities.map((p) => (
+                      <option key={p} value={p}>
+                        {PRIORITY_LABELS[p] ?? p}
+                      </option>
+                    ))}
+                  </Select>
+                </FieldShell>
+              </div>
+              <div className="sm:col-span-2">
+                <FieldShell id="v-description" label="What is it for" error={errors.description?.message}>
+                  <textarea
+                    {...fieldProps('description')}
+                    {...register('description')}
+                    rows={2}
+                    maxLength={2000}
+                    placeholder="e.g. November internet bill for the Makati office"
+                    className={cn(inputClass, 'h-auto resize-y py-2')}
+                  />
+                </FieldShell>
+              </div>
+              <FieldShell id="v-purpose" label="Purpose / notes for the reviewer" error={errors.purpose?.message}>
+                <textarea
+                  {...fieldProps('purpose')}
+                  {...register('purpose')}
+                  rows={2}
+                  maxLength={2000}
+                  className={cn(inputClass, 'h-auto resize-y py-2')}
+                />
+              </FieldShell>
+              <FieldShell id="v-reference_number" label="Reference (invoice / OR number)" error={errors.reference_number?.message}>
+                <input {...fieldProps('reference_number')} {...register('reference_number')} maxLength={100} placeholder="e.g. INV-55621" />
+              </FieldShell>
+            </div>
+          </Card>
+
+          <Card title="Payment">
+            <div role="radiogroup" aria-label="Payment method" className="flex flex-wrap gap-2">
+              {options.payment_methods.map((m) => (
+                <button
+                  key={m}
+                  type="button"
+                  role="radio"
+                  aria-checked={method === m}
+                  disabled={Boolean(busy)}
+                  onClick={() => setValue('payment_method', m, { shouldDirty: true, shouldValidate: true })}
+                  className={cn(
+                    'text-body-strong flex h-9 items-center gap-1.5 rounded-full border px-3.5 outline-none focus-visible:ring-2 focus-visible:ring-ring/50',
+                    method === m ? 'border-primary bg-primary-faint text-primary' : 'bg-card hover:bg-muted',
+                  )}
+                >
+                  {m === 'bank' && <Banknote className="size-4" aria-hidden="true" />}
+                  {PAYMENT_LABELS[m] ?? m}
+                </button>
+              ))}
+            </div>
+            {errors.payment_method && <p className="text-caption text-danger">{errors.payment_method.message}</p>}
+            {method === 'bank' && (
+              <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-3">
+                <FieldShell id="v-bank_name" label="Bank" error={errors.bank_name?.message}>
+                  <input {...fieldProps('bank_name')} {...register('bank_name')} maxLength={150} placeholder="e.g. BPI" />
+                </FieldShell>
+                <FieldShell id="v-bank_account_name" label="Account name" error={errors.bank_account_name?.message}>
+                  <input {...fieldProps('bank_account_name')} {...register('bank_account_name')} maxLength={150} />
+                </FieldShell>
+                <FieldShell id="v-bank_account_number" label="Account number" error={errors.bank_account_number?.message}>
+                  <input {...fieldProps('bank_account_number')} {...register('bank_account_number')} inputMode="numeric" maxLength={50} />
+                </FieldShell>
+              </div>
+            )}
+          </Card>
+
+          <Card title="Lines" aside={<span className="text-caption">{fields.length} of 50</span>}>
+            {errors.line_items?.message && <p className="text-caption text-danger">{errors.line_items.message}</p>}
+            {errors.line_items?.root?.message && <p className="text-caption text-danger">{errors.line_items.root.message}</p>}
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[640px] text-left">
+                <thead>
+                  <tr className="text-table-head text-muted-foreground">
+                    <th className="pb-2 font-semibold">Description</th>
+                    <th className="w-[90px] pb-2 font-semibold">Qty</th>
+                    <th className="w-[90px] pb-2 font-semibold">Unit</th>
+                    <th className="w-[140px] pb-2 font-semibold">Unit price (₱)</th>
+                    <th className="w-[130px] pb-2 text-right font-semibold">Total</th>
+                    <th className="w-10 pb-2">
+                      <span className="sr-only">Remove</span>
+                    </th>
                   </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        </div>
-        <div className="flex flex-wrap items-center justify-between gap-3 border-t pt-3">
-          <button
-            type="button"
-            onClick={() => append({ ...EMPTY_LINE })}
-            disabled={fields.length >= 50 || Boolean(busy)}
-            className="text-body-strong flex h-[34px] items-center gap-1.5 rounded-lg border bg-card px-3 outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring/50 disabled:opacity-50"
-          >
-            <Plus className="size-4" aria-hidden="true" /> Add line
-          </button>
-          <p className="text-body">
-            Total <span className="text-stat-value ml-2 tabular-nums">{formatMoney(centsToAmount(totalCents))}</span>
-          </p>
-        </div>
-      </Card>
+                </thead>
+                <tbody>
+                  {fields.map((f, i) => {
+                    const e = errors.line_items?.[i]
+                    return (
+                      <tr key={f.id} className="align-top">
+                        <td className="py-1 pr-2">
+                          <input
+                            {...fieldProps(`line_items.${i}.description`)}
+                            {...register(`line_items.${i}.description`)}
+                            aria-label={`Line ${i + 1} description`}
+                            maxLength={255}
+                          />
+                          {e?.description && <p className="text-caption mt-1 text-danger">{e.description.message}</p>}
+                        </td>
+                        <td className="py-1 pr-2">
+                          <input
+                            {...fieldProps(`line_items.${i}.quantity`)}
+                            {...register(`line_items.${i}.quantity`)}
+                            aria-label={`Line ${i + 1} quantity`}
+                            inputMode="decimal"
+                          />
+                          {e?.quantity && <p className="text-caption mt-1 text-danger">{e.quantity.message}</p>}
+                        </td>
+                        <td className="py-1 pr-2">
+                          <input
+                            {...fieldProps(`line_items.${i}.unit`)}
+                            {...register(`line_items.${i}.unit`)}
+                            aria-label={`Line ${i + 1} unit`}
+                            maxLength={30}
+                            placeholder="pc"
+                          />
+                        </td>
+                        <td className="py-1 pr-2">
+                          <input
+                            {...fieldProps(`line_items.${i}.unit_price`)}
+                            {...register(`line_items.${i}.unit_price`)}
+                            aria-label={`Line ${i + 1} unit price`}
+                            inputMode="decimal"
+                            placeholder="0.00"
+                          />
+                          {e?.unit_price && <p className="text-caption mt-1 text-danger">{e.unit_price.message}</p>}
+                        </td>
+                        <td className="text-body-strong py-3 pr-2 text-right tabular-nums">
+                          {formatMoney(centsToAmount(lineCents(lines?.[i]?.quantity, lines?.[i]?.unit_price)))}
+                        </td>
+                        <td className="py-1">
+                          <button
+                            type="button"
+                            onClick={() => remove(i)}
+                            disabled={Boolean(busy)}
+                            aria-label={`Remove line ${i + 1}`}
+                            className="flex size-10 items-center justify-center rounded-lg text-muted-foreground hover:bg-danger-soft hover:text-danger"
+                          >
+                            <Trash2 className="size-4" aria-hidden="true" />
+                          </button>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+            <div className="flex flex-wrap items-center justify-between gap-3 border-t pt-3">
+              <button
+                type="button"
+                onClick={() => append({ ...EMPTY_LINE })}
+                disabled={fields.length >= 50 || Boolean(busy)}
+                className="text-body-strong flex h-[34px] items-center gap-1.5 rounded-lg border bg-card px-3 outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring/50 disabled:opacity-50"
+              >
+                <Plus className="size-4" aria-hidden="true" /> Add line
+              </button>
+              <p className="text-body">
+                Total <span className="text-stat-value ml-2 tabular-nums">{formatMoney(centsToAmount(totalCents))}</span>
+              </p>
+            </div>
+          </Card>
 
-      <p className="text-caption flex items-center gap-1.5">
-        <Info className="size-3.5" aria-hidden="true" /> Attachments (receipts, invoices) come in an upcoming update.
-      </p>
+          {!isReturned && (
+            <p className="text-caption flex items-center gap-1.5">
+              <Info className="size-3.5" aria-hidden="true" /> Attachments (receipts, invoices) come in an upcoming update.
+            </p>
+          )}
+        </div>
+        {isReturned && <ReturnSummary voucher={voucher} totalCents={totalCents} lineCount={fields.length} />}
+      </div>
 
       {formError && (
         <div role="alert" className="flex items-start gap-2.5 rounded-[10px] border border-danger/20 bg-danger-soft p-3">
@@ -522,34 +592,14 @@ function VoucherForm({ options, voucher, onReload }) {
 
       <div className="sticky bottom-0 -mx-4 flex flex-wrap items-center justify-end gap-2.5 border-t bg-muted/95 px-4 py-3 backdrop-blur sm:-mx-7 sm:px-7">
         <Link
-          to={voucher ? `${PATHS.CLERK_VOUCHERS}/${voucher.id}` : PATHS.CLERK_VOUCHERS}
+          to={isReturned ? PATHS.CLERK_RETURNED : voucher ? `${PATHS.CLERK_VOUCHERS}/${voucher.id}` : PATHS.CLERK_VOUCHERS}
           className="text-body-strong mr-auto h-[38px] rounded-lg px-2 leading-[38px] text-muted-foreground hover:text-foreground"
         >
           Cancel
         </Link>
         {autoOn && <AutoSaveHint auto={auto} onReload={onReload} />}
-        <button
-          type="button"
-          onClick={() => run('save')}
-          disabled={Boolean(busy)}
-          className="text-body-strong flex h-[38px] items-center gap-1.5 rounded-lg border bg-card px-4 outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring/50 disabled:opacity-60"
-        >
-          {busy === 'save' && <Loader2 className="size-4 animate-spin" aria-hidden="true" />}
-          Save draft
-        </button>
-        <button
-          type="button"
-          onClick={() => run('submit')}
-          disabled={Boolean(busy)}
-          className="text-auth-button flex h-[38px] items-center gap-1.5 rounded-lg bg-primary px-4 text-primary-foreground outline-none hover:bg-primary/90 focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-60"
-        >
-          {busy === 'submit' ? (
-            <Loader2 className="size-4 animate-spin" aria-hidden="true" />
-          ) : (
-            <Send className="size-4" aria-hidden="true" />
-          )}
-          {voucher?.status === 'returned' ? 'Save & resubmit' : 'Save & submit'}
-        </button>
+        <SaveButton busy={busy} onClick={() => run('save')} label={isReturned ? 'Save changes' : 'Save draft'} />
+        <SubmitButton busy={busy} onClick={() => run('submit')} label={isReturned ? 'Resubmit for review' : 'Save & submit'} />
       </div>
     </form>
   )
@@ -597,14 +647,31 @@ function AutoSaveHint({ auto, onReload }) {
   }
 }
 
-function ReturnedNote({ history }) {
-  const last = [...history].reverse().find((h) => h.action === 'returned')
-  if (!last) return null
+function SaveButton({ busy, onClick, label }) {
   return (
-    <div className="flex flex-col gap-1 rounded-xl border border-danger/20 bg-danger-soft px-4 py-3">
-      <p className="text-body-strong text-danger">Sent back by {last.by ?? 'a reviewer'}</p>
-      {last.remarks && <p className="text-body">“{last.remarks}”</p>}
-    </div>
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={Boolean(busy)}
+      className="text-body-strong flex h-[38px] items-center gap-1.5 rounded-lg border bg-card px-4 outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring/50 disabled:opacity-60"
+    >
+      {busy === 'save' && <Loader2 className="size-4 animate-spin" aria-hidden="true" />}
+      {label}
+    </button>
+  )
+}
+
+function SubmitButton({ busy, onClick, label }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={Boolean(busy)}
+      className="text-auth-button flex h-[38px] items-center gap-1.5 rounded-lg bg-primary px-4 text-primary-foreground outline-none hover:bg-primary/90 focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-60"
+    >
+      {busy === 'submit' ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : <Send className="size-4" aria-hidden="true" />}
+      {label}
+    </button>
   )
 }
 
@@ -632,6 +699,25 @@ function Select({ className, children, ...props }) {
       />
     </div>
   )
+}
+
+/** The saved payee whose name matches what's typed (ignoring letter case and outer spaces), if any. */
+function findPayee(payees, name) {
+  const n = (name ?? '').trim().toLowerCase()
+  return n ? (payees ?? []).find((p) => p.name.toLowerCase() === n) : undefined
+}
+
+/** What picking a saved payee fills in: its name, and its type / bank details where the form is empty. */
+function payeeFill(payee, values) {
+  const fill = { payee_name: payee.name }
+  if (!values.payee_type_id && payee.payee_type_id) fill.payee_type_id = payee.payee_type_id
+  if (payee.default_payment_method) fill.payment_method = payee.default_payment_method
+  if (payee.default_payment_method === 'bank') {
+    if (!values.bank_name && payee.bank_name) fill.bank_name = payee.bank_name
+    if (!values.bank_account_number && payee.bank_account_number) fill.bank_account_number = payee.bank_account_number
+    if (!values.bank_account_name && payee.bank_account_name) fill.bank_account_name = payee.bank_account_name
+  }
+  return fill
 }
 
 /** errors.line_items.0.quantity → the error object (react-hook-form keeps nested errors). */

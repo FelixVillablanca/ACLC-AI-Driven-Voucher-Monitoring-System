@@ -8,9 +8,9 @@ import ErrorState from '@/components/common/ErrorState'
 import ModalShell from '@/components/common/ModalShell'
 import Pill from '@/components/common/Pill'
 import { refreshUser } from '@/features/auth'
+import { useSwitchCompany } from '@/hooks/useSwitchCompany'
 import { formatTimeAgo } from '@/lib/formatters'
 import { cn } from '@/lib/utils'
-import { useCompanyStore } from '@/stores/useCompanyStore'
 import { answerInvitation, cancelJoinRequest, requestToJoin } from '../api'
 import { useMyCompanyAccess } from '../hooks/useMyCompanyAccess'
 import { MANAGE_COMPANIES_SEARCH, TYPE_LABELS } from '../utils'
@@ -45,7 +45,7 @@ export default function JoinCompanyModal() {
 function Window({ onClose }) {
   const [text, setText] = useState('')
   const mine = useMyCompanyAccess(text)
-  const setActive = useCompanyStore((s) => s.setActiveCompany)
+  const switchTo = useSwitchCompany() // switches and goes to the dashboard (this window closes)
   const [busy, setBusy] = useState(null) // `${action}-${companyId}`
   const [asking, setAsking] = useState(null) // company with the message box open
   const [message, setMessage] = useState('')
@@ -80,7 +80,7 @@ function Window({ onClose }) {
                 type="button"
                 className="font-semibold text-primary"
                 onClick={() => {
-                  setActive(c.id)
+                  switchTo(c.id)
                   toast.dismiss(t.id)
                 }}
               >

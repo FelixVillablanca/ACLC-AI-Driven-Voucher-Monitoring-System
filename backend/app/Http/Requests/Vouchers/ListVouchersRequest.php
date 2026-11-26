@@ -8,7 +8,7 @@ use Illuminate\Foundation\Http\FormRequest;
 /**
  * GET /api/v1/vouchers  (My vouchers)
  *   ?filter[view]=draft|in_review|returned|approved|rejected|cancelled   ?search=pldt | APX-2026 | 18,450
- *   ?sort=recent|oldest|amount_desc|amount_asc   ?page=2
+ *   ?sort=recent|oldest|amount_desc|amount_asc|returned_oldest|returned_recent   ?page=2
  */
 class ListVouchersRequest extends FormRequest
 {

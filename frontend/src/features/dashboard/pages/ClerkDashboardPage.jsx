@@ -235,7 +235,14 @@ function NeedsAttention({ rows }) {
         <h2 id="attention-title" className="text-card-title">
           Needs your attention
         </h2>
-        {rows.length > 0 && <Pill tone="danger">{rows.length}</Pill>}
+        {rows.length > 0 && (
+          <div className="flex items-center gap-2.5">
+            <Pill tone="danger">{rows.length}</Pill>
+            <Link to={PATHS.CLERK_RETURNED} className="text-auth-link text-primary hover:underline">
+              See all
+            </Link>
+          </div>
+        )}
       </header>
 
       {rows.length === 0 ? (

@@ -63,3 +63,20 @@ export function lineCents(quantity, unitPrice) {
 }
 
 export const centsToAmount = (cents) => (cents / 100).toFixed(2)
+
+/** Who sent a voucher back (voucher.returned.role → label). Step 1 = Accounting Officer, step 2 = Supervisor. */
+export const RETURN_ROLE_LABELS = { accounting_officer: 'Accounting', supervisor_manager: 'Supervisor / Manager' }
+
+/** "Maria Santos · Accounting · Nov 6, 3:05 PM" parts for a voucher.returned note. */
+export function returnedByText(returned) {
+  if (!returned) return 'A reviewer'
+  return [returned.by ?? 'A reviewer', RETURN_ROLE_LABELS[returned.role]].filter(Boolean).join(' · ')
+}
+
+/** Sorts on Returned to me (server: ClerkVouchers::SORTS). */
+export const RETURNED_SORTS = [
+  { key: 'returned_oldest', label: 'Oldest first' },
+  { key: 'returned_recent', label: 'Newest first' },
+  { key: 'amount_desc', label: 'Amount: high to low' },
+  { key: 'amount_asc', label: 'Amount: low to high' },
+]

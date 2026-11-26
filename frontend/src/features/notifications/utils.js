@@ -9,6 +9,7 @@ import {
   Clock,
   FileText,
   Layers,
+  LifeBuoy,
   Plus,
   ShieldAlert,
   Sparkles,
@@ -31,6 +32,7 @@ const TYPE_STYLE = {
   anomaly_flagged: { tone: 'warning', icon: Sparkles },
   budget_alert: { tone: 'warning', icon: Wallet },
   system_alert: { tone: 'primary', icon: DatabaseBackup }, // backups (Super Admins)
+  support_request: { tone: 'primary', icon: LifeBuoy }, // a clerk's "Contact support" message (Admins)
 }
 
 /** Each CATEGORY's label ("2 min ago · Security") and its icon once READ (grey circle). */
@@ -47,6 +49,7 @@ export const CATEGORIES = {
   ai: { label: 'AI', icon: Sparkles },
   budgets: { label: 'Budgets', icon: Wallet },
   system: { label: 'System', icon: DatabaseBackup },
+  support: { label: 'Support', icon: LifeBuoy },
 }
 
 export const TONE_CLASSES = {

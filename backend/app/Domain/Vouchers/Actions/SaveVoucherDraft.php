@@ -31,7 +31,7 @@ class SaveVoucherDraft
         return DB::transaction(function () use ($data, $clerk, $company, $ip) {
             $voucher = new Voucher;
             $voucher->forceFill([
-                ...$this->fields($data),
+                ...$this->fields($data, $company->id),
                 'voucher_number' => VoucherNumber::draft(),
                 'company_id' => $company->id,
                 'department_id' => $data['department_id'] ?? $clerk->department_id,
@@ -63,7 +63,7 @@ class SaveVoucherDraft
             }
 
             $before = ['amount' => (string) $voucher->amount];
-            $voucher->forceFill($this->fields($data) + ['priority' => $data['priority'] ?? $voucher->priority])->save();
+            $voucher->forceFill($this->fields($data, (int) $voucher->company_id) + ['priority' => $data['priority'] ?? $voucher->priority])->save();
             $this->replaceLines($voucher, $data['line_items'] ?? []);
             $voucher->touch();
             $this->audit($clerk, 'voucher_updated', $voucher, $before, $ip);
@@ -72,9 +72,22 @@ class SaveVoucherDraft
         });
     }
 
-    private function fields(array $data): array
+    private function fields(array $data, int $companyId): array
     {
         $values = array_intersect_key($data, array_flip(self::FIELDS));
+
+        // Payees (2026-11-26): a chosen saved payee sets the name; a typed name that is exactly a saved
+        // active payee's (ignoring case) links to it; anything else is a one-off name with no link.
+        $payee = ! empty($data['payee_id'])
+            ? DB::table('payees')->where('company_id', $companyId)->where('id', $data['payee_id'])->first(['id', 'name'])
+            : (! empty($values['payee_name'])
+                ? DB::table('payees')->where('company_id', $companyId)->where('is_active', true)
+                    ->whereRaw('LOWER(name) = ?', [mb_strtolower($values['payee_name'])])->first(['id', 'name'])
+                : null);
+        $values['payee_id'] = $payee?->id;
+        if ($payee) {
+            $values['payee_name'] = $payee->name;
+        }
         if (($values['payment_method'] ?? null) !== 'bank') {
             // bank details only make sense for bank transfers
             $values = [...$values, 'bank_name' => null, 'bank_account_number' => null, 'bank_account_name' => null];

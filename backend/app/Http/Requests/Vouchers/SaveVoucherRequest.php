@@ -62,6 +62,8 @@ class SaveVoucherRequest extends FormRequest
             'payee_type_id' => ['nullable', 'integer', $own('payee_types')],
             'department_id' => ['nullable', 'integer', Rule::exists('departments', 'id')->where('company_id', $companyId)->where('is_active', true)],
             'payee_name' => ['nullable', 'string', 'max:255'],
+            // a saved payee of this company (2026-11-26); its name replaces payee_name when saving
+            'payee_id' => ['nullable', 'integer', Rule::exists('payees', 'id')->where('company_id', $companyId)->where('is_active', true)],
             'description' => ['nullable', 'string', 'max:2000'],
             'purpose' => ['nullable', 'string', 'max:2000'],
             'reference_number' => ['nullable', 'string', 'max:100'],
@@ -88,6 +90,7 @@ class SaveVoucherRequest extends FormRequest
             'payment_method.required' => 'Choose how it will be paid.',
             'voucher_type_id.exists' => 'Choose a voucher type of this company.',
             'payee_type_id.exists' => 'Choose a payee type of this company.',
+            'payee_id.exists' => 'This payee was deactivated or isn’t in this company. Choose another one.',
             'department_id.exists' => 'Choose an active department of this company.',
             'bank_account_number.regex' => 'Use numbers, spaces and dashes only.',
             'line_items.max' => 'A voucher can have at most 50 lines.',

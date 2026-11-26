@@ -25,8 +25,8 @@ export default function OperationsLayout({
   const [menuOpen, setMenuOpen] = useState(false)
 
   return (
-    <div className="flex h-dvh overflow-hidden bg-muted">
-      <div className="hidden shrink-0 lg:block">
+    <div className="flex h-dvh overflow-hidden bg-muted print:h-auto print:overflow-visible print:bg-white">
+      <div className="hidden shrink-0 lg:block print:hidden">
         <Sidebar Nav={Nav} onSignOut={onSignOut} accountLinks={accountLinks} />
       </div>
 
@@ -40,7 +40,7 @@ export default function OperationsLayout({
       )}
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex h-16 shrink-0 items-center justify-between gap-3 border-b bg-card px-4 sm:px-7">
+        <header className="flex h-16 shrink-0 print:hidden items-center justify-between gap-3 border-b bg-card px-4 sm:px-7">
           <div className="flex min-w-0 items-center gap-3">
             <button
               type="button"
@@ -54,7 +54,7 @@ export default function OperationsLayout({
           </div>
           <div className="flex items-center gap-3">{notifications}</div>
         </header>
-        <main className="min-h-0 flex-1 overflow-y-auto">
+        <main className="min-h-0 flex-1 overflow-y-auto print:overflow-visible">
           <Outlet />
         </main>
       </div>

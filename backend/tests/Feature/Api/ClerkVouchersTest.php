@@ -155,6 +155,52 @@ class ClerkVouchersTest extends TestCase
         $this->api('POST', "/vouchers/{$id}/submit")->assertOk()->assertJsonPath('data.voucher_number', $number);
     }
 
+    public function test_returned_to_me_shows_the_reviewers_note_and_the_total_when_it_came_back(): void
+    {
+        $officer = User::factory()->create(['first_name' => 'Jose', 'last_name' => 'Ramos', 'role' => 'accounting_officer', 'company_id' => $this->apex->id]);
+        $sendBack = function (int $id, string $note, string $at) use ($officer) {
+            DB::table('vouchers')->where('id', $id)->update(['status' => 'returned']);
+            DB::table('voucher_approvals')->insert([
+                'voucher_id' => $id, 'approver_id' => $officer->id, 'step' => 1, 'role_at_time' => 'accounting_officer',
+                'action' => 'returned', 'remarks' => $note, 'created_at' => $at, 'updated_at' => $at,
+            ]);
+        };
+
+        $older = $this->api('POST', '/vouchers', $this->full())->json('data.id');
+        $this->api('POST', "/vouchers/{$older}/submit")->assertOk();
+        $newer = $this->api('POST', '/vouchers', $this->full(['payee_name' => 'Meralco']))->json('data.id');
+        $this->api('POST', "/vouchers/{$newer}/submit")->assertOk();
+        $sendBack($newer, 'Wrong month', now()->subHour()->toDateTimeString());
+        $sendBack($older, 'Attach the bill', now()->subDays(2)->toDateTimeString());
+
+        // the list: longest-waiting first, each with who sent it back and why
+        $this->api('GET', '/vouchers?filter[view]=returned&sort=returned_oldest')->assertOk()
+            ->assertJsonPath('data.0.id', $older)
+            ->assertJsonPath('data.0.returned.by', 'Jose Ramos')
+            ->assertJsonPath('data.0.returned.step', 1)
+            ->assertJsonPath('data.0.returned.remarks', 'Attach the bill')
+            ->assertJsonPath('data.1.id', $newer);
+        $this->api('GET', '/vouchers?sort=nonsense')->assertStatus(422);
+
+        // not edited yet: the total then = the total now
+        $this->api('GET', "/vouchers/{$older}")->assertOk()
+            ->assertJsonPath('data.returned.edited_since', false)
+            ->assertJsonPath('data.returned.amount_at_return', '13029.98');
+
+        // after a fix the old total is still known (from the audit trail)
+        $updatedAt = $this->api('GET', "/vouchers/{$older}")->json('data.updated_at');
+        $this->api('PATCH', "/vouchers/{$older}", $this->full([
+            'updated_at' => $updatedAt,
+            'line_items' => [['description' => 'Fibr 1Gbps', 'quantity' => '1', 'unit' => 'month', 'unit_price' => '12980.00']],
+        ]))->assertOk()
+            ->assertJsonPath('data.amount', '12980.00')
+            ->assertJsonPath('data.returned.edited_since', true)
+            ->assertJsonPath('data.returned.amount_at_return', '13029.98');
+
+        // resubmitted: no longer returned, so no note
+        $this->api('POST', "/vouchers/{$older}/submit")->assertOk()->assertJsonPath('data.returned', null);
+    }
+
     public function test_edit_conflict_and_cancel(): void
     {
         $id = $this->api('POST', '/vouchers', $this->full())->json('data.id');

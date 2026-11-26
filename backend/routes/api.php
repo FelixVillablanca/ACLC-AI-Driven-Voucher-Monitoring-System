@@ -16,6 +16,7 @@ use App\Http\Controllers\Api\V1\HealthController;
 use App\Http\Controllers\Api\V1\InvitationController;
 use App\Http\Controllers\Api\V1\MyCompanyAccessController;
 use App\Http\Controllers\Api\V1\NotificationController;
+use App\Http\Controllers\Api\V1\Payees\PayeeController;
 use App\Http\Controllers\Api\V1\SuperAdmin\AdminController as SuperAdminAdminController;
 use App\Http\Controllers\Api\V1\SuperAdmin\AuditLogController;
 use App\Http\Controllers\Api\V1\SuperAdmin\BackupController;
@@ -26,6 +27,7 @@ use App\Http\Controllers\Api\V1\SuperAdmin\FailedJobController;
 use App\Http\Controllers\Api\V1\SuperAdmin\GlobalSettingsController;
 use App\Http\Controllers\Api\V1\SuperAdmin\SecurityAlertController;
 use App\Http\Controllers\Api\V1\SuperAdmin\SystemHealthController;
+use App\Http\Controllers\Api\V1\Support\SupportController;
 use App\Http\Controllers\Api\V1\TwoFactorLoginController;
 use App\Http\Controllers\Api\V1\Vouchers\VoucherController;
 use Illuminate\Support\Facades\Route;
@@ -256,6 +258,26 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
                 Route::post('/{voucher}/cancel', 'cancel')->whereNumber('voucher')->middleware('throttle:30,1')->name('cancel');
                 Route::delete('/{voucher}', 'destroy')->whereNumber('voucher')->middleware('throttle:30,1')->name('destroy');
                 Route::post('/drafts/delete', 'destroyMany')->middleware('throttle:10,1')->name('drafts.delete');
+            });
+
+        // PAYEES (2026-11-26): the company's payee list, kept by its clerks (Framer jbj8yIDz9 / GZb92vr4M / UKm7GrwEZ)
+        Route::prefix('payees')->name('payees.')->controller(PayeeController::class)
+            ->middleware(['role:accounting_clerk', 'company'])->group(function () {
+                Route::get('/', 'index')->name('index');
+                Route::get('/similar', 'similar')->middleware('throttle:60,1')->name('similar');
+                Route::get('/export', 'export')->middleware('throttle:10,1')->name('export');
+                Route::post('/', 'store')->middleware('throttle:30,1')->name('store');
+                Route::get('/{payee}', 'show')->whereNumber('payee')->name('show');
+                Route::patch('/{payee}', 'update')->whereNumber('payee')->middleware('throttle:30,1')->name('update');
+                Route::post('/{payee}/deactivate', 'deactivate')->whereNumber('payee')->middleware('throttle:30,1')->name('deactivate');
+                Route::post('/{payee}/reactivate', 'reactivate')->whereNumber('payee')->middleware('throttle:30,1')->name('reactivate');
+            });
+
+        // HELP & GUIDES (2026-11-26): Contact support → the Admin(s) of the company in X-Company-ID
+        Route::prefix('support')->name('support.')->controller(SupportController::class)
+            ->middleware(['role:accounting_clerk,accounting_officer,supervisor_manager', 'company'])->group(function () {
+                Route::get('/contacts', 'contacts')->name('contacts');
+                Route::post('/messages', 'store')->middleware('throttle:5,1')->name('messages.store');
             });
 
         // ACCOUNTING CLERK area (2026-11-22): always inside the company sent in X-Company-ID (ResolveCompany)

@@ -31,6 +31,9 @@ enum NotificationType: string
     // Clerk drafts (added 2026-11-25): "your draft will be deleted in 3 days" / "old drafts were deleted"
     case DraftExpiry = 'draft_expiry';
 
+    // Help & guides (added 2026-11-26): a clerk's "Contact support" message, to their company's Admin
+    case SupportRequest = 'support_request';
+
     public function category(): string
     {
         return match ($this) {
@@ -43,6 +46,7 @@ enum NotificationType: string
             self::DepartmentAlert => 'departments',
             self::CompanyChanged => 'companies',
             self::SystemAlert => 'system',
+            self::SupportRequest => 'support',
         };
     }
 

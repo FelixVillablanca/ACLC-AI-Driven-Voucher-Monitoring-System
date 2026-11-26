@@ -24,6 +24,7 @@ const ADMIN_NOTIFICATION_LINKS = {
     users: PATHS.ADMIN_USERS,
     departments: PATHS.ADMIN_DEPARTMENTS,
     companies: PATHS.ADMIN, // an Admin has one company: its news shows on the dashboard
+    support: PATHS.ADMIN_NOTIFICATIONS, // a clerk's support message: answer it by email (the reply goes to them)
   },
 }
 
@@ -228,13 +229,17 @@ export const router = createBrowserRouter([
                 children: [
                   {
                     lazy: async () => {
-                      const [{ default: OperationsLayout }, { NotificationBell }, { ClerkNav }, { JoinCompanyModal, MANAGE_COMPANIES_SEARCH }] =
-                        await Promise.all([
-                          import('@/components/layout/OperationsLayout'),
-                          import('@/features/notifications'),
-                          import('@/features/dashboard'),
-                          import('@/features/joinCompany'),
-                        ])
+                      const [
+                        { default: OperationsLayout },
+                        { NotificationBell },
+                        { ClerkNav },
+                        { JoinCompanyModal, MANAGE_COMPANIES_SEARCH },
+                      ] = await Promise.all([
+                        import('@/components/layout/OperationsLayout'),
+                        import('@/features/notifications'),
+                        import('@/features/dashboard'),
+                        import('@/features/joinCompany'),
+                      ])
                       return {
                         Component: () => (
                           <OperationsLayout
@@ -255,6 +260,10 @@ export const router = createBrowserRouter([
                       { path: PATHS.CLERK_VOUCHERS, lazy: page(() => import('@/features/vouchers/pages/MyVouchersPage')) },
                       { path: PATHS.CLERK_VOUCHER_NEW, lazy: page(() => import('@/features/vouchers/pages/VoucherFormPage')) },
                       { path: PATHS.CLERK_DRAFTS, lazy: page(() => import('@/features/vouchers/pages/DraftsPage')) },
+                      { path: PATHS.CLERK_RETURNED, lazy: page(() => import('@/features/vouchers/pages/ReturnedPage')) },
+                      { path: PATHS.CLERK_PAYEES, lazy: page(() => import('@/features/payees/pages/PayeesPage')) },
+                      { path: PATHS.CLERK_HELP, lazy: page(() => import('@/features/help/pages/HelpCenterPage')) },
+                      { path: `${PATHS.CLERK_HELP}/:slug`, lazy: page(() => import('@/features/help/pages/GuidePage')) },
                       { path: `${PATHS.CLERK_VOUCHERS}/:id`, lazy: page(() => import('@/features/vouchers/pages/VoucherDetailPage')) },
                       { path: `${PATHS.CLERK_VOUCHERS}/:id/edit`, lazy: page(() => import('@/features/vouchers/pages/VoucherFormPage')) },
                       { path: PATHS.CLERK_APPROVAL_GUIDE, lazy: page(() => import('@/features/vouchers/pages/ApprovalGuidePage')) },

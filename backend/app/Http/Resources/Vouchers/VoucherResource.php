@@ -3,6 +3,7 @@
 namespace App\Http\Resources\Vouchers;
 
 use App\Domain\Vouchers\Support\DraftExpiry;
+use App\Domain\Vouchers\Support\ReturnNote;
 use App\Domain\Vouchers\Support\VoucherCompleteness;
 use App\Domain\Vouchers\Support\VoucherNumber;
 use App\Models\Voucher;
@@ -58,6 +59,8 @@ class VoucherResource extends JsonResource
             'completeness' => $editable ? Arr::except(VoucherCompleteness::check($this->resource, $lineCount), 'errors') : null,
             'expires_at' => DraftExpiry::expiresAt($this->resource)?->toIso8601String(),
             'can_delete' => DraftExpiry::isExpiring($this->resource),
+            // Returned to me (2026-11-26): the reviewer's latest send-back; null unless status is returned
+            'returned' => ReturnNote::for($this->resource, $this->detailed),
         ];
 
         if (! $this->detailed) {
@@ -67,6 +70,7 @@ class VoucherResource extends JsonResource
         return $base + [
             'voucher_type_id' => $this->voucher_type_id,
             'payee_type_id' => $this->payee_type_id,
+            'payee_id' => $this->payee_id,
             'department_id' => $this->department_id,
             'payment_method' => $this->payment_method,
             'bank_name' => $this->bank_name,

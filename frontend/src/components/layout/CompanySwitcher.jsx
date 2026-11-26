@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom'
 import { Building2, Check, ChevronDown } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useDismiss } from '@/hooks/useDismiss'
+import { useSwitchCompany } from '@/hooks/useSwitchCompany'
 import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/stores/useAuthStore'
 import { useCompanyStore } from '@/stores/useCompanyStore'
@@ -24,7 +25,7 @@ function initials(name = '') {
 /**
  * "Working in Apex Holdings Inc. ▾" (Framer LolF6YFo5 top bar). The companies are the ones the user
  * has ACCEPTED access to (from /auth/me). Picking one changes useCompanyStore, which every request
- * sends as X-Company-ID, and the pages reload their data for that company.
+ * sends as X-Company-ID, and then goes back to the dashboard (the page you were on belonged to the old company).
  * `manageSearch` (e.g. "?companies=manage") adds "Join another company…" at the bottom, which opens
  * that window (passed in by the router: shared layout code never imports a feature).
  */
@@ -32,7 +33,7 @@ export default function CompanySwitcher({ manageSearch = null }) {
   const [, setParams] = useSearchParams()
   const companies = useAuthStore((s) => s.user?.companies ?? [])
   const activeId = useCompanyStore((s) => s.activeCompanyId)
-  const setActive = useCompanyStore((s) => s.setActiveCompany)
+  const switchTo = useSwitchCompany()
   const [open, setOpen] = useState(false)
   const ref = useRef(null)
   const close = useCallback(() => setOpen(false), [])
@@ -43,8 +44,7 @@ export default function CompanySwitcher({ manageSearch = null }) {
 
   const pick = (company) => {
     setOpen(false)
-    if (company.id === activeId) return
-    setActive(company.id)
+    if (!switchTo(company.id)) return
     toast.success(`Now working in ${company.name}`)
   }
 

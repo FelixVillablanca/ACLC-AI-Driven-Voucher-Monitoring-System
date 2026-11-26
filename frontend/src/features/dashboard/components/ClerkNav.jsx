@@ -6,15 +6,14 @@ import { useClerkDashboard } from '../hooks/useClerkDashboard'
 
 /**
  * The Accounting Clerk's sidebar menu (Framer LolF6YFo5). The counts are real (the dashboard data).
- * Drafts has its own page (/clerk/drafts, Framer Xfr2PEq2q). Returned to me is My vouchers opened on that
- * tab (?view=returned), so the highlighted item follows the tab. Help & guides opens "How vouchers get approved".
- * Payees has no page yet, so it's shown greyed out with "Soon", never as a link to nothing.
+ * Drafts has its own page (/clerk/drafts, Framer Xfr2PEq2q), and so does Returned to me (/clerk/returned,
+ * Framer xRM5FKjDQ). Help & guides opens the help center (/clerk/help, Framer V0J_GkScn).
+ * Payees (/clerk/payees, Framer jbj8yIDz9). An item without a page would show greyed out with "Soon".
  */
 export default function ClerkNav({ onNavigate }) {
   const { data } = useClerkDashboard()
-  const { pathname, search } = useLocation()
+  const { pathname } = useLocation()
   const counts = data?.counts
-  const view = new URLSearchParams(search).get('view')
   const onList = pathname === PATHS.CLERK_VOUCHERS
 
   const groups = [
@@ -28,10 +27,8 @@ export default function ClerkNav({ onNavigate }) {
           label: 'My vouchers',
           icon: FileText,
           count: counts?.all,
-          // the list (any tab but Returned) and a voucher's own pages
-          active:
-            (onList && view !== 'returned') ||
-            (pathname.startsWith(`${PATHS.CLERK_VOUCHERS}/`) && pathname !== PATHS.CLERK_VOUCHER_NEW),
+          // the list and a voucher's own pages
+          active: onList || (pathname.startsWith(`${PATHS.CLERK_VOUCHERS}/`) && pathname !== PATHS.CLERK_VOUCHER_NEW),
         },
         {
           to: PATHS.CLERK_DRAFTS,
@@ -41,20 +38,26 @@ export default function ClerkNav({ onNavigate }) {
           active: pathname === PATHS.CLERK_DRAFTS,
         },
         {
-          to: `${PATHS.CLERK_VOUCHERS}?view=returned`,
+          to: PATHS.CLERK_RETURNED,
           label: 'Returned to me',
           icon: Undo2,
           count: counts?.returned,
           warn: true,
-          active: onList && view === 'returned',
+          active: pathname === PATHS.CLERK_RETURNED,
         },
       ],
     },
     {
       section: 'Reference',
       items: [
-        { label: 'Payees', icon: Users },
-        { to: PATHS.CLERK_APPROVAL_GUIDE, label: 'Help & guides', icon: CircleHelp, active: pathname === PATHS.CLERK_APPROVAL_GUIDE },
+        { to: PATHS.CLERK_PAYEES, label: 'Payees', icon: Users, active: pathname === PATHS.CLERK_PAYEES },
+        {
+          to: PATHS.CLERK_HELP,
+          label: 'Help & guides',
+          icon: CircleHelp,
+          // the help center, its guides, and the live approval guide (one of them)
+          active: pathname === PATHS.CLERK_HELP || pathname.startsWith(`${PATHS.CLERK_HELP}/`) || pathname === PATHS.CLERK_APPROVAL_GUIDE,
+        },
       ],
     },
   ]

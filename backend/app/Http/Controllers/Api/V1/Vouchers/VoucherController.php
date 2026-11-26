@@ -42,6 +42,9 @@ class VoucherController extends Controller
                 ->orderBy('name')->get(['id', 'name', 'code', 'description']),
             'voucher_types' => $named('voucher_types'),
             'payee_types' => $named('payee_types'),
+            // saved payees (2026-11-26): picking one fills type, payment and bank details
+            'payees' => DB::table('payees')->where('company_id', $company->id)->where('is_active', true)->orderBy('name')->limit(2000)
+                ->get(['id', 'name', 'payee_type_id', 'tin', 'default_payment_method', 'bank_name', 'bank_account_number', 'bank_account_name']),
             'departments' => DB::table('departments')->where('company_id', $company->id)->where('is_active', true)->orderBy('name')->get(['id', 'name', 'code']),
             'payment_methods' => SaveVoucherRequest::PAYMENT_METHODS,
             'priorities' => SaveVoucherRequest::PRIORITIES,
