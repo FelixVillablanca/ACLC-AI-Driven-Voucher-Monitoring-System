@@ -6,8 +6,8 @@ import { useClerkDashboard } from '../hooks/useClerkDashboard'
 
 /**
  * The Accounting Clerk's sidebar menu (Framer LolF6YFo5). The counts are real (the dashboard data).
- * Drafts and Returned to me are My vouchers opened on that tab (?view=draft / ?view=returned), so the
- * highlighted item follows the tab. Help & guides opens "How vouchers get approved".
+ * Drafts has its own page (/clerk/drafts, Framer Xfr2PEq2q). Returned to me is My vouchers opened on that
+ * tab (?view=returned), so the highlighted item follows the tab. Help & guides opens "How vouchers get approved".
  * Payees has no page yet, so it's shown greyed out with "Soon", never as a link to nothing.
  */
 export default function ClerkNav({ onNavigate }) {
@@ -28,17 +28,17 @@ export default function ClerkNav({ onNavigate }) {
           label: 'My vouchers',
           icon: FileText,
           count: counts?.all,
-          // the list (any tab but Drafts / Returned) and a voucher's own pages
+          // the list (any tab but Returned) and a voucher's own pages
           active:
-            (onList && view !== 'draft' && view !== 'returned') ||
+            (onList && view !== 'returned') ||
             (pathname.startsWith(`${PATHS.CLERK_VOUCHERS}/`) && pathname !== PATHS.CLERK_VOUCHER_NEW),
         },
         {
-          to: `${PATHS.CLERK_VOUCHERS}?view=draft`,
+          to: PATHS.CLERK_DRAFTS,
           label: 'Drafts',
           icon: FilePen,
           count: counts?.drafts,
-          active: onList && view === 'draft',
+          active: pathname === PATHS.CLERK_DRAFTS,
         },
         {
           to: `${PATHS.CLERK_VOUCHERS}?view=returned`,

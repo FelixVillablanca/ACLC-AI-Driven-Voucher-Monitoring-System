@@ -2,17 +2,19 @@ import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useFieldArray, useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { ArrowLeft, Banknote, ChevronDown, Info, Loader2, Plus, Send, Trash2, TriangleAlert } from 'lucide-react'
+import { ArrowLeft, Banknote, Check, ChevronDown, Info, Loader2, Plus, Send, Trash2, TriangleAlert } from 'lucide-react'
 import toast from 'react-hot-toast'
 import ErrorState from '@/components/common/ErrorState'
 import FieldShell, { inputClass } from '@/components/common/FieldShell'
 import { PATHS } from '@/lib/constants'
-import { formatMoney } from '@/lib/formatters'
+import { formatDate, formatMoney } from '@/lib/formatters'
 import { cn } from '@/lib/utils'
 import { useCompanyStore } from '@/stores/useCompanyStore'
 import { createVoucher, getVoucher, getVoucherFormOptions, submitVoucher, updateVoucher } from '../api'
 import { EMPTY_LINE, formValues, toPayload, voucherSchema } from '../schemas'
 import { announceVouchersChanged, centsToAmount, lineCents, PAYMENT_LABELS, PRIORITY_LABELS } from '../utils'
+
+const AUTOSAVE_MS = 30_000
 
 /**
  * Create voucher (/clerk/vouchers/new) and Edit (/clerk/vouchers/:id/edit, drafts and returned vouchers).
@@ -96,30 +98,36 @@ function VoucherForm({ options, voucher, onReload }) {
   const navigate = useNavigate()
   const [busy, setBusy] = useState(null) // 'save' | 'submit'
   const [formError, setFormError] = useState(null)
+  const [defaults] = useState(() => formValues(voucher, options.my_department_id))
   const {
     register,
     control,
     handleSubmit,
     setError,
     setValue,
-    formState: { errors, isDirty },
-  } = useForm({ resolver: zodResolver(voucherSchema), defaultValues: formValues(voucher, options.my_department_id) })
+    getValues,
+    formState: { errors },
+  } = useForm({ resolver: zodResolver(voucherSchema), defaultValues: defaults })
   const { fields, append, remove } = useFieldArray({ control, name: 'line_items' })
 
   const [method, lines, categoryId] = useWatch({ control, name: ['payment_method', 'line_items', 'category_id'] })
   const totalCents = (lines ?? []).reduce((sum, l) => sum + lineCents(l.quantity, l.unit_price), 0)
   const category = options.categories.find((c) => c.id === Number(categoryId))
 
+  // what the form looked like at the last successful save: "unsaved changes" = the form differs from it
+  const lastSavedRef = useRef(JSON.stringify(defaults))
+  const snapshot = () => JSON.stringify(getValues())
+
   // warn before leaving with unsaved typing
   useEffect(() => {
-    if (!isDirty) return undefined
     const onLeave = (e) => {
+      if (JSON.stringify(getValues()) === lastSavedRef.current) return
       e.preventDefault()
       e.returnValue = ''
     }
     window.addEventListener('beforeunload', onLeave)
     return () => window.removeEventListener('beforeunload', onLeave)
-  }, [isDirty])
+  }, [getValues])
 
   const showServerErrors = (error) => {
     if (!error?.errors) return false
@@ -134,21 +142,81 @@ function VoucherForm({ options, voucher, onReload }) {
   const idRef = useRef(voucher?.id ?? null)
   const stampRef = useRef(voucher?.updated_at ?? null)
 
-  const save = async (values) => {
-    const payload = toPayload(values)
-    const saved = idRef.current ? await updateVoucher(idRef.current, payload, stampRef.current) : await createVoucher(payload)
-    idRef.current = saved.id
-    stampRef.current = saved.updated_at
-    return saved
+  // Saves run ONE AT A TIME (a queue): an auto-save and a click on Save draft can't race each other, and
+  // each one sends the "last changed" time the previous one got back, so they never trip the conflict check.
+  const queueRef = useRef(Promise.resolve())
+  const save = (values) => {
+    const next = queueRef.current.then(async () => {
+      const payload = toPayload(values)
+      const saved = idRef.current ? await updateVoucher(idRef.current, payload, stampRef.current) : await createVoucher(payload)
+      idRef.current = saved.id
+      stampRef.current = saved.updated_at
+      return saved
+    })
+    queueRef.current = next.catch(() => {})
+    return next
   }
+
+  // AUTO-SAVE (drafts only; Drafts page promise): every 30 s, if something changed, save it as a draft.
+  // Half-typed lines (no description and no price) are left out of that save; the form keeps them.
+  const autoOn = !voucher || voucher.status === 'draft'
+  const [auto, setAuto] = useState({ state: 'idle', at: null })
+  const busyRef = useRef(null)
+  useEffect(() => {
+    busyRef.current = busy
+  }, [busy])
+
+  useEffect(() => {
+    if (!autoOn) return undefined
+    let running = false
+    let stopped = false
+    const tick = async () => {
+      if (running || stopped || busyRef.current) return
+      const snap = JSON.stringify(getValues())
+      if (snap === lastSavedRef.current) return
+      const raw = getValues()
+      const parsed = voucherSchema.safeParse({
+        ...raw,
+        line_items: raw.line_items.filter((l) => l.description.trim() || l.unit_price.trim()),
+      })
+      if (!parsed.success) {
+        setAuto((a) => ({ ...a, state: 'waiting' }))
+        return
+      }
+      running = true
+      setAuto((a) => ({ ...a, state: 'saving' }))
+      try {
+        await save(parsed.data)
+        lastSavedRef.current = snap
+        setAuto({ state: 'saved', at: new Date() })
+        announceVouchersChanged()
+      } catch (error) {
+        if (error.code === 'VOUCHER_CHANGED' || error.code === 'VOUCHER_LOCKED' || error.status === 404) {
+          stopped = true // never overwrite another window's work: stop and let the person reload
+          setAuto({ state: 'conflict', at: null })
+        } else {
+          setAuto((a) => ({ ...a, state: 'failed' }))
+        }
+      } finally {
+        running = false
+      }
+    }
+    const timer = window.setInterval(tick, AUTOSAVE_MS)
+    return () => window.clearInterval(timer)
+    // save / getValues are stable for this form's life (refs inside); the timer starts once
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoOn])
 
   const run = (action) =>
     handleSubmit(async (values) => {
       setBusy(action)
       setFormError(null)
       let saved
+      const snap = snapshot()
       try {
         saved = await save(values)
+        lastSavedRef.current = snap
+        setAuto({ state: 'saved', at: new Date() })
         announceVouchersChanged()
       } catch (error) {
         setBusy(null)
@@ -459,6 +527,7 @@ function VoucherForm({ options, voucher, onReload }) {
         >
           Cancel
         </Link>
+        {autoOn && <AutoSaveHint auto={auto} onReload={onReload} />}
         <button
           type="button"
           onClick={() => run('save')}
@@ -484,6 +553,48 @@ function VoucherForm({ options, voucher, onReload }) {
       </div>
     </form>
   )
+}
+
+/** The auto-save status next to the buttons: always says honestly whether the latest typing is saved. */
+function AutoSaveHint({ auto, onReload }) {
+  const base = 'text-caption flex items-center gap-1.5'
+  switch (auto.state) {
+    case 'saving':
+      return (
+        <span className={base} role="status">
+          <Loader2 className="size-3.5 animate-spin" aria-hidden="true" /> Saving…
+        </span>
+      )
+    case 'saved':
+      return (
+        <span className={cn(base, 'text-success')} role="status">
+          <Check className="size-3.5" aria-hidden="true" /> Saved as a draft · {formatDate(auto.at, 'h:mm a')}
+        </span>
+      )
+    case 'waiting':
+      return (
+        <span className={base} role="status">
+          Not auto-saved yet: choose a category and finish each line
+        </span>
+      )
+    case 'failed':
+      return (
+        <span className={cn(base, 'text-danger')} role="status">
+          Couldn’t auto-save. Click Save draft to see why.
+        </span>
+      )
+    case 'conflict':
+      return (
+        <span className={cn(base, 'text-danger')} role="alert">
+          Changed in another window, so auto-save stopped.
+          <button type="button" onClick={onReload} className="text-auth-link text-primary hover:underline">
+            Load the latest
+          </button>
+        </span>
+      )
+    default:
+      return <span className={base}>Auto-saves every 30 seconds</span>
+  }
 }
 
 function ReturnedNote({ history }) {

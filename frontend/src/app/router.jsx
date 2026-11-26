@@ -61,6 +61,7 @@ const accountPages = (paths) => [
 /** Where the clerk's bell links go. Clerk pages beyond the dashboard come with the voucher forms. */
 const CLERK_NOTIFICATION_LINKS = {
   viewAll: PATHS.CLERK_NOTIFICATIONS,
+  types: { draft_expiry: PATHS.CLERK_DRAFTS }, // "A draft will be deleted…" opens Drafts
   categories: {
     access: '?companies=manage', // invitations / answers open the Join another company window
     vouchers: PATHS.CLERK_VOUCHERS,
@@ -253,6 +254,7 @@ export const router = createBrowserRouter([
                       // Vouchers (Phase 3)
                       { path: PATHS.CLERK_VOUCHERS, lazy: page(() => import('@/features/vouchers/pages/MyVouchersPage')) },
                       { path: PATHS.CLERK_VOUCHER_NEW, lazy: page(() => import('@/features/vouchers/pages/VoucherFormPage')) },
+                      { path: PATHS.CLERK_DRAFTS, lazy: page(() => import('@/features/vouchers/pages/DraftsPage')) },
                       { path: `${PATHS.CLERK_VOUCHERS}/:id`, lazy: page(() => import('@/features/vouchers/pages/VoucherDetailPage')) },
                       { path: `${PATHS.CLERK_VOUCHERS}/:id/edit`, lazy: page(() => import('@/features/vouchers/pages/VoucherFormPage')) },
                       { path: PATHS.CLERK_APPROVAL_GUIDE, lazy: page(() => import('@/features/vouchers/pages/ApprovalGuidePage')) },

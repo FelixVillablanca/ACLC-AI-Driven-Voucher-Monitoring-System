@@ -110,6 +110,29 @@ Each user it adds is listed in the terminal as `ready`. If a company name or dep
 
 As more modules are built (vouchers, budgets, and so on), we'll add more sample-data seeders the same way.
 
+### Departments, categories, voucher types and payee types (added 2026-11-25)
+
+`database/seeders/SampleCatalogSeeder.php` fills each demo company's setup lists, so the voucher form has
+something to choose from:
+
+| Company | Departments | Categories | Voucher types |
+| --- | --- | --- | --- |
+| Apex Holdings Inc. | 6 (Finance, HR, Operations, IT, Marketing, Administration) | 9 (Office Supplies, Utilities, Travel, Repairs, …) | 6 (Cash / Check Disbursement, Petty Cash Replenishment, Reimbursement, Cash Advance, Liquidation) |
+| Northfield Academy | 7 (Accounting, Registrar, Academics, Facilities, Student Affairs, Library, IT) | 9 (Instructional Materials, Laboratory Supplies, Events, …) | the same 6 |
+
+Both companies also get the same 7 **payee types**: Supplier, Employee, Contractor, Service Provider,
+Utility Company, Government Agency, Individual.
+
+It runs as part of `php artisan db:seed --env=testing`. To run only this one:
+
+```powershell
+php artisan db:seed --class=SampleCatalogSeeder --env=testing
+```
+
+To add your own, add a line to the lists at the top of the file and run it again. It's **safe to run again**:
+a department or category whose code already exists in that company, or a voucher type or payee type whose
+name exists, is skipped. It never runs in production.
+
 ---
 
 ## 4. Run the system on the testing database

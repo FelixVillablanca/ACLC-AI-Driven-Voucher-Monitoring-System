@@ -2,6 +2,7 @@
 
 namespace App\Domain\Vouchers\Queries;
 
+use App\Domain\Vouchers\Support\DraftExpiry;
 use App\Domain\Vouchers\VoucherStatus;
 use App\Models\Company;
 use App\Models\User;
@@ -30,7 +31,26 @@ class ClerkVouchers
 
     public function list(?string $view, ?string $search, ?string $sort): Builder
     {
-        $q = $this->base()->with(['category:id,name']);
+        $q = $this->filtered($view, $search)->with(['category:id,name'])
+            ->addSelect(['vouchers.*'])->addSelect(DraftExpiry::lineCountColumn());
+
+        return match ($sort) {
+            'oldest' => $q->orderBy('updated_at')->orderBy('id'),
+            'amount_desc' => $q->orderByDesc('amount')->orderByDesc('id'),
+            'amount_asc' => $q->orderBy('amount')->orderBy('id'),
+            default => $q->orderByDesc('updated_at')->orderByDesc('id'),
+        };
+    }
+
+    /** The total of everything the current tab + search match (Drafts footer: "₱ 48,250.00 not yet submitted"). */
+    public function totalAmount(?string $view, ?string $search): string
+    {
+        return (string) $this->filtered($view, $search)->toBase()->selectRaw('COALESCE(SUM(amount), 0) as total')->value('total');
+    }
+
+    private function filtered(?string $view, ?string $search): Builder
+    {
+        $q = $this->base();
 
         match ($view) {
             'in_review' => $q->whereIn('status', VoucherStatus::inReview()),
@@ -50,12 +70,7 @@ class ClerkVouchers
                 ->when(is_numeric($n = str_replace([',', '₱', ' '], '', $search)), fn ($x) => $x->orWhere('amount', $n)));
         }
 
-        return match ($sort) {
-            'oldest' => $q->orderBy('updated_at')->orderBy('id'),
-            'amount_desc' => $q->orderByDesc('amount')->orderByDesc('id'),
-            'amount_asc' => $q->orderBy('amount')->orderBy('id'),
-            default => $q->orderByDesc('updated_at')->orderByDesc('id'),
-        };
+        return $q;
     }
 
     /** The numbers on the tabs. */

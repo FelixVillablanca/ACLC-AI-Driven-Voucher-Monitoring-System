@@ -254,6 +254,8 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
                 Route::patch('/{voucher}', 'update')->whereNumber('voucher')->middleware('throttle:60,1')->name('update');
                 Route::post('/{voucher}/submit', 'submit')->whereNumber('voucher')->middleware('throttle:30,1')->name('submit');
                 Route::post('/{voucher}/cancel', 'cancel')->whereNumber('voucher')->middleware('throttle:30,1')->name('cancel');
+                Route::delete('/{voucher}', 'destroy')->whereNumber('voucher')->middleware('throttle:30,1')->name('destroy');
+                Route::post('/drafts/delete', 'destroyMany')->middleware('throttle:10,1')->name('drafts.delete');
             });
 
         // ACCOUNTING CLERK area (2026-11-22): always inside the company sent in X-Company-ID (ResolveCompany)

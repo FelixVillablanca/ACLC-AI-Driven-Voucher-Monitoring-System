@@ -23,7 +23,7 @@ frames are always read one at a time). New design work goes on the design page `
 |---|---|---|---|---|
 | Sign-in (Phase 1) | 2 | 1 | 0 | 1 |
 | Admin (Phase 2) | 4 | 4 | 0 | 0 |
-| Accounting Clerk (Phase 6 on Phase 3 data) | 1 | 1 | 0 | 0 |
+| Accounting Clerk (dashboard + Drafts, Phases 3/6) | 4 | 4 | 0 | 0 |
 | Super Admin: landing + its click-flows | 12 | 7 | 0 | 4 |
 | Super Admin: Admins tab | 14 | 12 | 1 | 0 |
 | Super Admin: Companies tab | 10 | 10 | 0 | 0 |
@@ -31,9 +31,9 @@ frames are always read one at a time). New design work goes on the design page `
 | Super Admin: Audit logs tab | 10 | 10 | 0 | 0 |
 | Super Admin: System health tab | 11 | 11 | 0 | 0 |
 | Account menu pages (Admin + Super Admin, code-first) | 0 | 5 built without frames | — | — |
-| Phases 3–6 (vouchers, approvals, AI, reports) | 0 | — | — | — |
+| Phases 3–6 (vouchers, approvals, AI, reports) | 3 (Drafts, in the clerk row) | — | — | — |
 
-Phases 3–6 have **no frames designed yet**. Since 2026-11-20 screens can also be built code-first from a
+Phases 3–6 have only the clerk Drafts frames so far (2026-11-25). Since 2026-11-20 screens can also be built code-first from a
 description, keeping the design tokens.
 
 ---
@@ -187,6 +187,9 @@ Still "coming soon": **All notifications** (`/admin/notifications`, `/superadmin
 | Frame | Node id | Status | Notes |
 |---|---|---|---|
 | Accounting Clerk landing page | `LolF6YFo5` | ✅ 2026-11-22 | `/clerk`, `features/dashboard/pages/ClerkDashboardPage.jsx`, shell `components/layout/OperationsLayout.jsx` + `CompanySwitcher.jsx`, menu `features/dashboard/components/ClerkNav.jsx`. API `GET /api/v1/clerk/dashboard`. **Code differs (real-data rule):** "approved", not "paid out"; no "AI checks every voucher" card (no AI yet); Create voucher / Continue draft / Fix & resubmit and the voucher menu items are disabled ("Soon") until the voucher pages exist; no top-bar search yet; the ⋮ menu has only Sign out (no clerk account pages yet). |
+| Clerk Drafts: list (Phase 3) | `Xfr2PEq2q` | ✅ 2026-11-25 | `/clerk/drafts`, `features/vouchers/pages/DraftsPage.jsx` + `components/DraftCard.jsx`. API `GET /vouchers?filter[view]=draft` (cards get `summary`, `line_count`, `completeness`, `expires_at`; `meta.total_amount`). **Code differs:** completeness is "N of **4** sections" (Payee, Details, Payment, Lines, the same rule Submit uses; attachments become the 5th when uploads exist); no "AI suggests" line (no AI yet); no top-bar search; Select mode deletes several drafts at once (frame shows only the button); the info note also says a reminder comes 3 days before. |
+| Clerk Drafts: delete confirmation | `nxFtnDIl1` | ✅ 2026-11-25 | Shared `ConfirmDialog` (new `cancelLabel` = "Keep draft"). API `DELETE /vouchers/{id}` (sends `updated_at`: 409 `VOUCHER_CHANGED`), `POST /vouchers/drafts/delete` (several, all or nothing, 409 `DRAFT_NOT_DELETABLE`). Errors show inside the dialog; success = toast. |
+| Clerk Drafts: empty state | `EfNUcqRK0` | ✅ 2026-11-25 | Dashed card. Button says "Create your first voucher" only when the clerk has no vouchers at all, otherwise "Create voucher". |
 
 ## 9. Design page `yEHg8D3pX` (work in progress)
 

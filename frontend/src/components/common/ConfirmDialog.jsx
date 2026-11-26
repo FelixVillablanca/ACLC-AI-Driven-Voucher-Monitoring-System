@@ -40,6 +40,7 @@ export default function ConfirmDialog({
   width = 460,
   icon = null, // optional 44px tile above the title, e.g. { icon: Ban, tone: 'danger' } (Companies C6 / C7)
   description = null, // optional muted line under the title
+  cancelLabel = 'Cancel', // e.g. "Keep draft"
   children,
 }) {
   const titleId = useId()
@@ -117,7 +118,7 @@ export default function ConfirmDialog({
             disabled={busy}
             className="text-body-strong h-[38px] rounded-lg border bg-card px-3.5 outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring/50 disabled:opacity-60"
           >
-            Cancel
+            {cancelLabel}
           </button>
           {extraAction && (
             <button

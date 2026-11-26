@@ -2,12 +2,16 @@
 
 namespace App\Http\Resources\Vouchers;
 
+use App\Domain\Vouchers\Support\DraftExpiry;
+use App\Domain\Vouchers\Support\VoucherCompleteness;
 use App\Domain\Vouchers\Support\VoucherNumber;
 use App\Models\Voucher;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 /**
  * A voucher for its creator (the clerk). Money is a string with 2 decimals (DECIMAL), never a float.
@@ -32,6 +36,8 @@ class VoucherResource extends JsonResource
     public function toArray(Request $request): array
     {
         $editable = in_array($this->status, ['draft', 'returned'], true);
+        $lineCount = isset($this->line_count) ? (int) $this->line_count
+            : DB::table('voucher_line_items')->where('voucher_id', $this->id)->count();
 
         $base = [
             'id' => $this->id,
@@ -46,6 +52,12 @@ class VoucherResource extends JsonResource
             'submitted_at' => $this->submitted_at?->toIso8601String(),
             'created_at' => $this->created_at?->toIso8601String(),
             'updated_at' => $this->updated_at?->toIso8601String(),
+            // Drafts cards (2026-11-25): what it's for, its size, how ready it is and when it would be deleted
+            'summary' => Str::limit((string) ($this->description ?: $this->purpose), 140) ?: null,
+            'line_count' => $lineCount,
+            'completeness' => $editable ? Arr::except(VoucherCompleteness::check($this->resource, $lineCount), 'errors') : null,
+            'expires_at' => DraftExpiry::expiresAt($this->resource)?->toIso8601String(),
+            'can_delete' => DraftExpiry::isExpiring($this->resource),
         ];
 
         if (! $this->detailed) {
@@ -84,7 +96,7 @@ class VoucherResource extends JsonResource
                     'by' => trim("{$a->first_name} {$a->last_name}") ?: null,
                     'at' => $a->created_at ? Carbon::parse($a->created_at)->toIso8601String() : null,
                 ])->all(),
-            'can' => ['edit' => $editable, 'submit' => $editable, 'cancel' => $editable],
+            'can' => ['edit' => $editable, 'submit' => $editable, 'cancel' => $editable, 'delete' => DraftExpiry::isExpiring($this->resource)],
         ];
     }
 }

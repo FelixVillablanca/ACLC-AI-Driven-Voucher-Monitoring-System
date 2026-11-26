@@ -28,10 +28,13 @@ enum NotificationType: string
     // Platform (added 2026-11-21): backups and other system jobs, for Super Admins
     case SystemAlert = 'system_alert';
 
+    // Clerk drafts (added 2026-11-25): "your draft will be deleted in 3 days" / "old drafts were deleted"
+    case DraftExpiry = 'draft_expiry';
+
     public function category(): string
     {
         return match ($this) {
-            self::VoucherApproved, self::VoucherRejected, self::VoucherPending => 'vouchers',
+            self::VoucherApproved, self::VoucherRejected, self::VoucherPending, self::DraftExpiry => 'vouchers',
             self::AnomalyFlagged => 'ai',
             self::BudgetAlert => 'budgets',
             self::SecurityAlert => 'security',

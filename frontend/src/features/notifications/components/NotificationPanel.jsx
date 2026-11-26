@@ -33,7 +33,7 @@ export default function NotificationPanel({ unreadCount, onCountChange, links, o
 
   const openItem = (item) => {
     markRead(item)
-    const to = links.categories[item.category]
+    const to = links.types?.[item.type] ?? links.categories[item.category]
     if (to) {
       onClose()
       navigate(to)

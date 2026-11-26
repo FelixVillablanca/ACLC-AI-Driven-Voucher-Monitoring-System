@@ -43,7 +43,7 @@ export default function NotificationsPage({ links }) {
 
   const open = (item) => {
     list.markRead(item)
-    const to = links?.categories?.[item.category]
+    const to = links?.types?.[item.type] ?? links?.categories?.[item.category]
     if (to) navigate(to)
   }
 

@@ -61,7 +61,7 @@ Phase 8  Deployment ─ put it on the internet (Docker, CI/CD, HTTPS, cloud back
 | 0 | Foundation | ✅ Done (2026-11-15) |
 | 1 | Auth, tenancy & audit | 🟡 In progress: sign-in done; company scoping, policies, audit observer, company switcher left |
 | 2 | Admin & Super Admin module | 🟡 In progress: dashboards + several Super Admin tools done; most admin CRUD screens left |
-| 3 | Voucher core | ⬜ Not started |
+| 3 | Voucher core | 🟡 In progress: clerk vouchers + Drafts page done; attachments, idempotency keys, PDF left |
 | 4 | Approvals & budgets | ⬜ Not started |
 | 5 | AI service | ⬜ Not started (some groundwork ready: queue worker, failed-jobs catalog, ML health check) |
 | 6 | Reports & dashboards | ⬜ Not started |
@@ -209,9 +209,15 @@ scheduler (§3.7), row locking for "only one at a time" rules (§3.4).
 ## Phase 3: Voucher core
 
 > **Started 2026-11-22:** clerk vouchers built code-first: drafts with line items (server-side totals, bcmath), edit with conflict check, submit (state machine, numbering `{INITIALS}-{YEAR}-{0001}`, officer notice), cancel, My vouchers (tabs, search, sort), voucher detail with review history, the approval guide page. Still to do: attachments, idempotency keys, PDF.
+>
+> **Done 2026-11-25: Drafts page** (Framer `Xfr2PEq2q` list, `nxFtnDIl1` delete confirm, `EfNUcqRK0` empty), user decisions:
+> drafts can be **deleted for good** (never-submitted only; one or several, all or nothing; audit row kept), the form
+> **auto-saves drafts every 30 s**, and a nightly job (`vouchers:prune-drafts`, 01:30) **deletes drafts untouched for
+> 30 days** after a bell reminder 3 days before. One completeness rule (`VoucherCompleteness`) feeds both Submit and
+> the cards. Migration `2026_11_25_000001` (notification type `draft_expiry`): **testing DB only**.
 
 **Goal:** clerks can create, edit, attach files to, submit and cancel vouchers.
-**Status:** ⬜ Not started.
+**Status:** 🟡 In progress (clerk vouchers + Drafts done; attachments, idempotency keys, PDF left).
 
 **Planned**
 - Draft vouchers with **line items**, saved in one database transaction.

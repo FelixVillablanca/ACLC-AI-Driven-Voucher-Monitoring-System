@@ -48,7 +48,7 @@ export default function ClerkDashboardPage() {
         <div className="flex flex-wrap items-center gap-2.5">
           {data?.counts.drafts > 0 && (
             <Link
-              to={`${PATHS.CLERK_VOUCHERS}?view=draft`}
+              to={PATHS.CLERK_DRAFTS}
               className="text-body-strong flex h-[38px] items-center gap-1.5 rounded-lg border bg-card px-3.5 outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring/50"
             >
               <FilePen className="size-4" aria-hidden="true" /> Continue draft ({data.counts.drafts})

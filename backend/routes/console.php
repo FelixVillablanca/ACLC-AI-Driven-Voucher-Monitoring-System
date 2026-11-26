@@ -50,3 +50,12 @@ Schedule::call(fn () => RecordHealthChecks::prune())
 Schedule::command('backup:run')
     ->dailyAt(config('backup.nightly_at'))
     ->name('nightly-database-backup');
+
+/*
+| OLD DRAFTS (Drafts page, Framer Xfr2PEq2q; user decision 2026-11-25): every night at 01:30, before the
+| backup, drafts untouched for 30 days are deleted and clerks are reminded 3 days before.
+*/
+Schedule::command('vouchers:prune-drafts')
+    ->dailyAt('01:30')
+    ->name('prune-old-drafts')
+    ->withoutOverlapping(30);

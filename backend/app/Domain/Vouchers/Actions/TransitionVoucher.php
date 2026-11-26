@@ -3,6 +3,7 @@
 namespace App\Domain\Vouchers\Actions;
 
 use App\Domain\Audit\AuditTrail;
+use App\Domain\Vouchers\Support\VoucherCompleteness;
 use App\Domain\Vouchers\Support\VoucherNumber;
 use App\Domain\Vouchers\VoucherStatus as S;
 use App\Exceptions\ApiException;
@@ -97,28 +98,11 @@ class TransitionVoucher
         return $voucher;
     }
 
-    /** What a reviewer needs. Errors use the form's field names, so they show under the right inputs. */
+    /** What a reviewer needs (the same rule the Drafts cards show). Errors use the form's field names. */
     private function assertComplete(Voucher $voucher): void
     {
-        $errors = [];
-        if (! $voucher->payee_name) {
-            $errors['payee_name'] = 'Enter who gets paid.';
-        }
-        if (! $voucher->payee_type_id) {
-            $errors['payee_type_id'] = 'Choose the payee type.';
-        }
-        if (! $voucher->description && ! $voucher->purpose) {
-            $errors['description'] = 'Say what this voucher is for.';
-        }
-        if ($voucher->payment_method === 'bank' && (! $voucher->bank_name || ! $voucher->bank_account_number || ! $voucher->bank_account_name)) {
-            $errors['bank_name'] = 'Bank transfers need the bank, account number and account name.';
-        }
         $lines = DB::table('voucher_line_items')->where('voucher_id', $voucher->id)->count();
-        if ($lines === 0) {
-            $errors['line_items'] = 'Add at least one line.';
-        } elseif (bccomp((string) $voucher->amount, '0.00', 2) <= 0) {
-            $errors['line_items'] = 'The total must be more than ₱0.00.';
-        }
+        $errors = VoucherCompleteness::check($voucher, $lines)['errors'];
 
         if ($errors) {
             throw ValidationException::withMessages($errors);

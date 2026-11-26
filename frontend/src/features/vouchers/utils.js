@@ -36,6 +36,18 @@ export const SORTS = [
   { key: 'amount_asc', label: 'Amount: low to high' },
 ]
 
+/** Drafts are deleted after this many days without a change (server: DraftExpiry::DAYS / WARN_DAYS). */
+export const DRAFT_DAYS = 30
+export const DRAFT_WARN_DAYS = 3
+
+/** "Expires in 3 days" / "Expires tomorrow" / "Expires today"; `soon` = within the warning window. */
+export function draftExpiry(expiresAt, now = new Date()) {
+  if (!expiresAt) return { soon: false, label: null }
+  const days = Math.ceil((new Date(expiresAt) - now) / 86_400_000)
+  const label = days <= 0 ? 'Expires today' : days === 1 ? 'Expires tomorrow' : `Expires in ${days} days`
+  return { soon: days <= DRAFT_WARN_DAYS, label, days }
+}
+
 export const PAYMENT_LABELS = { cash: 'Cash', bank: 'Bank transfer', cheque: 'Cheque' }
 export const PRIORITY_LABELS = { low: 'Low', normal: 'Normal', high: 'High', urgent: 'Urgent' }
 

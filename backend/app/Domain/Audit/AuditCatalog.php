@@ -95,6 +95,8 @@ class AuditCatalog
         'voucher_rejected' => ['label' => 'Voucher rejected', 'group' => 'vouchers', 'tone' => 'danger'],
         'voucher_returned' => ['label' => 'Voucher returned', 'group' => 'vouchers', 'tone' => 'warning'],
         'voucher_cancelled' => ['label' => 'Voucher cancelled', 'group' => 'vouchers', 'tone' => 'neutral'],
+        'voucher_draft_deleted' => ['label' => 'Draft deleted', 'group' => 'vouchers', 'tone' => 'warning'],
+        'voucher_draft_expired' => ['label' => 'Old draft deleted (30 days)', 'group' => 'vouchers', 'tone' => 'neutral'],
 
         // System jobs
         'backup_started' => ['label' => 'Backup started', 'group' => 'system', 'tone' => 'neutral'],

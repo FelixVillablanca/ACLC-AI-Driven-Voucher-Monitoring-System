@@ -18,7 +18,8 @@ class DatabaseSeeder extends Seeder
     {
         $this->call([
             SystemSettingsSeeder::class, // platform defaults (real starting values, safe on any DB)
-            DemoDataSeeder::class,    // companies, departments, 4 demo logins
+            DemoDataSeeder::class,    // companies, 4 demo logins
+            SampleCatalogSeeder::class, // departments, voucher categories, voucher types per company (not in production)
             SampleUsersSeeder::class, // your own extra users (edit the list in that file)
         ]);
     }

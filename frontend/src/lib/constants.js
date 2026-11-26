@@ -80,6 +80,7 @@ export const PATHS = Object.freeze({
   CLERK_NOTIFICATIONS: '/clerk/notifications',
   CLERK_VOUCHERS: '/clerk/vouchers',
   CLERK_VOUCHER_NEW: '/clerk/vouchers/new',
+  CLERK_DRAFTS: '/clerk/drafts',
   CLERK_PROFILE: '/clerk/profile',
   CLERK_CHANGE_PASSWORD: '/clerk/change-password',
   CLERK_APPROVAL_GUIDE: '/clerk/how-vouchers-get-approved',

@@ -2,16 +2,19 @@
 
 namespace App\Http\Controllers\Api\V1\Vouchers;
 
+use App\Domain\Vouchers\Actions\DeleteVoucherDrafts;
 use App\Domain\Vouchers\Actions\SaveVoucherDraft;
 use App\Domain\Vouchers\Actions\TransitionVoucher;
 use App\Domain\Vouchers\Queries\ClerkVouchers;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Vouchers\DeleteDraftsRequest;
 use App\Http\Requests\Vouchers\ListVouchersRequest;
 use App\Http\Requests\Vouchers\SaveVoucherRequest;
 use App\Http\Resources\Vouchers\VoucherResource;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -23,6 +26,8 @@ use Illuminate\Support\Facades\DB;
  *   PATCH  /vouchers/{id}                  save a draft / returned voucher
  *   POST   /vouchers/{id}/submit           → with the Accounting Officer
  *   POST   /vouchers/{id}/cancel           → cancelled
+ *   DELETE /vouchers/{id}                  delete a never-submitted draft for good (204)
+ *   POST   /vouchers/drafts/delete         delete several drafts at once, all or nothing
  */
 class VoucherController extends Controller
 {
@@ -48,10 +53,13 @@ class VoucherController extends Controller
     {
         $vouchers = $this->mine($request);
 
-        $page = $vouchers->list($request->validated('filter.view'), $request->validated('search'), $request->validated('sort'))
-            ->paginate(20)->withQueryString();
+        [$view, $search] = [$request->validated('filter.view'), $request->validated('search')];
+        $page = $vouchers->list($view, $search, $request->validated('sort'))->paginate(20)->withQueryString();
 
-        return VoucherResource::collection($page)->additional(['meta' => ['counts' => $vouchers->counts()]]);
+        return VoucherResource::collection($page)->additional(['meta' => [
+            'counts' => $vouchers->counts(),
+            'total_amount' => $vouchers->totalAmount($view, $search),
+        ]]);
     }
 
     public function store(SaveVoucherRequest $request, SaveVoucherDraft $save): JsonResponse
@@ -88,6 +96,20 @@ class VoucherController extends Controller
         $transition->cancel($mine->find($voucher), $request->user(), $request->ip());
 
         return VoucherResource::make($mine->find($voucher))->detailed();
+    }
+
+    public function destroy(DeleteDraftsRequest $request, int $voucher, DeleteVoucherDrafts $delete): Response
+    {
+        $delete->delete([$voucher], $this->mine($request), $request->user(), $request->validated('updated_at'), $request->ip());
+
+        return response()->noContent();
+    }
+
+    public function destroyMany(DeleteDraftsRequest $request, DeleteVoucherDrafts $delete): JsonResponse
+    {
+        $count = $delete->delete($request->validated('ids'), $this->mine($request), $request->user(), null, $request->ip());
+
+        return response()->json(['data' => ['deleted' => $count]]);
     }
 
     private function mine(Request $request): ClerkVouchers

@@ -47,6 +47,20 @@ export async function cancelVoucher(id) {
   return data.data
 }
 
+/**
+ * Delete a never-submitted draft for good. `updatedAt` = the version on screen:
+ * 409 VOUCHER_CHANGED if it was saved elsewhere since, 409 DRAFT_NOT_DELETABLE if it was submitted.
+ */
+export async function deleteDraft(id, updatedAt) {
+  await apiClient.delete(`/vouchers/${id}`, { data: { updated_at: updatedAt } })
+}
+
+/** Delete several drafts at once (Select mode). All or nothing. Returns how many were deleted. */
+export async function deleteDrafts(ids) {
+  const { data } = await apiClient.post('/vouchers/drafts/delete', { ids })
+  return data.data.deleted
+}
+
 /** The current approval rules (high-value threshold, AI-flagged → step 2) for the approval guide. */
 export async function getApprovalRules() {
   const { data } = await apiClient.get('/approval-rules')
