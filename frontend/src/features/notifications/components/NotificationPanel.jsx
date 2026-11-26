@@ -6,7 +6,7 @@ import EmptyState from '@/components/common/EmptyState'
 import ErrorState from '@/components/common/ErrorState'
 import { cn } from '@/lib/utils'
 import { useNotificationList } from '../hooks/useNotificationList'
-import { groupByDay } from '../utils'
+import { groupByDay, notificationTarget } from '../utils'
 import NotificationItem from './NotificationItem'
 import NotificationSkeleton from './NotificationSkeleton'
 
@@ -33,7 +33,7 @@ export default function NotificationPanel({ unreadCount, onCountChange, links, o
 
   const openItem = (item) => {
     markRead(item)
-    const to = links.types?.[item.type] ?? links.categories[item.category]
+    const to = notificationTarget(links, item)
     if (to) {
       onClose()
       navigate(to)

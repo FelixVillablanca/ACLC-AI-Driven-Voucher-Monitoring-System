@@ -7,6 +7,8 @@ import { useCompanyStore } from '@/stores/useCompanyStore'
 import { getApprovalRules } from '../api'
 import { centsToAmount } from '../utils'
 
+// one shared empty list: a selector returning a NEW [] each time makes Zustand 5 re-render forever
+const NO_COMPANIES = []
 /**
  * Right column of Fix & resubmit (Framer EWrCKOIlI): the live total vs. the total when it came back,
  * voucher number, company, line count, then who looks at it next (Approval route).
@@ -14,7 +16,7 @@ import { centsToAmount } from '../utils'
  * "AI pre-check" box (Phase 5) and no attachment upload (attachments aren't built yet; a note says so).
  */
 export default function ReturnSummary({ voucher, totalCents, lineCount }) {
-  const companies = useAuthStore((s) => s.user?.companies ?? [])
+  const companies = useAuthStore((s) => s.user?.companies) ?? NO_COMPANIES
   const companyId = useCompanyStore((s) => s.activeCompanyId)
   const company = companies.find((c) => c.id === companyId)?.name
 

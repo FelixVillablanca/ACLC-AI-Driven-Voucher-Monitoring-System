@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { AnimatePresence } from 'framer-motion'
-import { ArrowLeft, Ban, CheckCircle2, Flag, Loader2, Pencil, Send, Undo2, UserCheck, XCircle } from 'lucide-react'
+import { ArrowLeft, Ban, CheckCircle2, Flag, Loader2, Pencil, Send, Trash2, Undo2, UserCheck, XCircle } from 'lucide-react'
 import toast from 'react-hot-toast'
 import ConfirmDialog from '@/components/common/ConfirmDialog'
 import ErrorState from '@/components/common/ErrorState'
@@ -9,7 +9,8 @@ import Pill from '@/components/common/Pill'
 import { PATHS } from '@/lib/constants'
 import { formatDate, formatMoney, formatTimeAgo } from '@/lib/formatters'
 import { useCompanyStore } from '@/stores/useCompanyStore'
-import { cancelVoucher, getVoucher, submitVoucher } from '../api'
+import { cancelVoucher, deleteDraft, getVoucher, submitVoucher } from '../api'
+import ReturnedBanner from '../components/ReturnedBanner'
 import { announceVouchersChanged, PAYMENT_LABELS, PRIORITY_LABELS, statusPill } from '../utils'
 
 const ACTION_LOOK = {
@@ -23,6 +24,8 @@ const ACTION_LOOK = {
  * One voucher (/clerk/vouchers/:id): what it is, its lines and total, the reviewers' history (with their
  * notes), and what the clerk can do now: Edit / Submit / Cancel (drafts and returned vouchers only).
  * A submit that's missing something sends you to the form, where the missing fields are marked.
+ * A never-submitted draft is DELETED (like on the Drafts page), not cancelled; a returned voucher is
+ * cancelled (it has a number and a history). Returned vouchers show the reviewer's note on top.
  */
 export default function VoucherDetailPage() {
   const { id } = useParams()
@@ -52,7 +55,7 @@ export default function VoucherDetailPage() {
     try {
       const sent = await submitVoucher(v.id)
       announceVouchersChanged()
-      toast.success(`${sent.voucher_number} was sent to the Accounting Officers.`)
+      toast.success(`${sent.voucher_number} was ${v.status === 'returned' ? 'resubmitted' : 'sent'} to the Accounting Officers.`)
       setAttempt((n) => n + 1)
     } catch (error) {
       if (error.status === 422) {
@@ -70,6 +73,13 @@ export default function VoucherDetailPage() {
   const cancel = async () => {
     setBusy('cancel')
     try {
+      if (v.can.delete) {
+        await deleteDraft(v.id, v.updated_at)
+        announceVouchersChanged()
+        toast.success('Draft deleted.')
+        navigate(PATHS.CLERK_DRAFTS, { replace: true })
+        return
+      }
       await cancelVoucher(v.id)
       announceVouchersChanged()
       toast.success('Voucher cancelled.')
@@ -122,7 +132,14 @@ export default function VoucherDetailPage() {
                 )}
               </div>
               <p className="text-body text-muted-foreground">
-                {v.payee_name ?? 'No payee yet'} · {v.category?.name ?? 'No category'}
+                {v.payee_id ? (
+                  <Link to={`${PATHS.CLERK_PAYEES}?payee=${v.payee_id}`} className="hover:text-foreground hover:underline">
+                    {v.payee_name}
+                  </Link>
+                ) : (
+                  (v.payee_name ?? 'No payee yet')
+                )}{' '}
+                · {v.category?.name ?? 'No category'}
                 {v.submitted_at
                   ? ` · submitted ${formatTimeAgo(v.submitted_at)}`
                   : ` · ${v.voucher_number ? '' : 'not submitted yet · '}last saved ${formatTimeAgo(v.updated_at)}`}
@@ -136,7 +153,8 @@ export default function VoucherDetailPage() {
                   disabled={Boolean(busy)}
                   className="text-body-strong flex h-[38px] items-center gap-1.5 rounded-lg px-3 text-danger outline-none hover:bg-danger-soft focus-visible:ring-2 focus-visible:ring-ring/50"
                 >
-                  <Ban className="size-4" aria-hidden="true" /> Cancel voucher
+                  {v.can.delete ? <Trash2 className="size-4" aria-hidden="true" /> : <Ban className="size-4" aria-hidden="true" />}
+                  {v.can.delete ? 'Delete draft' : 'Cancel voucher'}
                 </button>
                 <Link
                   to={`${PATHS.CLERK_VOUCHERS}/${v.id}/edit`}
@@ -161,9 +179,14 @@ export default function VoucherDetailPage() {
             )}
           </div>
 
-          {v.status === 'pending' && (
+          {v.status === 'returned' && v.returned && <ReturnedBanner returned={v.returned} saved={v.returned.edited_since} />}
+
+          {(v.status === 'pending' || v.status === 'under_review') && (
             <p className="text-body rounded-xl border border-dashed bg-muted px-4 py-3">
-              With the Accounting Officers of this company. You can't change it while it's being reviewed.{' '}
+              {v.status === 'pending'
+                ? 'With the Accounting Officers of this company.'
+                : 'Accounting approved its step; it’s with a Supervisor / Manager for the final approval.'}{' '}
+              You can't change it while it's being reviewed.{' '}
               <Link to={PATHS.CLERK_APPROVAL_GUIDE} className="text-primary hover:underline">
                 How approval works
               </Link>
@@ -271,17 +294,20 @@ export default function VoucherDetailPage() {
         {confirmCancel && v && (
           <ConfirmDialog
             key="cancel"
-            icon={{ icon: Ban, tone: 'danger' }}
-            title="Cancel this voucher?"
-            description={v.voucher_number ?? 'Draft voucher'}
-            confirmLabel="Cancel voucher"
+            icon={{ icon: v.can.delete ? Trash2 : Ban, tone: 'danger' }}
+            title={v.can.delete ? 'Delete this draft?' : 'Cancel this voucher?'}
+            description={v.voucher_number ?? `${v.payee_name ?? 'Draft'} · ${formatMoney(v.amount)}`}
+            confirmLabel={v.can.delete ? 'Delete draft' : 'Cancel voucher'}
+            cancelLabel={v.can.delete ? 'Keep draft' : 'Keep voucher'}
             tone="danger"
             busy={busy === 'cancel'}
             onConfirm={cancel}
             onCancel={() => setConfirmCancel(false)}
           >
             <p className="text-caption rounded-[10px] bg-muted px-3.5 py-3 text-foreground">
-              It stays in your list as Cancelled, so the history is complete. It can't be submitted after that.
+              {v.can.delete
+                ? 'It was never submitted, so it’s removed for good with its lines. This can’t be undone.'
+                : 'It stays in your list as Cancelled, so the history is complete. It can’t be submitted after that.'}
             </p>
           </ConfirmDialog>
         )}

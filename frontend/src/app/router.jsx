@@ -63,6 +63,7 @@ const accountPages = (paths) => [
 const CLERK_NOTIFICATION_LINKS = {
   viewAll: PATHS.CLERK_NOTIFICATIONS,
   types: { draft_expiry: PATHS.CLERK_DRAFTS }, // "A draft will be deleted…" opens Drafts
+  voucher: (id) => `${PATHS.CLERK_VOUCHERS}/${id}`, // a notice about one voucher opens that voucher
   categories: {
     access: '?companies=manage', // invitations / answers open the Join another company window
     vouchers: PATHS.CLERK_VOUCHERS,

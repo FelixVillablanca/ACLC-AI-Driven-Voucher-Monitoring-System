@@ -6,7 +6,7 @@ import { cn } from '@/lib/utils'
 import NotificationItem from '../components/NotificationItem'
 import NotificationSkeleton from '../components/NotificationSkeleton'
 import { useNotificationsPage } from '../hooks/useNotificationsPage'
-import { groupByDay } from '../utils'
+import { groupByDay, notificationTarget } from '../utils'
 
 const TABS = [
   { id: 'all', label: 'All' },
@@ -43,7 +43,7 @@ export default function NotificationsPage({ links }) {
 
   const open = (item) => {
     list.markRead(item)
-    const to = links?.types?.[item.type] ?? links?.categories?.[item.category]
+    const to = notificationTarget(links, item)
     if (to) navigate(to)
   }
 

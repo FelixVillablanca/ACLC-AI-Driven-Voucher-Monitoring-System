@@ -39,6 +39,18 @@ const TYPE_STYLE = {
 /** Fired after notifications are marked read on the All notifications page, so the bell's number updates. */
 export const NOTIFICATIONS_CHANGED_EVENT = 'advms:notifications-changed'
 
+/**
+ * Where a click on a notification goes: its type's page first (e.g. draft reminders → Drafts, since the
+ * draft may be gone), then its voucher (when the role's links have `voucher`), then its category's page.
+ * null = nowhere (it's just marked read).
+ */
+export function notificationTarget(links, item) {
+  if (!links) return null
+  if (links.types?.[item.type]) return links.types[item.type]
+  if (item.voucher_id && links.voucher) return links.voucher(item.voucher_id)
+  return links.categories?.[item.category] ?? null
+}
+
 export const CATEGORIES = {
   security: { label: 'Security', icon: ShieldAlert },
   access: { label: 'Access', icon: ArrowLeftRight },

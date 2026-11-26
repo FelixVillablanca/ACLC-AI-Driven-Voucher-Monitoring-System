@@ -8,6 +8,8 @@ import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/stores/useAuthStore'
 import { useCompanyStore } from '@/stores/useCompanyStore'
 
+// one shared empty list: a selector returning a NEW [] each time makes Zustand 5 re-render forever
+const NO_COMPANIES = []
 /** "Apex Holdings Inc." → "AH" */
 function initials(name = '') {
   const words = name
@@ -31,7 +33,7 @@ function initials(name = '') {
  */
 export default function CompanySwitcher({ manageSearch = null }) {
   const [, setParams] = useSearchParams()
-  const companies = useAuthStore((s) => s.user?.companies ?? [])
+  const companies = useAuthStore((s) => s.user?.companies) ?? NO_COMPANIES
   const activeId = useCompanyStore((s) => s.activeCompanyId)
   const switchTo = useSwitchCompany()
   const [open, setOpen] = useState(false)
