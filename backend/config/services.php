@@ -40,6 +40,18 @@ return [
         'url' => env('ML_SERVICE_URL'),
     ],
 
+    // OpenAI (2026-11-27): writes the financial reports' narrative summaries. Empty key = not set up: reports
+    // still build and the summary says so. Only totals / counts are sent (Domain/Reporting/Support/ReportPrompt).
+    // Prices are US dollars per 1 million tokens (gpt-4o-mini list price); used for the Super Admin's monthly cap.
+    'openai' => [
+        'key' => env('OPENAI_API_KEY'),
+        'model' => env('OPENAI_MODEL', 'gpt-4o-mini'),
+        'url' => env('OPENAI_URL', 'https://api.openai.com/v1'),
+        'timeout' => (int) env('OPENAI_TIMEOUT', 45),
+        'price_input_per_million' => (float) env('OPENAI_PRICE_INPUT', 0.15),
+        'price_output_per_million' => (float) env('OPENAI_PRICE_OUTPUT', 0.60),
+    ],
+
     // System health: the address the scheduler calls every minute to check the web app & API.
     // Must be where Laravel itself answers (dev: php artisan serve on :8000), NOT XAMPP's Apache on :80.
     'health' => [

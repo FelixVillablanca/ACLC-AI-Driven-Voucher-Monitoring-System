@@ -20,8 +20,11 @@ class ApprovalRulesController extends Controller
         return response()->json(['data' => [
             'high_value_threshold' => (string) $settings->get(SystemSettings::HIGH_VALUE_THRESHOLD, $default(SystemSettings::HIGH_VALUE_THRESHOLD)),
             'ai_flagged_needs_step2' => (bool) $settings->get(SystemSettings::AI_FLAGGED_NEEDS_STEP_2, $default(SystemSettings::AI_FLAGGED_NEEDS_STEP_2)),
+            'review_sla_hours' => (int) $settings->value(SystemSettings::REVIEW_SLA_HOURS),
             'submitting_live' => true,
-            'reviewing_live' => false,
+            // Accounting Officers review since 2026-11-26; the Supervisor's step 2 screens come next
+            'reviewing_live' => true,
+            'supervisor_live' => false,
         ]]);
     }
 }

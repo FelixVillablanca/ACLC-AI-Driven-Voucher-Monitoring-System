@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1\SuperAdmin;
 
+use App\Domain\AI\OpenAi\OpenAiSpend;
 use App\Domain\Platform\Actions\UpdateGlobalSettings;
 use App\Domain\Platform\Queries\SettingsHistory;
 use App\Domain\Platform\SystemHealth;
@@ -34,7 +35,7 @@ class GlobalSettingsController extends Controller
                 'companies' => Company::count(),
                 'ml_service' => $health->mlService()['status'], // ok | danger | not_configured
                 // OpenAI spend isn't tracked until report summaries exist (Phase 5)
-                'openai_spent_this_month_usd' => null,
+                'openai_spent_this_month_usd' => app(OpenAiSpend::class)->thisMonth(), // report summaries (since 2026-11-27)
                 'admins' => [
                     'active' => User::where('role', 'admin')->where('is_active', true)->count(),
                     'without_two_factor' => User::where('role', 'admin')->where('is_active', true)

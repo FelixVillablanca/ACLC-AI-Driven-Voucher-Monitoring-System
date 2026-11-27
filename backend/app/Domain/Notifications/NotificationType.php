@@ -15,8 +15,10 @@ enum NotificationType: string
     case VoucherApproved = 'voucher_approved';
     case VoucherRejected = 'voucher_rejected';
     case VoucherPending = 'voucher_pending';
+    case VoucherReturned = 'voucher_returned'; // added 2026-11-26: a reviewer sent it back to the clerk
     case AnomalyFlagged = 'anomaly_flagged';
     case BudgetAlert = 'budget_alert';
+    case BudgetChange = 'budget_change'; // added 2026-11-27: a budget edit waits for a Supervisor's sign-off
 
     // Admin / system setup (added 2026-11-16)
     case SecurityAlert = 'security_alert';
@@ -34,12 +36,15 @@ enum NotificationType: string
     // Help & guides (added 2026-11-26): a clerk's "Contact support" message, to their company's Admin
     case SupportRequest = 'support_request';
 
+    // Financial reports (added 2026-11-27): a report (and its AI summary) is ready, or its summary failed
+    case ReportReady = 'report_ready';
+
     public function category(): string
     {
         return match ($this) {
-            self::VoucherApproved, self::VoucherRejected, self::VoucherPending, self::DraftExpiry => 'vouchers',
+            self::VoucherApproved, self::VoucherRejected, self::VoucherPending, self::VoucherReturned, self::DraftExpiry => 'vouchers',
             self::AnomalyFlagged => 'ai',
-            self::BudgetAlert => 'budgets',
+            self::BudgetAlert, self::BudgetChange => 'budgets',
             self::SecurityAlert => 'security',
             self::AccessChanged => 'access',
             self::UserChanged => 'users',
@@ -47,6 +52,7 @@ enum NotificationType: string
             self::CompanyChanged => 'companies',
             self::SystemAlert => 'system',
             self::SupportRequest => 'support',
+            self::ReportReady => 'reports',
         };
     }
 

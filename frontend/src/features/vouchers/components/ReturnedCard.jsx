@@ -8,8 +8,9 @@ import { returnedByText } from '../utils'
 /**
  * One voucher on Returned to me (Framer xRM5FKjDQ): number + "Returned · Level N" + payee · category, amount,
  * the reviewer's note (who, as which reviewer, when), then View details + Fix & resubmit.
- * Code differs from the frame (real data only): no "Needs changes: Line items / Attachments" tags (reviewers
- * can't tag parts yet) and no "N days left" (there's no resubmit deadline rule).
+ * "Needs changes:" tags = what the reviewer ticked when returning it (since 2026-11-26).
+ * Code differs from the frame: no "N days left" (no resubmit deadline, user decision) and no Attachments tag
+ * (uploads aren't built).
  */
 export default function ReturnedCard({ voucher }) {
   const r = voucher.returned
@@ -64,9 +65,21 @@ export default function ReturnedCard({ voucher }) {
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-2.5">
-        <p className="text-caption">
-          {voucher.line_count === 1 ? '1 line item' : `${voucher.line_count} line items`} · last changed {formatTimeAgo(voucher.updated_at)}
-        </p>
+        {r?.needs_changes?.length > 0 ? (
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="text-caption">Needs changes:</span>
+            {r.needs_changes.map((t) => (
+              <Pill key={t} tone="warning">
+                {t}
+              </Pill>
+            ))}
+          </div>
+        ) : (
+          <p className="text-caption">
+            {voucher.line_count === 1 ? '1 line item' : `${voucher.line_count} line items`} · last changed{' '}
+            {formatTimeAgo(voucher.updated_at)}
+          </p>
+        )}
         <div className="flex gap-2">
           <Link
             to={`${PATHS.CLERK_VOUCHERS}/${voucher.id}`}

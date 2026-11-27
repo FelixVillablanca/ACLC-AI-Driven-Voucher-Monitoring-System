@@ -247,7 +247,7 @@ export default function MyVouchersPage() {
                         {v.voucher_number ?? <span className="text-caption">Draft · no number yet</span>}
                         {v.ai_flagged && (
                           <span className="text-badge flex items-center gap-1 rounded-full bg-danger-soft px-2 py-0.5 text-danger">
-                            <Flag className="size-3" aria-hidden="true" /> AI flagged
+                            <Flag className="size-3" aria-hidden="true" /> Flagged
                           </span>
                         )}
                       </Link>

@@ -2,6 +2,7 @@
 
 namespace App\Domain\Reporting\Queries;
 
+use App\Domain\AI\OpenAi\OpenAiSpend;
 use App\Domain\Platform\SystemHealth;
 use App\Domain\Platform\SystemSettings;
 use App\Models\Company;
@@ -176,7 +177,7 @@ class SuperAdminDashboardSummary
             'anomaly_sensitivity' => $this->settings->get(SystemSettings::ANOMALY_SENSITIVITY),
             'openai' => [
                 'monthly_cap_usd' => $this->settings->get(SystemSettings::OPENAI_MONTHLY_CAP_USD),
-                'spent_this_month_usd' => null, // not tracked until the OpenAI summaries exist (Phase 5)
+                'spent_this_month_usd' => app(OpenAiSpend::class)->thisMonth(), // report summaries (2026-11-27)
             ],
             // What's really enforced right now for everyone else (config/session.php, SESSION_LIFETIME)
             'session_lifetime_minutes' => (int) config('session.lifetime'),

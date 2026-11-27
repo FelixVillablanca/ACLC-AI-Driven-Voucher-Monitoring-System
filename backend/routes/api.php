@@ -10,13 +10,18 @@ use App\Http\Controllers\Api\V1\Admin\LookupController;
 use App\Http\Controllers\Api\V1\Admin\SearchController as AdminSearchController;
 use App\Http\Controllers\Api\V1\Admin\UserController as AdminUserController;
 use App\Http\Controllers\Api\V1\ApprovalRulesController;
+use App\Http\Controllers\Api\V1\Approvals\OfficerDashboardController;
+use App\Http\Controllers\Api\V1\Approvals\OfficerReviewController;
 use App\Http\Controllers\Api\V1\AuthController;
+use App\Http\Controllers\Api\V1\Budgets\BudgetController;
 use App\Http\Controllers\Api\V1\Clerk\DashboardController as ClerkDashboardController;
+use App\Http\Controllers\Api\V1\Forecasts\ForecastController;
 use App\Http\Controllers\Api\V1\HealthController;
 use App\Http\Controllers\Api\V1\InvitationController;
 use App\Http\Controllers\Api\V1\MyCompanyAccessController;
 use App\Http\Controllers\Api\V1\NotificationController;
 use App\Http\Controllers\Api\V1\Payees\PayeeController;
+use App\Http\Controllers\Api\V1\Reports\ReportController;
 use App\Http\Controllers\Api\V1\SuperAdmin\AdminController as SuperAdminAdminController;
 use App\Http\Controllers\Api\V1\SuperAdmin\AuditLogController;
 use App\Http\Controllers\Api\V1\SuperAdmin\BackupController;
@@ -253,6 +258,7 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
                 Route::get('/', 'index')->name('index');
                 Route::post('/', 'store')->middleware('throttle:60,1')->name('store');
                 Route::get('/{voucher}', 'show')->whereNumber('voucher')->name('show');
+                Route::get('/{voucher}/pdf', 'pdf')->whereNumber('voucher')->middleware('throttle:30,1')->name('pdf');
                 Route::patch('/{voucher}', 'update')->whereNumber('voucher')->middleware('throttle:60,1')->name('update');
                 Route::post('/{voucher}/submit', 'submit')->whereNumber('voucher')->middleware('throttle:30,1')->name('submit');
                 Route::post('/{voucher}/cancel', 'cancel')->whereNumber('voucher')->middleware('throttle:30,1')->name('cancel');
@@ -271,6 +277,58 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
                 Route::patch('/{payee}', 'update')->whereNumber('payee')->middleware('throttle:30,1')->name('update');
                 Route::post('/{payee}/deactivate', 'deactivate')->whereNumber('payee')->middleware('throttle:30,1')->name('deactivate');
                 Route::post('/{payee}/reactivate', 'reactivate')->whereNumber('payee')->middleware('throttle:30,1')->name('reactivate');
+            });
+
+        // ACCOUNTING OFFICER review, step 1 (Phase 4, 2026-11-26): the company in X-Company-ID
+        Route::prefix('officer')->name('officer.')->controller(OfficerReviewController::class)
+            ->middleware(['role:accounting_officer', 'company'])->group(function () {
+                Route::get('/summary', 'summary')->name('summary');
+                Route::get('/dashboard', OfficerDashboardController::class)->name('dashboard'); // landing page (Framer tfDekIe0N)
+                Route::get('/review-options', 'options')->name('review-options');
+                Route::get('/queue', 'index')->name('queue');
+                Route::get('/queue/next', 'next')->name('queue.next');
+                Route::get('/vouchers/{voucher}', 'show')->whereNumber('voucher')->name('vouchers.show');
+                Route::get('/vouchers/{voucher}/pdf', 'pdf')->whereNumber('voucher')->middleware('throttle:30,1')->name('vouchers.pdf');
+                Route::post('/vouchers/{voucher}/approve', 'approve')->whereNumber('voucher')->middleware('throttle:60,1')->name('vouchers.approve');
+                Route::post('/vouchers/{voucher}/return', 'returnToClerk')->whereNumber('voucher')->middleware('throttle:60,1')->name('vouchers.return');
+                Route::post('/vouchers/{voucher}/reject', 'reject')->whereNumber('voucher')->middleware('throttle:60,1')->name('vouchers.reject');
+                Route::post('/vouchers/bulk-approve', 'bulkApprove')->middleware('throttle:10,1')->name('vouchers.bulk-approve');
+                Route::get('/reviews', 'reviews')->name('reviews');
+                // Flagged vouchers (2026-11-27, Framer dtNDyUAUp / YX1IiDXMp): automatic check + the officer's finding
+                Route::get('/flagged', 'flagged')->name('flagged');
+                Route::get('/vouchers/{voucher}/investigation', 'investigation')->whereNumber('voucher')->name('vouchers.investigation');
+                Route::post('/vouchers/{voucher}/normal', 'markNormal')->whereNumber('voucher')->middleware('throttle:60,1')->name('vouchers.normal');
+            });
+
+        // ACCOUNTING OFFICER budgets (2026-11-27, Framer AwnFnuBYJ / kpJmhDxKE / MGf9CXv2s): yearly, per department
+        Route::prefix('officer/budgets')->name('officer.budgets.')->controller(BudgetController::class)
+            ->middleware(['role:accounting_officer', 'company'])->group(function () {
+                Route::get('/', 'index')->name('index');
+                Route::get('/departments/{department}', 'department')->whereNumber('department')->name('department');
+                Route::post('/', 'store')->middleware('throttle:30,1')->name('store');
+                Route::patch('/{budget}', 'update')->whereNumber('budget')->middleware('throttle:30,1')->name('update');
+                Route::delete('/requests/{changeRequest}', 'cancelRequest')->whereNumber('changeRequest')->middleware('throttle:30,1')->name('requests.cancel');
+            });
+
+        // ACCOUNTING OFFICER forecasts (2026-11-27, Framer GWmqqOmd7 / sjtX1kKqt): linear trend until Phase 5's model
+        Route::prefix('officer/forecasts')->name('officer.forecasts.')->controller(ForecastController::class)
+            ->middleware(['role:accounting_officer', 'company'])->group(function () {
+                Route::get('/', 'index')->name('index');
+                Route::get('/departments/{department}', 'department')->whereNumber('department')->name('department');
+                Route::post('/recalculate', 'recalculate')->middleware('throttle:6,1')->name('recalculate');
+                Route::get('/export', 'export')->middleware('throttle:10,1')->name('export');
+            });
+
+        // ACCOUNTING OFFICER financial reports (2026-11-27, Framer ARxG8Aa6F / UmSNc_71u / ZoAX4DKjk): OpenAI summaries
+        Route::prefix('officer/reports')->name('officer.reports.')->controller(ReportController::class)
+            ->middleware(['role:accounting_officer', 'company'])->group(function () {
+                Route::get('/', 'index')->name('index');
+                Route::get('/preview', 'preview')->middleware('throttle:60,1')->name('preview');
+                Route::post('/', 'store')->middleware('throttle:10,1')->name('store');
+                Route::get('/{report}', 'show')->whereNumber('report')->name('show');
+                Route::post('/{report}/summary', 'summary')->whereNumber('report')->middleware('throttle:6,1')->name('summary');
+                Route::get('/{report}/pdf', 'pdf')->whereNumber('report')->middleware('throttle:20,1')->name('pdf');
+                Route::get('/{report}/xlsx', 'xlsx')->whereNumber('report')->middleware('throttle:20,1')->name('xlsx');
             });
 
         // HELP & GUIDES (2026-11-26): Contact support → the Admin(s) of the company in X-Company-ID

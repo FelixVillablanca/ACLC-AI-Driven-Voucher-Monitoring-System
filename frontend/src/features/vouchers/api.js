@@ -1,4 +1,5 @@
 import { apiClient } from '@/lib/apiClient'
+import { saveDownload } from '@/lib/download'
 
 /** What the voucher form's lists offer in the active company. */
 export async function getVoucherFormOptions() {
@@ -65,4 +66,10 @@ export async function deleteDrafts(ids) {
 export async function getApprovalRules() {
   const { data } = await apiClient.get('/approval-rules')
   return data.data
+}
+
+/** The printable voucher (drafts carry a DRAFT mark). */
+export async function downloadVoucherPdf(id) {
+  const response = await apiClient.get(`/vouchers/${id}/pdf`, { responseType: 'blob', validateStatus: () => true })
+  return saveDownload(response, `voucher-${id}.pdf`)
 }

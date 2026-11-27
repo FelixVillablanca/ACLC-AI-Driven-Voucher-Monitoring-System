@@ -34,6 +34,22 @@ class SendSupportMessage
         'other' => 'Something else',
     ];
 
+    /** Accounting Officers / Supervisors (Framer menNRI3in, 2026-11-27): review, budgets and reports topics. */
+    public const REVIEWER_TOPICS = [
+        'voucher' => 'Problem with a voucher review',
+        'budgets' => 'Budget allocation issue',
+        'reports' => 'Forecasts or financial reports',
+        'access' => 'Company access or switching companies',
+        'account' => 'Signing in or my account',
+        'other' => 'Something else',
+    ];
+
+    /** @return array<string, string> the topics a role can pick */
+    public static function topicsFor(?string $role): array
+    {
+        return $role === 'accounting_clerk' ? self::TOPICS : self::REVIEWER_TOPICS;
+    }
+
     /** @return array{admins: int, emailed: int} */
     public function send(User $sender, Company $company, string $topic, string $message, ?int $voucherId, ?UploadedFile $screenshot, ?string $ip = null): array
     {
@@ -46,7 +62,7 @@ class SendSupportMessage
 
         $voucherNumber = $voucherId ? DB::table('vouchers')->where('id', $voucherId)->value('voucher_number') : null;
         $voucherNumber = $voucherNumber && ! str_starts_with($voucherNumber, 'DRAFT-') ? $voucherNumber : ($voucherId ? 'a draft' : null);
-        $label = self::TOPICS[$topic];
+        $label = self::topicsFor($sender->role)[$topic];
 
         DB::transaction(function () use ($admins, $sender, $company, $label, $message, $voucherNumber, $topic, $screenshot, $ip) {
             foreach ($admins as $admin) {

@@ -57,6 +57,15 @@ export default function ApprovalGuidePage() {
 
       {rules && (
         <>
+          {rules.reviewing_live && rules.supervisor_live === false && (
+            <div className="flex items-start gap-3 rounded-xl border border-dashed bg-muted px-4 py-3">
+              <Info className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden="true" />
+              <p className="text-body">
+                <span className="font-medium">Step 2 isn't live yet.</span> Accounting Officers review vouchers now. Supervisors get their
+                screens in an upcoming update, so a voucher that needs step 2 waits “With Supervisor” until then.
+              </p>
+            </div>
+          )}
           {!rules.reviewing_live && (
             <div className="flex items-start gap-3 rounded-xl border border-dashed bg-muted px-4 py-3">
               <Info className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden="true" />
@@ -113,8 +122,10 @@ export default function ApprovalGuidePage() {
             <Note icon={ShieldCheck} title="Nobody approves their own voucher">
               The person who made a voucher can never approve it. That's a built-in rule.
             </Note>
-            <Note icon={Flag} title="About the AI check">
-              The AI only gives advice; it never approves or rejects. It isn't switched on yet.
+            <Note icon={Flag} title="About the automatic check">
+              Right after you submit, ADVMS checks the voucher against past spending (unusual amount, possible duplicate, unusual category,
+              budget, new payee). A flag only asks Accounting to look closer; it never approves or rejects. It is a set of plain rules for
+              now; an AI model comes later.
             </Note>
           </div>
 

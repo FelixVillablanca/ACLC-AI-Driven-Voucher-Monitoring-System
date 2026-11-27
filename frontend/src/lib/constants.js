@@ -87,7 +87,18 @@ export const PATHS = Object.freeze({
   CLERK_PROFILE: '/clerk/profile',
   CLERK_CHANGE_PASSWORD: '/clerk/change-password',
   CLERK_APPROVAL_GUIDE: '/clerk/how-vouchers-get-approved',
-  OFFICER: '/officer',
+  OFFICER: '/officer', // the officer's dashboard = landing page (Framer tfDekIe0N, 2026-11-27)
+  OFFICER_QUEUE: '/officer/queue', // the Review queue (was the landing page until 2026-11-27)
+  OFFICER_VOUCHERS: '/officer/vouchers', // /officer/vouchers/:id = review one voucher
+  OFFICER_REVIEWED: '/officer/reviewed',
+  OFFICER_FLAGGED: '/officer/flagged', // /officer/flagged/:id = investigate one flag
+  OFFICER_HELP: '/officer/help', // /officer/help/:slug = one guide (2026-11-27)
+  OFFICER_REPORTS: '/officer/reports', // /officer/reports/:id = one financial report (2026-11-27)
+  OFFICER_FORECASTS: '/officer/forecasts', // /officer/forecasts/:departmentId = one department's forecast (2026-11-27)
+  OFFICER_BUDGETS: '/officer/budgets', // /officer/budgets/:departmentId = one department's yearly budget (2026-11-27)
+  OFFICER_NOTIFICATIONS: '/officer/notifications',
+  OFFICER_PROFILE: '/officer/profile',
+  OFFICER_CHANGE_PASSWORD: '/officer/change-password',
   SUPERVISOR: '/supervisor',
   FORBIDDEN: '/403',
   STATUS: '/status',
@@ -109,6 +120,12 @@ export const ACCOUNT_PATHS = Object.freeze({
     changePassword: PATHS.CLERK_CHANGE_PASSWORD,
     notifications: PATHS.CLERK_NOTIFICATIONS,
     approvalGuide: PATHS.CLERK_APPROVAL_GUIDE,
+  }),
+  // Accounting Officers (2026-11-26): the same account pages as clerks, plus notifications
+  [ROLES.OFFICER]: Object.freeze({
+    profile: PATHS.OFFICER_PROFILE,
+    changePassword: PATHS.OFFICER_CHANGE_PASSWORD,
+    notifications: PATHS.OFFICER_NOTIFICATIONS,
   }),
   [ROLES.SUPER_ADMIN]: Object.freeze({
     profile: PATHS.SUPERADMIN_PROFILE,

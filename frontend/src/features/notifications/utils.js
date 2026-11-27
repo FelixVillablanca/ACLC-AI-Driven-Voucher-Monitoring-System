@@ -13,6 +13,7 @@ import {
   Plus,
   ShieldAlert,
   Sparkles,
+  Undo2,
   TriangleAlert,
   Users,
   Wallet,
@@ -28,6 +29,7 @@ const TYPE_STYLE = {
   voucher_approved: { tone: 'success', icon: CircleCheck },
   voucher_rejected: { tone: 'danger', icon: CircleX },
   voucher_pending: { tone: 'warning', icon: Clock },
+  voucher_returned: { tone: 'danger', icon: Undo2 }, // a reviewer sent the clerk's voucher back
   draft_expiry: { tone: 'warning', icon: Clock }, // "A draft will be deleted on Dec 2" (clerks)
   anomaly_flagged: { tone: 'warning', icon: Sparkles },
   budget_alert: { tone: 'warning', icon: Wallet },

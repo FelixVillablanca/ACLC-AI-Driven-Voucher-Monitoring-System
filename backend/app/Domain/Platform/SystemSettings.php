@@ -23,6 +23,10 @@ class SystemSettings
 
     public const AI_FLAGGED_NEEDS_STEP_2 = 'approval.ai_flagged_needs_step2'; // true: an AI-flagged voucher always needs step 2
 
+    public const REVIEW_SLA_HOURS = 'approval.review_sla_hours';         // 48: Accounting should review a voucher within this (warning only)
+
+    public const BUDGET_CHANGE_SIGNOFF_ABOVE = 'budget.change_signoff_above'; // "250000.00": bigger budget edits need a Supervisor (2026-11-27)
+
     public const ANOMALY_SENSITIVITY = 'ai.anomaly_sensitivity';         // relaxed | balanced | strict
 
     public const CATEGORY_MIN_CONFIDENCE = 'ai.category_min_confidence'; // 70 (%): below this the clerk sees no suggestion
@@ -56,6 +60,18 @@ class SystemSettings
             'group' => 'approval',
             'label' => 'Send AI-flagged vouchers to step 2',
             'description' => 'Any voucher the anomaly check flags needs the Supervisor/Manager, whatever the amount.',
+        ],
+        self::REVIEW_SLA_HOURS => [
+            'value' => 48,
+            'group' => 'approval',
+            'label' => 'Review within (hours)',
+            'description' => 'How long a voucher may wait for Accounting. Past 75% of it the queue warns; it never blocks.',
+        ],
+        self::BUDGET_CHANGE_SIGNOFF_ABOVE => [
+            'value' => '250000.00',
+            'group' => 'approval',
+            'label' => 'Budget changes need sign-off above',
+            'description' => 'An Accounting Officer’s budget edit bigger than this waits for a Supervisor / Manager to sign it off.',
         ],
         self::ANOMALY_SENSITIVITY => [
             'value' => 'balanced',

@@ -4,6 +4,8 @@ import { formatMoney, formatUsd } from '@/lib/formatters'
 export const KEYS = Object.freeze({
   THRESHOLD: 'approval.high_value_threshold',
   AI_FLAGGED_STEP2: 'approval.ai_flagged_needs_step2',
+  REVIEW_SLA: 'approval.review_sla_hours',
+  BUDGET_SIGNOFF: 'budget.change_signoff_above',
   SENSITIVITY: 'ai.anomaly_sensitivity',
   MIN_CONFIDENCE: 'ai.category_min_confidence',
   OPENAI_CAP: 'openai.monthly_cap_usd',
@@ -32,13 +34,18 @@ export const GROUP_TAGS = {
 
 export const SENSITIVITIES = [
   // No made-up flag rates: there's no anomaly model yet, so there's no real rate to show.
-  { key: 'relaxed', label: 'Relaxed', hint: 'Fewer flags: only vouchers that are far from normal.' },
-  { key: 'balanced', label: 'Balanced', hint: 'The recommended middle ground.' },
-  { key: 'strict', label: 'Strict', hint: 'More flags: smaller differences are flagged too, so Supervisors see more.' },
+  { key: 'relaxed', label: 'Relaxed', hint: 'Fewer flags: only vouchers that are far from normal (score 0.70 or more).' },
+  { key: 'balanced', label: 'Balanced', hint: 'The recommended middle ground (score 0.60 or more).' },
+  {
+    key: 'strict',
+    label: 'Strict',
+    hint: 'More flags: smaller differences are flagged too (score 0.45 or more), so Supervisors see more.',
+  },
 ]
 
 export const IDLE_MINUTES = [5, 10, 15, 30, 60]
 export const FAILED_SIGN_IN_LIMITS = [3, 5, 10]
+export const REVIEW_SLA_HOURS = [24, 48, 72, 96]
 
 const onOff = (v) => (v ? 'On' : 'Off')
 
@@ -46,6 +53,8 @@ const onOff = (v) => (v ? 'On' : 'Off')
 export const SETTINGS = {
   [KEYS.THRESHOLD]: { group: 'approval', label: 'High-value threshold', show: (v) => formatMoney(v) },
   [KEYS.AI_FLAGGED_STEP2]: { group: 'approval', label: 'Send AI-flagged vouchers to step 2', show: onOff },
+  [KEYS.REVIEW_SLA]: { group: 'approval', label: 'Review within', show: (v) => `${v} hours` },
+  [KEYS.BUDGET_SIGNOFF]: { group: 'approval', label: 'Budget changes need sign-off above', show: (v) => formatMoney(v) },
   [KEYS.SENSITIVITY]: {
     group: 'ai',
     label: 'Anomaly sensitivity',
@@ -62,7 +71,7 @@ export const SETTINGS = {
 export const showValue = (key, value) => (value == null ? 'Not set' : (SETTINGS[key]?.show(value) ?? String(value)))
 export const settingLabel = (key) => SETTINGS[key]?.label ?? key
 
-const MONEY = new Set([KEYS.THRESHOLD, KEYS.OPENAI_CAP])
+const MONEY = new Set([KEYS.THRESHOLD, KEYS.BUDGET_SIGNOFF, KEYS.OPENAI_CAP])
 
 /**
  * A money box's text → the stored form "50000.00", or null when it isn't a valid amount.
@@ -96,6 +105,9 @@ export function draftErrors(draft) {
     if (v === null) errors[KEYS.THRESHOLD] = 'Type an amount like 50,000.00'
     else if (Number(v) < 1) errors[KEYS.THRESHOLD] = 'It must be at least ₱1.00'
   }
+  if (KEYS.BUDGET_SIGNOFF in draft && normalizeMoney(draft[KEYS.BUDGET_SIGNOFF]) === null) {
+    errors[KEYS.BUDGET_SIGNOFF] = 'Type an amount like 250,000.00'
+  }
   if (KEYS.OPENAI_CAP in draft) {
     const v = normalizeMoney(draft[KEYS.OPENAI_CAP])
     if (v === null) errors[KEYS.OPENAI_CAP] = 'Type an amount like 25.00'
@@ -111,12 +123,16 @@ export function impactText({ key, from, to }) {
   switch (key) {
     case KEYS.THRESHOLD:
       return Number(to) > Number(from)
-        ? `Vouchers from ${formatMoney(from)} up to just under ${formatMoney(to)} will only need step 1 (Accounting Officer). Vouchers already waiting keep their current route.`
-        : `Vouchers from ${formatMoney(to)} and up will also need step 2 (Supervisor / Manager). Vouchers already waiting keep their current route.`
+        ? `Vouchers from ${formatMoney(from)} up to just under ${formatMoney(to)} will only need step 1 (Accounting Officer). It applies to every voucher Accounting approves from now on, including ones already waiting.`
+        : `Vouchers from ${formatMoney(to)} and up will also need step 2 (Supervisor / Manager). It applies to every voucher Accounting approves from now on, including ones already waiting.`
+    case KEYS.BUDGET_SIGNOFF:
+      return `Accounting Officers' budget edits bigger than ${formatMoney(to)} will wait for a Supervisor / Manager's sign-off; smaller ones apply at once.`
     case KEYS.AI_FLAGGED_STEP2:
       return to
         ? 'Every voucher the AI flags will need the Supervisor / Manager, whatever the amount.'
         : 'AI-flagged vouchers below the high-value threshold will only need step 1.'
+    case KEYS.REVIEW_SLA:
+      return `Accounting Officers see a ⏱ warning once a voucher has waited ${Math.round(to * 0.75)} hours, and "past" after ${to} hours. It never blocks anything.`
     case KEYS.SENSITIVITY:
       return rank(to) > rank(from)
         ? 'More vouchers will be flagged, and each flagged one goes to step 2.'

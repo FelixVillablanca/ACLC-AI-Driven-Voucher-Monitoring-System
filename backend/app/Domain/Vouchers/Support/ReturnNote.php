@@ -2,6 +2,7 @@
 
 namespace App\Domain\Vouchers\Support;
 
+use App\Domain\Approvals\Support\ReviewOptions;
 use App\Models\Voucher;
 use Illuminate\Support\Facades\DB;
 
@@ -27,6 +28,7 @@ final class ReturnNote
             'role' => $note->role_at_time,
             'by' => $note->approver?->full_name,
             'remarks' => $note->remarks,
+            'needs_changes' => ReviewOptions::labels($note->needs_changes), // e.g. ["Line items", "Amount"]
             'at' => $note->created_at?->toIso8601String(),
         ];
 

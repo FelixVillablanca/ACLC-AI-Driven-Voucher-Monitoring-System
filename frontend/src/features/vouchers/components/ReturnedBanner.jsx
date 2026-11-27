@@ -6,8 +6,8 @@ import { returnedByText } from '../utils'
 /**
  * Top of Fix & resubmit (Framer EWrCKOIlI): who sent it back, as which reviewer, when, and their note.
  * The green chip appears once changes were saved after the return (`returned.edited_since`, or a save on
- * this visit). Code differs from the frame: no "✓ Line items fixed / Attachment added" per-part chips,
- * because reviewers can't tag which parts need changes yet.
+ * this visit). The amber tags are what the reviewer asked to change (`returned.needs_changes`).
+ * Code differs from the frame: no per-part "✓ Line items fixed" chips (ADVMS can't tell a part is fixed).
  */
 export default function ReturnedBanner({ returned, saved }) {
   const initials =
@@ -38,6 +38,16 @@ export default function ReturnedBanner({ returned, saved }) {
         <p className={cn('text-body', !returned?.remarks && 'text-muted-foreground')}>
           {returned?.remarks ? `“${returned.remarks}”` : 'No note was left. Ask the reviewer what to change if it isn’t clear.'}
         </p>
+        {returned?.needs_changes?.length > 0 && (
+          <div className="flex flex-wrap items-center gap-1.5 pt-1">
+            <span className="text-caption">Needs changes:</span>
+            {returned.needs_changes.map((t) => (
+              <span key={t} className="text-badge rounded-full bg-warning-soft px-2 py-0.5 text-warning">
+                {t}
+              </span>
+            ))}
+          </div>
+        )}
         {saved && (
           <div className="flex pt-1">
             <span className="text-badge inline-flex items-center gap-1 rounded-full bg-success-soft px-2 py-0.5 text-success">

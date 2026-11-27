@@ -17,16 +17,20 @@ class GlobalSettingRules
 
     public const FAILED_SIGN_IN_LIMITS = [3, 5, 10];
 
+    public const REVIEW_SLA_HOURS = [24, 48, 72, 96];
+
     /** Laravel validation rules for the `value` of one setting. */
     public static function rules(string $key): array
     {
         return match ($key) {
             SystemSettings::HIGH_VALUE_THRESHOLD => ['required', 'numeric', 'min:1', 'max:999999999.99', 'decimal:0,2'],
+            SystemSettings::BUDGET_CHANGE_SIGNOFF_ABOVE => ['required', 'numeric', 'min:0', 'max:999999999.99', 'decimal:0,2'],
             SystemSettings::OPENAI_MONTHLY_CAP_USD => ['required', 'numeric', 'min:0', 'max:1000', 'decimal:0,2'],
             SystemSettings::ANOMALY_SENSITIVITY => ['required', 'in:'.implode(',', self::SENSITIVITIES)],
             SystemSettings::CATEGORY_MIN_CONFIDENCE => ['required', 'integer', 'min:50', 'max:95', 'multiple_of:5'],
             SystemSettings::SUPER_ADMIN_IDLE_TIMEOUT => ['required', 'integer', 'in:'.implode(',', self::IDLE_MINUTES)],
             SystemSettings::FAILED_SIGN_IN_ALERT_AFTER => ['required', 'integer', 'in:'.implode(',', self::FAILED_SIGN_IN_LIMITS)],
+            SystemSettings::REVIEW_SLA_HOURS => ['required', 'integer', 'in:'.implode(',', self::REVIEW_SLA_HOURS)],
             SystemSettings::AI_FLAGGED_NEEDS_STEP_2,
             SystemSettings::OPENAI_PAUSE_AT_CAP,
             SystemSettings::REQUIRE_TWO_FACTOR_FOR_ADMINS => ['required', 'boolean'],
@@ -37,10 +41,12 @@ class GlobalSettingRules
     {
         return match ($key) {
             SystemSettings::HIGH_VALUE_THRESHOLD,
+            SystemSettings::BUDGET_CHANGE_SIGNOFF_ABOVE,
             SystemSettings::OPENAI_MONTHLY_CAP_USD => self::money($value),
             SystemSettings::CATEGORY_MIN_CONFIDENCE,
             SystemSettings::SUPER_ADMIN_IDLE_TIMEOUT,
-            SystemSettings::FAILED_SIGN_IN_ALERT_AFTER => (int) $value,
+            SystemSettings::FAILED_SIGN_IN_ALERT_AFTER,
+            SystemSettings::REVIEW_SLA_HOURS => (int) $value,
             SystemSettings::AI_FLAGGED_NEEDS_STEP_2,
             SystemSettings::OPENAI_PAUSE_AT_CAP,
             SystemSettings::REQUIRE_TWO_FACTOR_FOR_ADMINS => filter_var($value, FILTER_VALIDATE_BOOLEAN),

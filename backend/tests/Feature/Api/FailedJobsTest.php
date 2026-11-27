@@ -49,8 +49,9 @@ class FailedJobsTest extends TestCase
 
     private function anomalyJob(int $minutesAgo = 5): string
     {
-        return $this->failedJob('App\\Jobs\\RunAnomalyCheck', 'O:24:"App\\Jobs\\RunAnomalyCheck":1:{s:9:"voucherId";i:412;}',
-            "RuntimeException: ML service timed out after 3 s in C:\\xampp\\htdocs\\app\\Jobs\\RunAnomalyCheck.php:40\nStack trace:\n#0 …", $minutesAgo);
+        // a job class the catalog doesn't know (RunAnomalyCheck became a known one on 2026-11-27)
+        return $this->failedJob('App\\Jobs\\RunMonthlyForecast', 'O:27:"App\\Jobs\\RunMonthlyForecast":1:{s:9:"voucherId";i:412;}',
+            "RuntimeException: ML service timed out after 3 s in C:\\xampp\\htdocs\\app\\Jobs\\RunMonthlyForecast.php:40\nStack trace:\n#0 …", $minutesAgo);
     }
 
     private function backupJob(): string
@@ -73,7 +74,7 @@ class FailedJobsTest extends TestCase
             ->assertJsonPath('data.0.subject', 'Backup #17')
             ->assertJsonPath('data.0.error', 'App\\Jobs\\RunDatabaseBackup has timed out.') // no server path
             ->assertJsonPath('data.0.retryable', false)
-            ->assertJsonPath('data.1.name', 'Run Anomaly Check') // unknown job: name made from the class
+            ->assertJsonPath('data.1.name', 'Run Monthly Forecast') // unknown job: name made from the class
             ->assertJsonPath('data.1.error', 'ML service timed out after 3 s')
             ->assertJsonPath('data.1.retryable', true)
             ->assertJsonPath('data.1.max_tries', 3);

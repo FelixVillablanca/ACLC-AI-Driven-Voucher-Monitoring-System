@@ -6,6 +6,7 @@ use App\Domain\Vouchers\Actions\DeleteVoucherDrafts;
 use App\Domain\Vouchers\Actions\SaveVoucherDraft;
 use App\Domain\Vouchers\Actions\TransitionVoucher;
 use App\Domain\Vouchers\Queries\ClerkVouchers;
+use App\Domain\Vouchers\Support\VoucherPdf;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Vouchers\DeleteDraftsRequest;
 use App\Http\Requests\Vouchers\ListVouchersRequest;
@@ -23,6 +24,7 @@ use Illuminate\Support\Facades\DB;
  *   GET    /vouchers?filter[view]=&search=&sort=&page=     My vouchers (+ meta.counts for the tabs)
  *   POST   /vouchers                       new draft (201)
  *   GET    /vouchers/{id}                  one voucher with lines + reviewers' history
+ *   GET    /vouchers/{id}/pdf              the printable voucher
  *   PATCH  /vouchers/{id}                  save a draft / returned voucher
  *   POST   /vouchers/{id}/submit           → with the Accounting Officer
  *   POST   /vouchers/{id}/cancel           → cancelled
@@ -75,6 +77,18 @@ class VoucherController extends Controller
     public function show(Request $request, int $voucher): VoucherResource
     {
         return VoucherResource::make($this->mine($request)->find($voucher))->detailed();
+    }
+
+    /** GET /vouchers/{id}/pdf: the printable voucher (2026-11-26); drafts carry a DRAFT mark. */
+    public function pdf(Request $request, int $voucher): Response
+    {
+        $v = $this->mine($request)->find($voucher);
+
+        return response(VoucherPdf::render($v), 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="'.VoucherPdf::fileName($v).'"',
+            'Cache-Control' => 'no-store',
+        ]);
     }
 
     public function update(SaveVoucherRequest $request, int $voucher, SaveVoucherDraft $save): VoucherResource

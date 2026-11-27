@@ -7,6 +7,7 @@ use App\Domain\Vouchers\Support\VoucherCompleteness;
 use App\Domain\Vouchers\Support\VoucherNumber;
 use App\Domain\Vouchers\VoucherStatus as S;
 use App\Exceptions\ApiException;
+use App\Jobs\RunAnomalyCheck;
 use App\Models\Company;
 use App\Models\Notification;
 use App\Models\User;
@@ -20,7 +21,9 @@ use Illuminate\Validation\ValidationException;
  *   draft ──submit──▶ pending (Accounting Officer, step 1) ──▶ under_review (Supervisor, step 2) ──▶ approved | rejected
  *   pending / under_review ──return──▶ returned ──submit (after fixing)──▶ pending
  *   draft / returned ──cancel──▶ cancelled
- * The clerk's two moves (submit, cancel) are here now; the reviewers' moves come with Phase 4.
+ * The clerk's two moves (submit, cancel) are here. The reviewers' moves (approve / return / reject, Phase 4,
+ * 2026-11-26) live in Approvals\Actions\ReviewVoucher and use lock() + audit() from here, so the
+ * ALLOWED map stays the one rule for every move.
  * An impossible move (e.g. submitting an approved voucher, or a double click) is 409 INVALID_TRANSITION.
  */
 class TransitionVoucher
@@ -49,7 +52,19 @@ class TransitionVoucher
                 'status' => S::Pending->value,
                 'voucher_number' => $firstTime ? VoucherNumber::next($company) : $voucher->voucher_number,
                 'submitted_at' => now(),
+                // a (re)submitted voucher gets a fresh automatic check: forget the previous one and its review
+                'ai_anomaly_flag' => false,
+                'ai_anomaly_score' => null,
+                'ai_anomaly_reason' => null,
+                'ai_check_signals' => null,
+                'ai_check_source' => null,
+                'ai_checked_at' => null,
+                'ai_review_finding' => null,
+                'ai_reviewed_by' => null,
+                'ai_reviewed_at' => null,
             ])->save();
+
+            RunAnomalyCheck::dispatch($voucher->id)->afterCommit();
 
             $this->audit($clerk, 'voucher_submitted', $voucher, $from, $ip);
 
@@ -82,7 +97,8 @@ class TransitionVoucher
         });
     }
 
-    private function lock(Voucher $voucher, string $to): Voucher
+    /** Locks the row (inside the caller's transaction) and checks the move is allowed; 409 otherwise. */
+    public function lock(Voucher $voucher, string $to): Voucher
     {
         /** @var Voucher $voucher */
         $voucher = Voucher::whereKey($voucher->id)->lockForUpdate()->firstOrFail();
@@ -109,7 +125,7 @@ class TransitionVoucher
         }
     }
 
-    private function audit(User $by, string $action, Voucher $voucher, string $from, ?string $ip): void
+    public function audit(User $by, string $action, Voucher $voucher, string $from, ?string $ip, array $extra = []): void
     {
         AuditTrail::record([
             'user_id' => $by->id,
@@ -118,7 +134,7 @@ class TransitionVoucher
             'table_name' => 'vouchers',
             'record_id' => $voucher->id,
             'old_values' => ['status' => $from],
-            'new_values' => ['status' => $voucher->status, 'voucher_number' => $voucher->voucher_number],
+            'new_values' => ['status' => $voucher->status, 'voucher_number' => $voucher->voucher_number] + $extra,
             'ip_address' => $ip,
         ]);
     }

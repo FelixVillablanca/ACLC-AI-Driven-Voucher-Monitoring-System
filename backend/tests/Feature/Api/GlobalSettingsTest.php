@@ -50,7 +50,7 @@ class GlobalSettingsTest extends TestCase
         $res = $this->actingAs($this->owner)->getJson(self::URL)
             ->assertOk()
             ->assertJsonPath('data.context.companies', 2)
-            ->assertJsonPath('data.context.openai_spent_this_month_usd', null);
+            ->assertJsonPath('data.context.openai_spent_this_month_usd', '0.0000'); // tracked since report summaries (2026-11-27)
 
         // the keys contain dots, so read them from the decoded array
         $values = $res->json('data')['values'];

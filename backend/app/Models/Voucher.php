@@ -22,6 +22,9 @@ class Voucher extends Model
             'ai_anomaly_flag' => 'boolean',
             'submitted_at' => 'datetime',
             'approved_at' => 'datetime',
+            'ai_check_signals' => 'array',
+            'ai_checked_at' => 'datetime',
+            'ai_reviewed_at' => 'datetime',
         ];
     }
 

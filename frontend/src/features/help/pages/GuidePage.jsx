@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { AnimatePresence } from 'framer-motion'
-import { ArrowLeft, Info, Mail, Printer, TriangleAlert } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Info, Mail, Printer, TriangleAlert } from 'lucide-react'
 import EmptyState from '@/components/common/EmptyState'
-import { PATHS } from '@/lib/constants'
 import { cn } from '@/lib/utils'
+import { useAuthStore } from '@/stores/useAuthStore'
 import ContactSupportModal from '../components/ContactSupportModal'
-import { guideBySlug, guideLink, guideTitle, readMinutes } from '../guides'
+import { readMinutes } from '../guides'
+import { libraryFor } from '../library'
 import { useApprovalRules } from '../hooks/useApprovalRules'
 
 const NOTE_TONES = {
@@ -23,7 +24,9 @@ const FLOW_TONES = {
 }
 
 /**
- * A guide article (/clerk/help/:slug; Framer HZsDzsZaH), 2026-11-26.
+ * A guide article (/clerk/help/:slug, Framer HZsDzsZaH, 2026-11-26; /officer/help/:slug, Framer fXCag8TBS, 2026-11-27).
+ * The signed-in role picks the guide set (library.js). Officer guides have a primary `action` button
+ * (Framer: "Open review queue"); clerk guides keep "Ask support".
  * "On this page" follows the scroll; Related links; Print (the browser's print); Ask support opens the
  * Contact support window (?contact=1). Texts that depend on the approval rules read the live rules.
  * Code differs from the frame: no "Was this guide helpful? Yes / No" (nothing would store or read the
@@ -31,7 +34,9 @@ const FLOW_TONES = {
  */
 export default function GuidePage() {
   const { slug } = useParams()
-  const guide = guideBySlug(slug)
+  const role = useAuthStore((s) => s.user?.role)
+  const lib = libraryFor(role)
+  const guide = lib.bySlug(slug)
   const rules = useApprovalRules()
   const [params, setParams] = useSearchParams()
   const contactOpen = params.get('contact') === '1'
@@ -44,7 +49,7 @@ export default function GuidePage() {
         <div className="rounded-xl border bg-card">
           <EmptyState title="Guide not found" description="It may have been renamed. All guides are listed in Help & guides." />
           <div className="flex justify-center pb-8">
-            <Link to={PATHS.CLERK_HELP} className="text-auth-link text-primary hover:underline">
+            <Link to={lib.home} className="text-auth-link text-primary hover:underline">
               ← Help &amp; guides
             </Link>
           </div>
@@ -61,11 +66,11 @@ export default function GuidePage() {
         <div className="flex flex-col gap-1">
           <h1 className="text-page-title">{guide.title}</h1>
           <p className="text-body text-muted-foreground">
-            <Link to={PATHS.CLERK_HELP} className="inline-flex items-center gap-1 hover:text-foreground print:hidden">
+            <Link to={lib.home} className="inline-flex items-center gap-1 hover:text-foreground print:hidden">
               <ArrowLeft className="size-3.5" aria-hidden="true" /> Help &amp; guides
             </Link>
             <span className="print:hidden">{'  /  '}</span>
-            {guide.category} · {readMinutes(guide)} min read · Updated {guide.updated}
+            {lib.categoryLabel(guide.category)} · {readMinutes(guide)} min read · Updated {guide.updated}
           </p>
         </div>
         <div className="flex items-center gap-2.5 print:hidden">
@@ -76,13 +81,22 @@ export default function GuidePage() {
           >
             <Printer className="size-4" aria-hidden="true" /> Print
           </button>
-          <button
-            type="button"
-            onClick={() => setContact(true)}
-            className="text-auth-button flex h-[38px] items-center gap-1.5 rounded-lg bg-primary px-4 text-primary-foreground outline-none hover:bg-primary/90 focus-visible:ring-3 focus-visible:ring-ring/50"
-          >
-            <Mail className="size-4" aria-hidden="true" /> Ask support
-          </button>
+          {guide.action ? (
+            <Link
+              to={guide.action.to}
+              className="text-auth-button flex h-[38px] items-center gap-1.5 rounded-lg bg-primary px-4 text-primary-foreground outline-none hover:bg-primary/90 focus-visible:ring-3 focus-visible:ring-ring/50"
+            >
+              {guide.action.label} <ArrowRight className="size-4" aria-hidden="true" />
+            </Link>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setContact(true)}
+              className="text-auth-button flex h-[38px] items-center gap-1.5 rounded-lg bg-primary px-4 text-primary-foreground outline-none hover:bg-primary/90 focus-visible:ring-3 focus-visible:ring-ring/50"
+            >
+              <Mail className="size-4" aria-hidden="true" /> Ask support
+            </button>
+          )}
         </div>
       </div>
 
@@ -114,8 +128,8 @@ export default function GuidePage() {
               <div className="my-1.5 h-px bg-border" />
               <p className="text-table-head px-2.5 pb-1 text-muted-foreground">Related</p>
               {guide.related.map((r) => (
-                <Link key={r} to={guideLink(r)} className="text-auth-link px-2.5 py-1 text-primary hover:underline">
-                  {guideTitle(r)}
+                <Link key={r} to={lib.link(r)} className="text-auth-link px-2.5 py-1 text-primary hover:underline">
+                  {lib.title(r)}
                 </Link>
               ))}
             </>

@@ -31,11 +31,12 @@ class SendSupportMessageRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'topic' => ['required', Rule::in(array_keys(SendSupportMessage::TOPICS))],
+            'topic' => ['required', Rule::in(array_keys(SendSupportMessage::topicsFor($this->user()?->role)))],
             'message' => ['required', 'string', 'min:10', 'max:3000'],
-            'voucher_id' => ['nullable', 'integer', Rule::exists('vouchers', 'id')
-                ->where('company_id', $this->attributes->get('company')?->id)
-                ->where('created_by', $this->user()?->id)],
+            // a clerk: one of THEIR vouchers; a reviewer (officer / supervisor): any submitted voucher of the company
+            'voucher_id' => ['nullable', 'integer', $this->user()?->role === 'accounting_clerk'
+                ? Rule::exists('vouchers', 'id')->where('company_id', $this->attributes->get('company')?->id)->where('created_by', $this->user()?->id)
+                : Rule::exists('vouchers', 'id')->where('company_id', $this->attributes->get('company')?->id)->whereNot('status', 'draft')],
             'screenshot' => ['nullable', 'file', 'image', 'mimes:png,jpg,jpeg,webp', 'max:5120'],
         ];
     }
@@ -47,7 +48,7 @@ class SendSupportMessageRequest extends FormRequest
             'topic.required' => 'Choose a topic.',
             'message.required' => 'Tell us what you need help with.',
             'message.min' => 'Add a little more detail (at least 10 characters).',
-            'voucher_id.exists' => 'Choose one of your vouchers in this company.',
+            'voucher_id.exists' => 'Choose a voucher of this company from the list.',
             'screenshot.image' => 'Attach a PNG, JPG or WebP image.',
             'screenshot.mimes' => 'Attach a PNG, JPG or WebP image.',
             'screenshot.max' => 'The screenshot must be 5 MB or smaller.',

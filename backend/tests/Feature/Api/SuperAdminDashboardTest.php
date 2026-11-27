@@ -160,7 +160,7 @@ class SuperAdminDashboardTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.rules.high_value_threshold', null)
             ->assertJsonPath('data.rules.anomaly_sensitivity', null)
-            ->assertJsonPath('data.rules.openai', ['monthly_cap_usd' => null, 'spent_this_month_usd' => null])
+            ->assertJsonPath('data.rules.openai', ['monthly_cap_usd' => null, 'spent_this_month_usd' => '0.0000'])
             ->assertJsonPath('data.rules.session_lifetime_minutes', (int) config('session.lifetime'))
             ->assertJsonPath('data.rules.last_change', null);
 

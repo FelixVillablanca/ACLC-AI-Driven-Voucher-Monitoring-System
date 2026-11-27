@@ -77,23 +77,23 @@ export const GUIDES = [
   },
   {
     slug: 'why-ai-flagged',
-    title: 'Why did AI flag my voucher?',
-    summary: 'How anomaly checks will work and what happens next.',
+    title: 'Why was my voucher flagged?',
+    summary: 'How the automatic check works and what happens next.',
     category: 'AI & automation',
     icon: Sparkles,
     tone: 'ai',
     updated: 'Nov 2026',
     popular: true,
-    notLive: 'AI checks aren’t switched on yet. Until they are, no voucher is flagged. This guide explains how they will work.',
     sections: [
       {
         id: 'what-a-flag-means',
         title: 'What a flag means',
         blocks: [
           {
-            p: 'When AI checks are on, ADVMS will compare each submitted voucher with past spending for the same department, payee and category. If something looks unusual, the voucher is marked “AI flagged” with a score from 0 to 1 and a short reason.',
+            p: 'Right after you submit, ADVMS compares the voucher with past spending for the same department, payee and category. If something looks unusual, the voucher is marked “Flagged” with a score from 0 to 1 and a short reason, and Accounting looks at it more closely.',
           },
-          { p: 'A flag is not a rejection. A person still reviews every voucher.' },
+          { p: 'A flag is not a rejection. A person still reviews every voucher, and Accounting can clear a flag as a false alarm.' },
+          { note: 'For now the check is a set of plain rules. An AI model comes in a later update.', tone: 'info' },
           {
             note: '“Amount is 2.4× the 6-month average for IT equipment in Finance Operations.”',
             title: 'Example of a reason (not a real voucher)',
@@ -109,7 +109,9 @@ export const GUIDES = [
             list: [
               'The amount is much higher than usual for the department or payee.',
               'A similar voucher (same payee, close amount) was submitted recently.',
-              'The category doesn’t match the description or the payee’s history.',
+              'The category is unusual for this payee.',
+              'Approving it would pass the department’s budget alert level this month.',
+              'It is a large first payment to a payee the company has never paid.',
             ],
             ordered: true,
           },
@@ -138,7 +140,7 @@ export const GUIDES = [
                   threshold(rules) +
                   '.',
           }),
-          { p: 'If the AI service is down when you submit, your voucher will still go through and be checked later.' },
+          { p: 'The check runs in the background, so Submit never waits for it. A fixed and resubmitted voucher is checked again.' },
         ],
       },
       {
@@ -174,7 +176,7 @@ export const GUIDES = [
         title: 'Why a voucher comes back',
         blocks: [
           {
-            p: 'An Accounting Officer or a Supervisor / Manager can send a voucher back to you instead of rejecting it, with a note saying what to change. You get a bell notice, and the voucher appears in Returned to me.',
+            p: 'An Accounting Officer (and, later, a Supervisor / Manager) can send a voucher back to you instead of rejecting it. They tick what needs changes (for example Line items or Amount) and write a note. You get a bell notice and an email, and the voucher appears in Returned to me.',
           },
         ],
       },
@@ -184,7 +186,7 @@ export const GUIDES = [
         blocks: [
           {
             list: [
-              'Open Returned to me and read the reviewer’s note on the card.',
+              'Open Returned to me and read the reviewer’s note and the “Needs changes” tags on the card.',
               'Click Fix & resubmit. The note stays at the top while you edit, and the summary shows the total now next to the total when it came back.',
               'Save changes keeps it with you. Resubmit for review sends it back.',
             ],
@@ -319,7 +321,7 @@ export const FAQS = [
   {
     q: 'Who approves my voucher?',
     a: (rules) =>
-      `Accounting reviews every voucher first. Vouchers of ${threshold(rules)} or more${rules?.ai_flagged_needs_step2 === false ? '' : ' or flagged by the AI check'} also need a Supervisor / Manager’s final approval.`,
+      `Accounting reviews every voucher first. Vouchers of ${threshold(rules)} or more${rules?.ai_flagged_needs_step2 === false ? '' : ' or flagged by the automatic check'} also need a Supervisor / Manager’s final approval.`,
   },
   {
     q: 'Can I edit a voucher after submitting?',

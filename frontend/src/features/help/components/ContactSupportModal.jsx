@@ -2,9 +2,12 @@ import { useEffect, useRef, useState } from 'react'
 import { CheckCircle2, ChevronDown, ImagePlus, Loader2, Mail, TriangleAlert, X } from 'lucide-react'
 import FieldShell, { inputClass } from '@/components/common/FieldShell'
 import ModalShell from '@/components/common/ModalShell'
+import { recentVouchersForSupport } from '@/features/approvals'
 import { listVouchers } from '@/features/vouchers'
+import { ROLES } from '@/lib/constants'
 import { formatBytes } from '@/lib/formatters'
 import { cn } from '@/lib/utils'
+import { useAuthStore } from '@/stores/useAuthStore'
 import { getSupportContacts, sendSupportMessage } from '../api'
 
 const MAX_BYTES = 5 * 1024 * 1024
@@ -15,21 +18,29 @@ const IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/webp']
  * company you're working in, as a bell notice and an email (Reply-To = you). An optional screenshot is
  * attached to that email only, never stored.
  * Code differs from the frame: the subtitle names who receives it (the frame promised a reply "within
- * 1 business day" from a support team that doesn't exist); "Related voucher" lists your 20 latest vouchers.
+ * 1 business day" from a support team that doesn't exist); "Related voucher" lists your 20 latest vouchers
+ * (an Accounting Officer: the queue + vouchers you reviewed lately; topics come from the server per role, 2026-11-27).
  */
 export default function ContactSupportModal({ onClose, defaultTopic = '', defaultVoucherId = null }) {
+  const role = useAuthStore((s) => s.user?.role)
+  const officer = role === ROLES.OFFICER
   const [load, setLoad] = useState({ status: 'loading', contacts: null, vouchers: [], error: null })
   const [attempt, setAttempt] = useState(0)
 
   useEffect(() => {
     let alive = true
-    Promise.all([getSupportContacts(), listVouchers({ page: 1 }).catch(() => ({ vouchers: [] }))])
-      .then(([contacts, { vouchers }]) => alive && setLoad({ status: 'success', contacts, vouchers, error: null }))
+    const vouchers = officer
+      ? recentVouchersForSupport().catch(() => [])
+      : listVouchers({ page: 1 })
+          .then((r) => r.vouchers)
+          .catch(() => [])
+    Promise.all([getSupportContacts(), vouchers])
+      .then(([contacts, list]) => alive && setLoad({ status: 'success', contacts, vouchers: list, error: null }))
       .catch((error) => alive && setLoad({ status: 'error', contacts: null, vouchers: [], error }))
     return () => {
       alive = false
     }
-  }, [attempt])
+  }, [attempt, officer])
 
   const [topic, setTopic] = useState(defaultTopic)
   const [voucherId, setVoucherId] = useState(defaultVoucherId ? String(defaultVoucherId) : '')
@@ -160,7 +171,13 @@ export default function ContactSupportModal({ onClose, defaultTopic = '', defaul
               id="s-voucher"
               label="Related voucher"
               error={errors.voucher}
-              hint={load.vouchers.length ? undefined : 'You have no vouchers in this company yet.'}
+              hint={
+                load.vouchers.length
+                  ? undefined
+                  : officer
+                    ? 'No vouchers in your queue or recent reviews.'
+                    : 'You have no vouchers in this company yet.'
+              }
             >
               <Select
                 id="s-voucher"

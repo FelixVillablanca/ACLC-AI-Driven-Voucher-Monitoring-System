@@ -13,6 +13,11 @@ class VoucherApproval extends Model
 {
     protected $guarded = ['*'];
 
+    protected function casts(): array
+    {
+        return ['needs_changes' => 'array'];
+    }
+
     public function approver(): BelongsTo
     {
         return $this->belongsTo(User::class, 'approver_id');

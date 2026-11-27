@@ -31,7 +31,7 @@ export default function AiSettingsCard({ field, mlService }) {
       title="AI & anomaly detection"
       caption="AI only gives advice. It never approves or rejects a voucher by itself."
       aside={<Pill tone={pill.tone}>{pill.text}</Pill>}
-      notInUseYet="The AI checks aren't built yet. These choices apply once the ML service is set up."
+      notInUseYet="Anomaly sensitivity is already used by the automatic check (plain rules: flags at a score of 0.70 relaxed, 0.60 balanced, 0.45 strict). Category suggestions and the AI model come with the ML service."
     >
       <SettingRow
         id={sensitivity.id}

@@ -59,3 +59,23 @@ Schedule::command('vouchers:prune-drafts')
     ->dailyAt('01:30')
     ->name('prune-old-drafts')
     ->withoutOverlapping(30);
+
+/*
+| FORECASTS (Framer GWmqqOmd7 / sjtX1kKqt; user decision 2026-11-27): on the 1st of every month at 02:45
+| (after the nightly backup), each company's spending forecast is worked out again (linear trend on the
+| approved vouchers per month) and stored in ai_forecasts. Pages also work it out when it's missing.
+*/
+Schedule::command('forecasts:generate')
+    ->monthlyOn(1, '02:45')
+    ->name('monthly-forecasts')
+    ->withoutOverlapping(60);
+
+/*
+| MONTHLY REPORTS (Framer ARxG8Aa6F "Next scheduled"; user decision 2026-11-27): on the 1st at 03:00 (after the
+| forecasts) every company gets last month's financial report, all departments; its AI summary follows in the
+| background (queue worker). Officers get a bell notice when it's ready.
+*/
+Schedule::command('reports:monthly')
+    ->monthlyOn(1, '03:00')
+    ->name('monthly-reports')
+    ->withoutOverlapping(60);

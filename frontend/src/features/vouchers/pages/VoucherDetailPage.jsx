@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { AnimatePresence } from 'framer-motion'
-import { ArrowLeft, Ban, CheckCircle2, Flag, Loader2, Pencil, Send, Trash2, Undo2, UserCheck, XCircle } from 'lucide-react'
+import { ArrowLeft, Ban, CheckCircle2, Download, Flag, Loader2, Pencil, Send, Trash2, Undo2, UserCheck, XCircle } from 'lucide-react'
 import toast from 'react-hot-toast'
 import ConfirmDialog from '@/components/common/ConfirmDialog'
 import ErrorState from '@/components/common/ErrorState'
@@ -9,7 +9,7 @@ import Pill from '@/components/common/Pill'
 import { PATHS } from '@/lib/constants'
 import { formatDate, formatMoney, formatTimeAgo } from '@/lib/formatters'
 import { useCompanyStore } from '@/stores/useCompanyStore'
-import { cancelVoucher, deleteDraft, getVoucher, submitVoucher } from '../api'
+import { cancelVoucher, deleteDraft, downloadVoucherPdf, getVoucher, submitVoucher } from '../api'
 import ReturnedBanner from '../components/ReturnedBanner'
 import { announceVouchersChanged, PAYMENT_LABELS, PRIORITY_LABELS, statusPill } from '../utils'
 
@@ -94,6 +94,17 @@ export default function VoucherDetailPage() {
     }
   }
 
+  const pdf = async () => {
+    setBusy('pdf')
+    try {
+      await downloadVoucherPdf(v.id)
+    } catch (error) {
+      toast.error(error.message || 'Couldn’t make the PDF.')
+    } finally {
+      setBusy(null)
+    }
+  }
+
   return (
     <div className="mx-auto flex w-full max-w-[1000px] flex-col gap-4 px-4 py-6 sm:px-7">
       <Link to={PATHS.CLERK_VOUCHERS} className="text-caption flex w-fit items-center gap-1 hover:text-foreground">
@@ -127,7 +138,7 @@ export default function VoucherDetailPage() {
                 <Pill tone={statusPill(v.status).tone}>{statusPill(v.status).text}</Pill>
                 {v.ai_flagged && (
                   <span className="text-badge flex items-center gap-1 rounded-full bg-danger-soft px-2 py-0.5 text-danger">
-                    <Flag className="size-3" aria-hidden="true" /> AI flagged
+                    <Flag className="size-3" aria-hidden="true" /> Flagged
                   </span>
                 )}
               </div>
@@ -145,38 +156,53 @@ export default function VoucherDetailPage() {
                   : ` · ${v.voucher_number ? '' : 'not submitted yet · '}last saved ${formatTimeAgo(v.updated_at)}`}
               </p>
             </div>
-            {v.can.edit && (
-              <div className="flex flex-wrap items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => setConfirmCancel(true)}
-                  disabled={Boolean(busy)}
-                  className="text-body-strong flex h-[38px] items-center gap-1.5 rounded-lg px-3 text-danger outline-none hover:bg-danger-soft focus-visible:ring-2 focus-visible:ring-ring/50"
-                >
-                  {v.can.delete ? <Trash2 className="size-4" aria-hidden="true" /> : <Ban className="size-4" aria-hidden="true" />}
-                  {v.can.delete ? 'Delete draft' : 'Cancel voucher'}
-                </button>
-                <Link
-                  to={`${PATHS.CLERK_VOUCHERS}/${v.id}/edit`}
-                  className="text-body-strong flex h-[38px] items-center gap-1.5 rounded-lg border bg-card px-3.5 outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring/50"
-                >
-                  <Pencil className="size-4" aria-hidden="true" /> {v.status === 'returned' ? 'Fix' : 'Edit'}
-                </Link>
-                <button
-                  type="button"
-                  onClick={submit}
-                  disabled={Boolean(busy)}
-                  className="text-auth-button flex h-[38px] items-center gap-1.5 rounded-lg bg-primary px-3.5 text-primary-foreground outline-none hover:bg-primary/90 focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-60"
-                >
-                  {busy === 'submit' ? (
-                    <Loader2 className="size-4 animate-spin" aria-hidden="true" />
-                  ) : (
-                    <Send className="size-4" aria-hidden="true" />
-                  )}
-                  {v.status === 'returned' ? 'Resubmit' : 'Submit'}
-                </button>
-              </div>
-            )}
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={pdf}
+                disabled={Boolean(busy)}
+                className="text-body-strong flex h-[38px] items-center gap-1.5 rounded-lg border bg-card px-3.5 outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring/50 disabled:opacity-60"
+              >
+                {busy === 'pdf' ? (
+                  <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+                ) : (
+                  <Download className="size-4" aria-hidden="true" />
+                )}
+                PDF
+              </button>
+              {v.can.edit && (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => setConfirmCancel(true)}
+                    disabled={Boolean(busy)}
+                    className="text-body-strong flex h-[38px] items-center gap-1.5 rounded-lg px-3 text-danger outline-none hover:bg-danger-soft focus-visible:ring-2 focus-visible:ring-ring/50"
+                  >
+                    {v.can.delete ? <Trash2 className="size-4" aria-hidden="true" /> : <Ban className="size-4" aria-hidden="true" />}
+                    {v.can.delete ? 'Delete draft' : 'Cancel voucher'}
+                  </button>
+                  <Link
+                    to={`${PATHS.CLERK_VOUCHERS}/${v.id}/edit`}
+                    className="text-body-strong flex h-[38px] items-center gap-1.5 rounded-lg border bg-card px-3.5 outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring/50"
+                  >
+                    <Pencil className="size-4" aria-hidden="true" /> {v.status === 'returned' ? 'Fix' : 'Edit'}
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={submit}
+                    disabled={Boolean(busy)}
+                    className="text-auth-button flex h-[38px] items-center gap-1.5 rounded-lg bg-primary px-3.5 text-primary-foreground outline-none hover:bg-primary/90 focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-60"
+                  >
+                    {busy === 'submit' ? (
+                      <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+                    ) : (
+                      <Send className="size-4" aria-hidden="true" />
+                    )}
+                    {v.status === 'returned' ? 'Resubmit' : 'Submit'}
+                  </button>
+                </>
+              )}
+            </div>
           </div>
 
           {v.status === 'returned' && v.returned && <ReturnedBanner returned={v.returned} saved={v.returned.edited_since} />}
@@ -277,6 +303,16 @@ export default function VoucherDetailPage() {
                               {h.by ?? 'A reviewer'}
                               {h.at && ` · ${formatTimeAgo(h.at)}`}
                             </p>
+                            {h.reason && <p className="text-caption">Reason: {h.reason}</p>}
+                            {h.needs_changes?.length > 0 && (
+                              <div className="mt-1 flex flex-wrap gap-1">
+                                {h.needs_changes.map((t) => (
+                                  <Pill key={t} tone="warning">
+                                    {t}
+                                  </Pill>
+                                ))}
+                              </div>
+                            )}
                             {h.remarks && <p className="text-body mt-1 rounded-lg bg-muted px-2.5 py-1.5">“{h.remarks}”</p>}
                           </div>
                         </li>

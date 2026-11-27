@@ -62,7 +62,7 @@ Phase 8  Deployment ─ put it on the internet (Docker, CI/CD, HTTPS, cloud back
 | 1 | Auth, tenancy & audit | 🟡 In progress: sign-in done; company scoping, policies, audit observer, company switcher left |
 | 2 | Admin & Super Admin module | 🟡 In progress: dashboards + several Super Admin tools done; most admin CRUD screens left |
 | 3 | Voucher core | 🟡 In progress: clerk vouchers + Drafts + Returned to me + Payees + Help & guides done; attachments, idempotency keys, PDF left |
-| 4 | Approvals & budgets | ⬜ Not started |
+| 4 | Approvals & budgets | 🟡 In progress: Accounting Officer review (step 1) + budgets done; Supervisor step 2 left |
 | 5 | AI service | ⬜ Not started (some groundwork ready: queue worker, failed-jobs catalog, ML health check) |
 | 6 | Reports & dashboards | ⬜ Not started |
 | 7 | Hardening | ⬜ Not started (tests are already written inside every phase) |
@@ -256,14 +256,41 @@ scheduler (§3.7), row locking for "only one at a time" rules (§3.4).
 ## Phase 4: Approvals & budgets
 
 **Goal:** officers and supervisors review vouchers, and budgets are spent safely.
-**Status:** ⬜ Not started.
+**Status:** 🟡 In progress (Accounting Officer step 1 done 2026-11-26; budgets, forecasts, reports and Help & guides 2026-11-27: **every Accounting Officer page is built**; Supervisor step 2 left, incl. signing off budget changes).
+
+> **Done 2026-11-26: Accounting Officer review** (Framer `vZeEe5_Hq` queue, `jQfdHPifl` review, `pzSaaMGhY` approve,
+> `XT9f8T3lY` return, `sozCOjfDk` reject, `Ssn7fclsz` cleared). User decisions: the Review queue is the officer's landing
+> page; migration `2026_11_26_000003` (**testing DB only**) adds `voucher_approvals.needs_changes` + `reason` and the
+> `voucher_returned` notification type; a **48 h review SLA** as a Global setting (warning only, no auto-cancel);
+> **voucher PDF** (DomPDF, clerk + officer); **budget shown read-only** (no deduction yet). Every decision is one
+> transaction with the row locked (409 `VOUCHER_ALREADY_REVIEWED` when another officer was faster), segregation of duties
+> (403 `SELF_REVIEW`), routing read live from Global settings (`ApprovalRoute`). Approval rules are now in use.
+>
+> **Done 2026-11-27: Flagged vouchers** (Framer `dtNDyUAUp` list, `YX1IiDXMp` investigate). User decisions: flags come from a
+> **rule-based automatic check now** (not AI; Phase 5's model replaces the score later), the officer's **finding is stored**
+> (migration `2026_11_27_000001`, **testing DB only**), and the summary is **written from the numbers**. The check runs as a
+> queued job after every submit (`RunAnomalyCheck`, needs the queue worker that `dev.ps1` starts) and follows the Super Admin's
+> sensitivity. This is an early piece of Phase 5 (anomaly detection) done without the ML service.
+>
+> **Done 2026-11-27: Officer dashboard** (Framer `tfDekIe0N`, a Phase 6 dashboard on Phase 4 data) is the landing page `/officer`;
+> the Review queue moved to `/officer/queue`. Real numbers only; the AI forecast card shows approved spending so far instead.
+>
+> **Done 2026-11-27: Budgets** (Framer `AwnFnuBYJ` overview, `kpJmhDxKE` department, `MGf9CXv2s` edit). User decisions:
+> budgets are **yearly** (one per department per fiscal year, the company's `fiscal_year_start` month); **edits bigger than
+> ₱250,000.00** (Global setting `budget.change_signoff_above`) wait for a **Supervisor's sign-off** (`budget_change_requests`);
+> going over budget **warns, never blocks**. Migration `2026_11_27_000002` (**testing DB only**): `fiscal_month` optional,
+> UNIQUE (company, department, year), `alert_sent_at`, `updated_by`, the `budget_change_requests` table, notification type
+> `budget_change`. A voucher's **final approval** adds its amount to the department's budget with the row locked
+> (`Domain/Budgets/Actions/ConsumeBudget`); passing the alert % (or 100%) sends one `budget_alert` to the company's officers +
+> the department head. Code: `Domain/Budgets` (`FiscalYear`, `ConsumeBudget`, `SaveBudget`, `BudgetBoard`), `BudgetController`,
+> `features/budgets/`. Tests `BudgetsTest`. The dashboard, review page and automatic check now read the yearly budget.
 
 **Planned**
 - **Approval inbox** for each role; approve / reject / return with remarks.
 - **Segregation of duties:** nobody approves their own voucher.
 - **Step 2 routing:** AI-flagged or high-value vouchers (over the Super Admin's threshold, ₱50,000.00 by default)
   must go to a supervisor.
-- **Budgets:** consumption with `lockForUpdate` (two approvals at once can't overspend), threshold alerts.
+- ~~**Budgets:** consumption with `lockForUpdate`, threshold alerts.~~ Done 2026-11-27. Left: the Supervisor's budget sign-off screen, and adding to the budget when the Supervisor gives the final approval (call `ConsumeBudget::consume` there).
 - **Events → listeners → notifications** (queued): "voucher approved", "voucher pending", "budget alert".
 
 **Concepts:** pessimistic locking and race conditions (§3.4), event-driven design and queues with retries (§3.6).
@@ -273,7 +300,26 @@ scheduler (§3.7), row locking for "only one at a time" rules (§3.4).
 ## Phase 5: AI service
 
 **Goal:** AI that ADVISES (never blocks): category suggestions, anomaly checks, forecasts, report summaries.
-**Status:** ⬜ Not started.
+**Status:** 🟡 Started ahead of the ML service: rule-based automatic check, linear-trend forecasts and **OpenAI report summaries** (all 2026-11-27).
+
+> **Done 2026-11-27: Forecasts** (Framer `GWmqqOmd7` overview, `sjtX1kKqt` department). User decisions: forecasts come from a
+> **linear trend worked out in Laravel** for now (`Domain/AI/Forecasting/LinearTrend` = ordinary least squares + an 80%
+> prediction interval; `GenerateForecasts` = per company + department, up to 24 finished months, needs 3+, stores this month +
+> 3 ahead); migration `2026_11_27_000003` (**testing DB only**) adds the range, R², months used, method, generated_at and a
+> unique key to `ai_forecasts` (department empty = whole company); "Apply top-up" opens the Budgets Edit allocation dialog.
+> `php artisan forecasts:generate` runs on the 1st of each month at 02:45; pages work it out if this month's is missing;
+> Recalculate on the page. Risk = still expected until the fiscal-year end vs budget left (Over / Tight 85%+ / On track).
+> The pages say "Forecasts" (not "AI") until the Python model replaces the method. Tests `ForecastsTest`.
+>
+> **Done 2026-11-27: Financial reports + OpenAI summaries** (Framer `ARxG8Aa6F` list, `UmSNc_71u` report, `ZoAX4DKjk`
+> generate; a Phase 6 page with the Phase 5 OpenAI piece). User decisions: **real OpenAI now** (`Domain/AI/OpenAi/OpenAiClient`
+> with Laravel's HTTP client, no new library; queued `WriteReportSummary`, 3 tries; sends only totals / counts / department and
+> category names / flagged voucher numbers, never payees, people or descriptions; "not set up" until `OPENAI_API_KEY` is in
+> `.env`); the Super Admin's **OpenAI cap + pause are IN USE** (`OpenAiSpend` = this month's summary costs); migration
+> `2026_11_27_000004` (**testing DB only**: frozen `figures`, `includes`, summary state / highlights / model / tokens / cost /
+> error, `is_scheduled`, `generated_at`, notification type `report_ready`); an **automatic monthly report** on the 1st at
+> 03:00 (`reports:monthly`). Code `Domain/Reporting` (`ReportPeriod`, `ReportFigures`, `ReportPrompt`, `GenerateReport`,
+> `ReportDirectory`), `ReportController`, `features/reports/`. Tests `ReportsTest` (OpenAI faked).
 
 **Planned**
 - A separate **Python FastAPI ML service** (`/health`, `/classify`, `/anomaly`, `/forecast`), called by Laravel through

@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\Vouchers;
 
+use App\Domain\Approvals\Support\ReviewOptions;
 use App\Domain\Vouchers\Support\DraftExpiry;
 use App\Domain\Vouchers\Support\ReturnNote;
 use App\Domain\Vouchers\Support\VoucherCompleteness;
@@ -50,6 +51,7 @@ class VoucherResource extends JsonResource
             'currency' => $this->currency,
             'priority' => $this->priority,
             'ai_flagged' => (bool) $this->ai_anomaly_flag,
+            'ai_flag_source' => $this->ai_check_source, // 'rules' = the automatic check (not AI)
             'submitted_at' => $this->submitted_at?->toIso8601String(),
             'created_at' => $this->created_at?->toIso8601String(),
             'updated_at' => $this->updated_at?->toIso8601String(),
@@ -94,9 +96,11 @@ class VoucherResource extends JsonResource
             'history' => DB::table('voucher_approvals as a')
                 ->leftJoin('users as u', 'u.id', '=', 'a.approver_id')
                 ->where('a.voucher_id', $this->id)->orderBy('a.created_at')->orderBy('a.id')
-                ->get(['a.step', 'a.role_at_time', 'a.action', 'a.remarks', 'a.created_at', 'u.first_name', 'u.last_name'])
+                ->get(['a.step', 'a.role_at_time', 'a.action', 'a.remarks', 'a.needs_changes', 'a.reason', 'a.created_at', 'u.first_name', 'u.last_name'])
                 ->map(fn ($a) => [
                     'step' => (int) $a->step, 'role' => $a->role_at_time, 'action' => $a->action, 'remarks' => $a->remarks,
+                    'needs_changes' => ReviewOptions::labels($a->needs_changes ? json_decode($a->needs_changes, true) : null),
+                    'reason' => $a->reason ? (ReviewOptions::REJECT_REASONS[$a->reason] ?? $a->reason) : null,
                     'by' => trim("{$a->first_name} {$a->last_name}") ?: null,
                     'at' => $a->created_at ? Carbon::parse($a->created_at)->toIso8601String() : null,
                 ])->all(),

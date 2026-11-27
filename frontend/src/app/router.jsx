@@ -70,6 +70,22 @@ const CLERK_NOTIFICATION_LINKS = {
   },
 }
 
+/** Where the officer's bell links go: a notice about a voucher opens its review page. */
+const OFFICER_NOTIFICATION_LINKS = {
+  viewAll: PATHS.OFFICER_NOTIFICATIONS,
+  voucher: (id) => `${PATHS.OFFICER_VOUCHERS}/${id}`,
+  types: {
+    budget_alert: PATHS.OFFICER_BUDGETS, // a budget passed its alert: the Budgets page, not the voucher that did it
+    report_ready: PATHS.OFFICER_REPORTS, // a financial report (or its AI summary) is ready
+  },
+  categories: {
+    access: '?companies=manage',
+    vouchers: PATHS.OFFICER_QUEUE,
+    budgets: PATHS.OFFICER_BUDGETS,
+    reports: PATHS.OFFICER_REPORTS,
+  },
+}
+
 /** A landing area that only ONE operational role can open, e.g. /clerk for accounting clerks. */
 const roleArea = (role, path) => ({
   element: <RequireRole roles={[role]} />,
@@ -277,7 +293,69 @@ export const router = createBrowserRouter([
               },
             ],
           },
-          roleArea(ROLES.OFFICER, PATHS.OFFICER),
+          // ACCOUNTING OFFICER (Phase 4, Framer vZeEe5_Hq …): the Review queue is the landing page
+          {
+            element: <RequireRole roles={[ROLES.OFFICER]} />,
+            children: [
+              {
+                element: <RequireCompany />,
+                children: [
+                  {
+                    lazy: async () => {
+                      const [
+                        { default: OperationsLayout },
+                        { NotificationBell },
+                        { OfficerNav },
+                        { JoinCompanyModal, MANAGE_COMPANIES_SEARCH },
+                      ] = await Promise.all([
+                        import('@/components/layout/OperationsLayout'),
+                        import('@/features/notifications'),
+                        import('@/features/approvals'),
+                        import('@/features/joinCompany'),
+                      ])
+                      return {
+                        Component: () => (
+                          <OperationsLayout
+                            nav={OfficerNav}
+                            onSignOut={signOut}
+                            notifications={<NotificationBell links={OFFICER_NOTIFICATION_LINKS} />}
+                            accountLinks={ACCOUNT_PATHS[ROLES.OFFICER]}
+                            manageCompaniesSearch={MANAGE_COMPANIES_SEARCH}
+                            overlays={<JoinCompanyModal />}
+                          />
+                        ),
+                      }
+                    },
+                    children: [
+                      { path: PATHS.OFFICER, lazy: page(() => import('@/features/dashboard/pages/OfficerDashboardPage')) },
+                      { path: PATHS.OFFICER_QUEUE, lazy: page(() => import('@/features/approvals/pages/ReviewQueuePage')) },
+                      { path: `${PATHS.OFFICER_VOUCHERS}/:id`, lazy: page(() => import('@/features/approvals/pages/VoucherReviewPage')) },
+                      { path: PATHS.OFFICER_REVIEWED, lazy: page(() => import('@/features/approvals/pages/ReviewedByMePage')) },
+                      { path: PATHS.OFFICER_FLAGGED, lazy: page(() => import('@/features/approvals/pages/FlaggedPage')) },
+                      { path: `${PATHS.OFFICER_FLAGGED}/:id`, lazy: page(() => import('@/features/approvals/pages/InvestigatePage')) },
+                      { path: PATHS.OFFICER_HELP, lazy: page(() => import('@/features/help/pages/OfficerHelpPage')) },
+                      { path: `${PATHS.OFFICER_HELP}/:slug`, lazy: page(() => import('@/features/help/pages/GuidePage')) },
+                      { path: PATHS.OFFICER_REPORTS, lazy: page(() => import('@/features/reports/pages/ReportsPage')) },
+                      { path: `${PATHS.OFFICER_REPORTS}/:id`, lazy: page(() => import('@/features/reports/pages/ReportPage')) },
+                      { path: PATHS.OFFICER_FORECASTS, lazy: page(() => import('@/features/forecasts/pages/ForecastsPage')) },
+                      {
+                        path: `${PATHS.OFFICER_FORECASTS}/:departmentId`,
+                        lazy: page(() => import('@/features/forecasts/pages/DepartmentForecastPage')),
+                      },
+                      { path: PATHS.OFFICER_BUDGETS, lazy: page(() => import('@/features/budgets/pages/BudgetsPage')) },
+                      {
+                        path: `${PATHS.OFFICER_BUDGETS}/:departmentId`,
+                        lazy: page(() => import('@/features/budgets/pages/DepartmentBudgetPage')),
+                      },
+                      notificationsPage(PATHS.OFFICER_NOTIFICATIONS, OFFICER_NOTIFICATION_LINKS),
+                      { path: PATHS.OFFICER_PROFILE, lazy: page(() => import('@/features/account/pages/MyProfilePage')) },
+                      { path: PATHS.OFFICER_CHANGE_PASSWORD, lazy: page(() => import('@/features/account/pages/ChangePasswordPage')) },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
           roleArea(ROLES.SUPERVISOR, PATHS.SUPERVISOR),
         ],
       },

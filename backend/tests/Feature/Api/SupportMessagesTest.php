@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Models\VoucherCategory;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Tests\TestCase;
 
@@ -106,5 +107,29 @@ class SupportMessagesTest extends TestCase
 
         auth()->forgetGuards();
         $this->json('GET', '/api/v1/support/contacts', [], ['X-Company-ID' => (string) $this->apex->id])->assertUnauthorized();
+    }
+
+    public function test_an_officer_gets_reviewer_topics_and_may_name_any_submitted_voucher(): void
+    {
+        $officer = User::factory()->officer()->create(['company_id' => $this->apex->id]);
+        $officer->accessibleCompanies()->attach($this->apex->id, ['granted_status' => 'accepted']);
+        $category = VoucherCategory::create(['company_id' => $this->apex->id, 'name' => 'Travel'])->id;
+        $row = fn (string $status, string $number) => DB::table('vouchers')->insertGetId([
+            'voucher_number' => $number, 'company_id' => $this->apex->id, 'created_by' => $this->clerk->id, 'category_id' => $category,
+            'payment_method' => 'cash', 'amount' => '100.00', 'status' => $status, 'created_at' => now(), 'updated_at' => now(),
+        ]);
+        $submitted = $row('pending', 'ML-2026-0001');
+        $draft = $row('draft', 'DRAFT-1');
+
+        $this->api('GET', '/support/contacts', [], $officer)->assertOk()
+            ->assertJsonFragment(['key' => 'budgets', 'label' => 'Budget allocation issue'])
+            ->assertJsonMissing(['key' => 'payees']);
+
+        $this->api('POST', '/support/messages', ['topic' => 'budgets', 'message' => 'The IT budget shows the old total.', 'voucher_id' => $draft], $officer)
+            ->assertStatus(422)->assertJsonValidationErrors(['voucher_id']);
+        $this->api('POST', '/support/messages', ['topic' => 'budgets', 'message' => 'The IT budget shows the old total.', 'voucher_id' => $submitted], $officer)
+            ->assertCreated();
+        $this->api('POST', '/support/messages', ['topic' => 'payees', 'message' => 'Clerk-only topic from an officer.'], $officer)
+            ->assertStatus(422)->assertJsonValidationErrors(['topic']);
     }
 }

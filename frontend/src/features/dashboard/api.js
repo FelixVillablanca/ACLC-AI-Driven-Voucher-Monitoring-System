@@ -1,4 +1,4 @@
-import { apiClient } from '@/lib/apiClient'
+import { apiClient, BACKGROUND } from '@/lib/apiClient'
 
 /**
  * The Accounting Clerk's landing page numbers (GET /api/v1/clerk/dashboard). The company is the one in
@@ -8,5 +8,11 @@ import { apiClient } from '@/lib/apiClient'
  */
 export async function getClerkDashboard({ signal } = {}) {
   const { data } = await apiClient.get('/clerk/dashboard', { signal })
+  return data.data
+}
+
+/** The Accounting Officer's dashboard (Framer tfDekIe0N): queue, your month, review time, top 4, budgets, spend. */
+export async function getOfficerDashboard({ background = false } = {}) {
+  const { data } = await apiClient.get('/officer/dashboard', background ? BACKGROUND : undefined)
   return data.data
 }

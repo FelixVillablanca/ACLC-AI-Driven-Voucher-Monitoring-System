@@ -24,7 +24,7 @@ export default function SystemStatusPage() {
   useEffect(() => {
     check()
   }, [check])
-
+  
   const retry = () => {
     setState({ status: 'loading' })
     check()

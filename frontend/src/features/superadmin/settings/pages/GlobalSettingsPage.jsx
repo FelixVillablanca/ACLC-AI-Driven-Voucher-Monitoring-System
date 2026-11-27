@@ -18,7 +18,7 @@ import SecurityCard from '../components/SecurityCard'
 import { useGlobalSettings } from '../hooks/useGlobalSettings'
 import { KEYS, SECTIONS, SETTINGS, draftErrors, pendingChanges, settingLabel, showValue } from '../utils'
 
-const MONEY_KEYS = [KEYS.THRESHOLD, KEYS.OPENAI_CAP]
+const MONEY_KEYS = [KEYS.THRESHOLD, KEYS.BUDGET_SIGNOFF, KEYS.OPENAI_CAP]
 
 /** "50000.00" → "50,000.00" (what a money box shows; normalizeMoney() reads it back) */
 const moneyText = (v) => (v == null ? '' : Number(v).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }))

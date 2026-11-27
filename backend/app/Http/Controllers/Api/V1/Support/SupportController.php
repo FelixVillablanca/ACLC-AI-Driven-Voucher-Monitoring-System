@@ -23,7 +23,7 @@ class SupportController extends Controller
         return response()->json(['data' => [
             'company' => $company->name,
             'admins' => SendSupportMessage::adminsOf($company)->map(fn ($a) => ['name' => $a->full_name, 'email' => $a->email])->all(),
-            'topics' => collect(SendSupportMessage::TOPICS)->map(fn ($label, $key) => ['key' => $key, 'label' => $label])->values()->all(),
+            'topics' => collect(SendSupportMessage::topicsFor($request->user()->role))->map(fn ($label, $key) => ['key' => $key, 'label' => $label])->values()->all(),
         ]]);
     }
 

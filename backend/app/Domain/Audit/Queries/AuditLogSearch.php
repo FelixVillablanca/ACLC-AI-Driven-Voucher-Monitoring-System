@@ -26,7 +26,7 @@ use Illuminate\Support\Facades\DB;
 class AuditLogSearch
 {
     /** Voucher work an Admin must never see (Admin = setup only, no voucher or money access). */
-    public const VOUCHER_TABLES = ['vouchers', 'voucher_approvals', 'voucher_attachments', 'voucher_line_items', 'budget_allocations', 'financial_reports'];
+    public const VOUCHER_TABLES = ['vouchers', 'voucher_approvals', 'voucher_attachments', 'voucher_line_items', 'budget_allocations', 'financial_reports', 'ai_forecasts'];
 
     /** @param  array{search?: ?string, companies?: array, actions?: array, from?: ?string, to?: ?string, sensitive?: bool}  $f */
     public function filtered(array $f, array $skip = []): Builder

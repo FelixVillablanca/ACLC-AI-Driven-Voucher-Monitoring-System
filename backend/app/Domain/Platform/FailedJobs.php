@@ -4,7 +4,9 @@ namespace App\Domain\Platform;
 
 use App\Domain\Audit\AuditTrail;
 use App\Exceptions\ApiException;
+use App\Jobs\RunAnomalyCheck;
 use App\Jobs\RunDatabaseBackup;
+use App\Jobs\WriteReportSummary;
 use App\Models\User;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
@@ -40,7 +42,20 @@ class FailedJobs
             'retryable' => false,
             'note' => 'Start a new backup instead (Run backup now).',
         ],
-        // Phase 5 adds the AI jobs here, e.g. RunAnomalyCheck => ['label' => 'AI anomaly check', 'service' => 'ml', …]
+        // The automatic check after a voucher is submitted (rule-based since 2026-11-27; Phase 5 adds the ML model)
+        RunAnomalyCheck::class => [
+            'label' => 'Automatic voucher check',
+            'service' => null,
+            'retryable' => true,
+            'note' => 'Runs again on the voucher if it is still waiting for Accounting.',
+        ],
+        // A financial report's AI summary (OpenAI, 2026-11-27). The report itself is already complete.
+        WriteReportSummary::class => [
+            'label' => 'Report AI summary (OpenAI)',
+            'service' => null,
+            'retryable' => true,
+            'note' => 'Writes the summary again. The report’s figures are already saved.',
+        ],
     ];
 
     public function __construct(private SystemHealth $health) {}

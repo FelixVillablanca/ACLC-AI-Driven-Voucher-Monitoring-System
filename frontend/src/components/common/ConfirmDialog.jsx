@@ -6,6 +6,8 @@ import { cn } from '@/lib/utils'
 const CONFIRM_TONES = {
   danger: 'bg-danger text-white hover:bg-danger/90',
   primary: 'bg-primary text-primary-foreground hover:bg-primary/90',
+  success: 'bg-success text-white hover:bg-success/90', // Approve (Framer pzSaaMGhY)
+  warning: 'bg-warning text-white hover:bg-warning/90', // Return to clerk (Framer XT9f8T3lY)
 }
 
 const ICON_TONES = {

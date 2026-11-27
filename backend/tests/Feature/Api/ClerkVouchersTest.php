@@ -251,6 +251,6 @@ class ClerkVouchersTest extends TestCase
         $this->actingAs($this->clerk)->getJson('/api/v1/approval-rules')
             ->assertOk()
             ->assertJsonPath('data.high_value_threshold', '50000.00')
-            ->assertJsonPath('data.reviewing_live', false);
+            ->assertJsonPath('data.reviewing_live', true)->assertJsonPath('data.review_sla_hours', 48);
     }
 }
