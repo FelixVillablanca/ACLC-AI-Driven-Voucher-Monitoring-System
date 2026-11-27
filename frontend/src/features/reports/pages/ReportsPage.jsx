@@ -12,7 +12,7 @@ import { useCompanyStore } from '@/stores/useCompanyStore'
 import { listReports } from '../api'
 import GenerateReportModal from '../components/GenerateReportModal'
 import SchedulesDialog from '../components/SchedulesDialog'
-import { changeText, reportPath, SUMMARY_STATUS, TYPE_LABEL } from '../utils'
+import { SIGNOFF_STATUS, SUMMARY_STATUS, TYPE_LABEL, changeText, reportPath } from '../utils'
 import { usePageTitle } from '@/hooks/usePageTitle'
 
 const outlineBtn =
@@ -209,6 +209,11 @@ export default function ReportsPage() {
                             {formatDate(r.generated_at, 'MMM d')}
                             {r.generated_by ? ` · ${r.generated_by}` : ''}
                           </p>
+                          {r.signoff?.status && r.signoff.status !== 'not_needed' && (
+                            <Pill tone={SIGNOFF_STATUS[r.signoff.status].tone} className="mt-1">
+                              {SIGNOFF_STATUS[r.signoff.status].label}
+                            </Pill>
+                          )}
                         </td>
                         <td className="px-3 py-3">
                           <Pill tone="neutral">{TYPE_LABEL[r.type]}</Pill>

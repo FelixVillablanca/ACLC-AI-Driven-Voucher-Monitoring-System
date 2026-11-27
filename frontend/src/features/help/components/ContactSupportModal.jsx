@@ -3,6 +3,7 @@ import { CheckCircle2, ChevronDown, ImagePlus, Loader2, Mail, TriangleAlert, X }
 import FieldShell, { inputClass } from '@/components/common/FieldShell'
 import ModalShell from '@/components/common/ModalShell'
 import { recentVouchersForSupport } from '@/features/approvals'
+import { supervisorVouchersForSupport } from '@/features/supervisor'
 import { listVouchers } from '@/features/vouchers'
 import { ROLES } from '@/lib/constants'
 import { formatBytes } from '@/lib/formatters'
@@ -24,23 +25,26 @@ const IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/webp']
 export default function ContactSupportModal({ onClose, defaultTopic = '', defaultVoucherId = null }) {
   const role = useAuthStore((s) => s.user?.role)
   const officer = role === ROLES.OFFICER
+  const supervisor = role === ROLES.SUPERVISOR
   const [load, setLoad] = useState({ status: 'loading', contacts: null, vouchers: [], error: null })
   const [attempt, setAttempt] = useState(0)
 
   useEffect(() => {
     let alive = true
-    const vouchers = officer
-      ? recentVouchersForSupport().catch(() => [])
-      : listVouchers({ page: 1 })
-          .then((r) => r.vouchers)
-          .catch(() => [])
+    const vouchers = supervisor
+      ? supervisorVouchersForSupport().catch(() => [])
+      : officer
+        ? recentVouchersForSupport().catch(() => [])
+        : listVouchers({ page: 1 })
+            .then((r) => r.vouchers)
+            .catch(() => [])
     Promise.all([getSupportContacts(), vouchers])
       .then(([contacts, list]) => alive && setLoad({ status: 'success', contacts, vouchers: list, error: null }))
       .catch((error) => alive && setLoad({ status: 'error', contacts: null, vouchers: [], error }))
     return () => {
       alive = false
     }
-  }, [attempt, officer])
+  }, [attempt, officer, supervisor])
 
   const [topic, setTopic] = useState(defaultTopic)
   const [voucherId, setVoucherId] = useState(defaultVoucherId ? String(defaultVoucherId) : '')

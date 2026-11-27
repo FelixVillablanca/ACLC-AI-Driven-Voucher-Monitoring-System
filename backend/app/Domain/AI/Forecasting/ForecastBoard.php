@@ -60,6 +60,8 @@ class ForecastBoard
                 return [
                     'department' => ['id' => $d->id, 'name' => $d->name, 'is_active' => (bool) $d->is_active],
                     'forecast' => $f ? $this->window($f, $months) : null,
+                    // next month on its own (the Supervisor's "December by department", Framer wY0BB3HcK)
+                    'next_month' => ($n = $f?->get($this->thisMonth->copy()->addMonthNoOverflow()->toDateString())) ? $this->point($n) : null,
                     'months_used' => $f ? (int) $f->first()->months_used : count(GenerateForecasts::history($this->company, $d->id)),
                     'risk' => $this->risk($f, $budgets->get($d->id), $actualThisMonth[$d->id] ?? '0.00', $months),
                 ];
@@ -126,6 +128,53 @@ class ForecastBoard
             'year_label' => FiscalYear::label($this->company, $year),
             'signoff_above' => (string) app(SystemSettings::class)->value(SystemSettings::BUDGET_CHANGE_SIGNOFF_ABOVE),
         ];
+    }
+
+    /**
+     * Where this fiscal year is heading (the Supervisor's "Year-end projection", Framer wY0BB3HcK), for the company
+     * ($departmentId null) or one department: approved so far this FY + the rest of this month's forecast + the stored
+     * forecasts of the following months inside the FY. Forecasts are stored 3 months ahead, so `complete` says whether
+     * the projection reaches the end of the FY; `through` is the last month it covers. `plan` = this FY's budget(s).
+     *
+     * @return array{label: string, approved: string, expected: ?string, projection: ?string, through: ?string, complete: bool, plan: ?string, diff: ?string}
+     */
+    public function yearEnd(?int $departmentId): array
+    {
+        $year = FiscalYear::current($this->company);
+        [$from, $to] = FiscalYear::range($this->company, $year);
+        $approved = (string) DB::table('vouchers')->where('company_id', $this->company->id)->where('status', S::Approved->value)
+            ->when($departmentId, fn ($q) => $q->where('department_id', $departmentId))
+            ->whereBetween('approved_at', [$from, $to])->selectRaw('COALESCE(SUM(amount), 0) as t')->value('t');
+        $budgets = $this->budgets();
+        $plan = $departmentId
+            ? ($budgets->get($departmentId) ? (string) $budgets->get($departmentId)->total_budget : null)
+            : ($budgets->isEmpty() ? null : (string) $budgets->reduce(fn ($c, $b) => bcadd($c, (string) $b->total_budget, 2), '0.00'));
+        $base = ['label' => FiscalYear::label($this->company, $year), 'approved' => number_format((float) $approved, 2, '.', ''),
+            'expected' => null, 'projection' => null, 'through' => null, 'complete' => false, 'plan' => $plan, 'diff' => null];
+
+        $f = $this->forecasts()->get($departmentId ?? 'company');
+        if (! $f) {
+            return $base;
+        }
+        $soFar = (float) ($departmentId ? ($this->approvedThisMonth()[$departmentId] ?? 0) : $this->approvedCompanyThisMonth());
+        $expected = max(0.0, (float) ($f->get($this->thisMonth->toDateString())->predicted_spend ?? 0) - $soFar);
+        $through = $this->thisMonth->copy();
+        foreach ($f as $month => $row) {
+            $m = Carbon::parse($month);
+            if ($m->gt($this->thisMonth) && $m->lte($to)) {
+                $expected += (float) $row->predicted_spend;
+                $through = $m;
+            }
+        }
+        $projection = (float) $approved + $expected;
+
+        return array_merge($base, [
+            'expected' => number_format($expected, 2, '.', ''),
+            'projection' => number_format($projection, 2, '.', ''),
+            'through' => $through->format('F Y'),
+            'complete' => $through->format('Y-m') === $to->format('Y-m'),
+            'diff' => $plan !== null ? number_format($projection - (float) $plan, 2, '.', '') : null,
+        ]);
     }
 
     private const RISK_ORDER = ['over' => 0, 'tight' => 1, 'on_track' => 2, 'no_budget' => 3, 'no_forecast' => 4];

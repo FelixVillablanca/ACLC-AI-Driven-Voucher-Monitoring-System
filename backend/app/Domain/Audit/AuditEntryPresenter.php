@@ -38,7 +38,14 @@ class AuditEntryPresenter
     /** @var array<int, string> companies.id => name */
     private array $companies = [];
 
-    public function __construct(private ?int $viewerId = null) {}
+    /** @var array<int, string> budget_allocations.id => department name (finance mode) */
+    private array $budgets = [];
+
+    /**
+     * $finance = the Supervisor's Audit trail (2026-11-27): money stays visible (only secrets are hidden) and voucher /
+     * budget records are described with their number / department instead of "Amounts hidden".
+     */
+    public function __construct(private ?int $viewerId = null, private bool $finance = false) {}
 
     /** Look up, in two queries, the names of every person / company the rows are about. */
     public function prime(Collection $rows): static
@@ -46,6 +53,12 @@ class AuditEntryPresenter
         $userIds = $rows->where('table_name', 'users')->pluck('record_id')->filter()->unique();
         $this->people = DB::table('users')->whereIn('id', $userIds)
             ->selectRaw("id, TRIM(CONCAT(first_name, ' ', last_name)) as name")->pluck('name', 'id')->all();
+
+        if ($this->finance) {
+            $budgetIds = $rows->where('table_name', 'budget_allocations')->pluck('record_id')->filter()->unique();
+            $this->budgets = DB::table('budget_allocations as b')->join('departments as d', 'd.id', '=', 'b.department_id')
+                ->whereIn('b.id', $budgetIds)->pluck('d.name', 'b.id')->all();
+        }
 
         $companyIds = $rows->where('table_name', 'companies')->pluck('record_id')->filter()->unique();
         $this->companies = DB::table('companies')->whereIn('id', $companyIds)->pluck('name', 'id')->all();
@@ -55,8 +68,8 @@ class AuditEntryPresenter
 
     public function row(object $r): array
     {
-        $old = AuditCatalog::redact(json_decode((string) $r->old_values, true));
-        $new = AuditCatalog::redact(json_decode((string) $r->new_values, true));
+        $old = AuditCatalog::redact(json_decode((string) $r->old_values, true), $this->finance);
+        $new = AuditCatalog::redact(json_decode((string) $r->new_values, true), $this->finance);
         $action = AuditCatalog::describe($r->action);
 
         return [
@@ -123,6 +136,12 @@ class AuditEntryPresenter
             $r->table_name === 'failed_jobs' => ['title' => ($new['count'] ?? '?').' background job(s)', 'subtitle' => 'failed_jobs'],
             $r->table_name === 'blocked_ips' => ['title' => $new['ip_address'] ?? $old['ip_address'] ?? 'IP address', 'subtitle' => $ref],
             $r->table_name === 'audit_logs' => ['title' => 'Audit log export', 'subtitle' => isset($new['count']) ? "{$new['count']} rows" : 'audit_logs'],
+            $this->finance && str_starts_with($r->table_name, 'voucher') => [
+                'title' => $new['voucher_number'] ?? $ref,
+                'subtitle' => implode(' · ', array_filter([$r->table_name, isset($new['step']) ? "step {$new['step']}" : null,
+                    isset($new['score']) ? "score {$new['score']}" : null])),
+            ],
+            $this->finance && $r->table_name === 'budget_allocations' => ['title' => $this->budgets[$id] ?? $ref, 'subtitle' => $ref],
             str_starts_with($r->table_name, 'voucher') => ['title' => $new['voucher_number'] ?? $ref, 'subtitle' => 'Amounts hidden from Super Admin'],
             $r->table_name === 'user_company_access' && isset($new['first_name']) => [
                 'title' => trim($new['first_name'].' '.($new['last_name'] ?? '')), 'subtitle' => 'Company access',

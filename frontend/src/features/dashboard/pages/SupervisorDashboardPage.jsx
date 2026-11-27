@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowRight, CheckCircle2, PieChart } from 'lucide-react'
+import { ArrowRight, CheckCircle2, FileBarChart, PieChart, Stamp } from 'lucide-react'
 import ErrorState from '@/components/common/ErrorState'
 import Pill from '@/components/common/Pill'
 import { usePageTitle } from '@/hooks/usePageTitle'
+import { compactMoney } from '@/features/budgets'
 import { DECISIONS_CHANGED_EVENT, level2Path, shortName } from '@/features/supervisor'
 import { PATHS } from '@/lib/constants'
 import { formatDate, formatMoney, greeting, plural } from '@/lib/formatters'
@@ -12,19 +13,12 @@ import { useAuthStore } from '@/stores/useAuthStore'
 import { useCompanyStore } from '@/stores/useCompanyStore'
 import { getSupervisorDashboard } from '../api'
 
-/** ₱2.14M / ₱486k / ₱950 for the big cards (exact amount on hover). */
-function compact(value) {
-  const n = Number(value ?? 0)
-  if (Math.abs(n) >= 1_000_000) return `₱${(n / 1_000_000).toFixed(2)}M`
-  if (Math.abs(n) >= 1_000) return `₱${Math.round(n / 1_000)}k`
-  return `₱${Math.round(n).toLocaleString('en-US')}`
-}
-
 /**
  * SUPERVISOR / MANAGER DASHBOARD (/supervisor, the landing page; Framer YKfX_oJ3a), 2026-11-27. Real numbers only, for
  * the company in the switcher (GET /api/v1/supervisor/dashboard). Refreshes after a decision and every 60 s.
- * Code differs from the frame: "Flagged" (the automatic check) instead of "AI-flagged"; no "Reports" button and no
- * "Open budgets" link (the Supervisor has no reports / budgets pages yet); "Approved this month" = every voucher that
+ * Polish 2026-11-27: the frame's "Reports" button, the budget card / alert open Budgets, and a "Waiting for your
+ * sign-off" card (budget changes + financial reports) once those pages existed.
+ * Code differs from the frame: "Flagged" (the automatic check) instead of "AI-flagged"; "Approved this month" = every voucher that
  * got its final approval in the company this month ("released"); the budget alert only shows when a department would
  * pass its alert % if everything waiting for it at Level 2 were approved.
  */
@@ -69,13 +63,21 @@ export default function SupervisorDashboardPage() {
             {['Level 2 final approval', d?.company, formatDate(new Date(), 'EEEE, MMM d, yyyy')].filter(Boolean).join(' · ')}
           </p>
         </div>
-        <Link
-          to={PATHS.SUPERVISOR_QUEUE}
-          className="text-auth-button flex h-[38px] items-center gap-1.5 rounded-lg bg-primary px-4 text-primary-foreground outline-none hover:bg-primary/90 focus-visible:ring-3 focus-visible:ring-ring/50"
-        >
-          {d && waiting === 0 ? 'Open approval queue' : `Review approvals${d ? ` (${waiting})` : ''}`}{' '}
-          <ArrowRight className="size-4" aria-hidden="true" />
-        </Link>
+        <div className="flex flex-wrap items-center gap-2.5">
+          <Link
+            to={PATHS.SUPERVISOR_REPORTS}
+            className="text-body-strong flex h-[38px] items-center gap-1.5 rounded-lg border bg-card px-3.5 outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring/50"
+          >
+            <FileBarChart className="size-4" aria-hidden="true" /> Reports
+          </Link>
+          <Link
+            to={PATHS.SUPERVISOR_QUEUE}
+            className="text-auth-button flex h-[38px] items-center gap-1.5 rounded-lg bg-primary px-4 text-primary-foreground outline-none hover:bg-primary/90 focus-visible:ring-3 focus-visible:ring-ring/50"
+          >
+            {d && waiting === 0 ? 'Open approval queue' : `Review approvals${d ? ` (${waiting})` : ''}`}{' '}
+            <ArrowRight className="size-4" aria-hidden="true" />
+          </Link>
+        </div>
       </div>
 
       {status === 'loading' && <Skeleton />}
@@ -116,14 +118,17 @@ export default function SupervisorDashboardPage() {
               label={`Approved in ${d.released.month}`}
               to={PATHS.SUPERVISOR_HISTORY}
               value={d.released.count}
-              caption={d.released.count ? `${compact(d.released.amount)} released` : 'Nothing released yet this month'}
+              caption={d.released.count ? `${compactMoney(d.released.amount)} released` : 'Nothing released yet this month'}
               title={formatMoney(d.released.amount)}
             />
             <Stat
               label="Company budget used"
+              to={PATHS.SUPERVISOR_BUDGETS}
               value={d.budget ? `${d.budget.used_pct}%` : '—'}
               caption={
-                d.budget ? `${compact(d.budget.used)} of ${compact(d.budget.total)} · ${d.budget.label}` : 'No budgets set for this year'
+                d.budget
+                  ? `${compactMoney(d.budget.used)} of ${compactMoney(d.budget.total)} · ${d.budget.label}`
+                  : 'No budgets set for this year'
               }
             />
           </div>
@@ -131,6 +136,7 @@ export default function SupervisorDashboardPage() {
           <div className="flex flex-col gap-3.5 lg:flex-row lg:items-start">
             <NeedsDecision d={d} />
             <div className="flex w-full flex-col gap-3.5 lg:w-[300px] lg:shrink-0">
+              <Signoffs s={d.signoffs} />
               <Pipeline p={d.pipeline} />
               {d.alert && <BudgetAlert a={d.alert} />}
             </div>
@@ -223,6 +229,51 @@ function NeedsDecision({ d }) {
   )
 }
 
+/** Budget changes and financial reports waiting for your sign-off (each row opens its page). */
+function Signoffs({ s }) {
+  if (!s) return null
+  const rows = [
+    {
+      to: PATHS.SUPERVISOR_BUDGETS,
+      label: 'Budget changes',
+      n: s.budget_changes,
+      caption: Number(s.budget_top_ups) > 0 ? `${compactMoney(s.budget_top_ups)} in top-ups` : null,
+    },
+    { to: `${PATHS.SUPERVISOR_REPORTS}?signoff=pending`, label: 'Financial reports', n: s.reports, caption: null },
+  ]
+  const total = s.budget_changes + s.reports
+  return (
+    <section className="flex flex-col gap-2 rounded-xl border bg-card p-4" aria-labelledby="sup-signoffs">
+      <h2 id="sup-signoffs" className="text-card-title flex items-center gap-1.5">
+        <Stamp className="size-4 text-primary" aria-hidden="true" /> Waiting for your sign-off
+      </h2>
+      {total === 0 ? (
+        <p className="text-caption">No budget change or report is waiting for you.</p>
+      ) : (
+        <ul className="flex flex-col gap-1.5">
+          {rows.map((r) => (
+            <li key={r.label}>
+              <Link
+                to={r.to}
+                className={cn(
+                  'flex items-center justify-between gap-2 rounded-lg px-3 py-2 outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring/50',
+                  r.n ? 'bg-warning-soft' : 'bg-muted',
+                )}
+              >
+                <span className="flex flex-col">
+                  <span className="text-body">{r.label}</span>
+                  {r.caption && r.n > 0 && <span className="text-caption">{r.caption}</span>}
+                </span>
+                <span className={cn('text-card-title tabular-nums', r.n && 'text-warning')}>{r.n}</span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  )
+}
+
 function Pipeline({ p }) {
   const rows = [
     ['Drafts (Clerks)', p.drafts, false],
@@ -261,9 +312,11 @@ function BudgetAlert({ a }) {
         <PieChart className="size-4" aria-hidden="true" /> Budget alert
       </h2>
       <p className="text-body text-foreground">
-        {a.department} is at {a.used_pct}% of its budget. Approving {what} ({formatMoney(a.waiting_amount)}) would push it to {a.after_pct}
-        %.
+        {`${a.department} is at ${a.used_pct}% of its budget. Approving ${what} (${formatMoney(a.waiting_amount)}) would push it to ${a.after_pct}%.`}
       </p>
+      <Link to={PATHS.SUPERVISOR_BUDGETS} className="text-auth-link self-start text-primary hover:underline">
+        Open budgets →
+      </Link>
     </section>
   )
 }

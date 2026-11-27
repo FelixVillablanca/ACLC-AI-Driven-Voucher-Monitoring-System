@@ -6,7 +6,9 @@ use App\Domain\Approvals\Support\ApprovalRoute;
 use App\Domain\Budgets\Support\FiscalYear;
 use App\Domain\Vouchers\VoucherStatus as S;
 use App\Models\BudgetAllocation;
+use App\Models\BudgetChangeRequest;
 use App\Models\Company;
+use App\Models\FinancialReport;
 use App\Models\User;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -19,6 +21,7 @@ use Illuminate\Support\Facades\DB;
  *   budget     this fiscal year's budgets added up: used of total (null when no budget is set)
  *   top        the first 4 of the Level 2 queue (flagged first, then oldest)
  *   pipeline   drafts (clerks) → Level 1 (pending) → Level 2 (under_review) → approved this month
+ *   signoffs   budget changes (+ ₱ in top-ups) and financial reports waiting for a Supervisor's sign-off
  *   alert      the department whose budget would go highest if everything waiting at Level 2 for it were approved,
  *              when that passes its alert % (null otherwise)
  */
@@ -86,6 +89,21 @@ class SupervisorDashboardSummary
             'level1' => $count(S::Pending->value),
             'level2' => $count(S::UnderReview->value),
             'approved_this_month' => $this->released()['count'],
+        ];
+    }
+
+    /** What waits for a Supervisor's sign-off besides vouchers (polish 2026-11-27): budget changes + financial reports. */
+    public function signoffs(): array
+    {
+        $changes = BudgetChangeRequest::query()->where('company_id', $this->company->id)->where('status', 'pending');
+        $up = (string) (clone $changes)->get(['current_budget', 'requested_budget'])
+            ->reduce(fn ($c, $r) => bccomp((string) $r->requested_budget, (string) $r->current_budget, 2) > 0
+                ? bcadd($c, bcsub((string) $r->requested_budget, (string) $r->current_budget, 2), 2) : $c, '0.00');
+
+        return [
+            'budget_changes' => (clone $changes)->count(),
+            'budget_top_ups' => $up,
+            'reports' => FinancialReport::query()->where('company_id', $this->company->id)->where('signoff_status', 'pending')->count(),
         ];
     }
 

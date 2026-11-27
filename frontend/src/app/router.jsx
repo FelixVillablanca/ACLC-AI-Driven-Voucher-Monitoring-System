@@ -91,9 +91,15 @@ const OFFICER_NOTIFICATION_LINKS = {
 const SUPERVISOR_NOTIFICATION_LINKS = {
   viewAll: PATHS.SUPERVISOR_NOTIFICATIONS,
   voucher: (id) => `${PATHS.SUPERVISOR_VOUCHERS}/${id}`,
+  types: {
+    budget_change: PATHS.SUPERVISOR_BUDGETS, // a budget change waits for sign-off (2026-11-27)
+    report_signoff: `${PATHS.SUPERVISOR_REPORTS}?signoff=pending`, // a report waits for sign-off (2026-11-27)
+  },
   categories: {
     access: '?companies=manage',
     vouchers: PATHS.SUPERVISOR_QUEUE,
+    budgets: PATHS.SUPERVISOR_BUDGETS,
+    reports: PATHS.SUPERVISOR_REPORTS,
   },
 }
 
@@ -338,7 +344,7 @@ export const router = createBrowserRouter([
                       { path: PATHS.OFFICER_REVIEWED, lazy: page(() => import('@/features/approvals/pages/ReviewedByMePage')) },
                       { path: PATHS.OFFICER_FLAGGED, lazy: page(() => import('@/features/approvals/pages/FlaggedPage')) },
                       { path: `${PATHS.OFFICER_FLAGGED}/:id`, lazy: page(() => import('@/features/approvals/pages/InvestigatePage')) },
-                      { path: PATHS.OFFICER_HELP, lazy: page(() => import('@/features/help/pages/OfficerHelpPage')) },
+                      { path: PATHS.OFFICER_HELP, lazy: page(() => import('@/features/help/pages/ReviewerHelpPage')) },
                       { path: `${PATHS.OFFICER_HELP}/:slug`, lazy: page(() => import('@/features/help/pages/GuidePage')) },
                       { path: PATHS.OFFICER_REPORTS, lazy: page(() => import('@/features/reports/pages/ReportsPage')) },
                       { path: `${PATHS.OFFICER_REPORTS}/:id`, lazy: page(() => import('@/features/reports/pages/ReportPage')) },
@@ -399,6 +405,16 @@ export const router = createBrowserRouter([
                       { path: PATHS.SUPERVISOR_QUEUE, lazy: page(() => import('@/features/supervisor/pages/ApprovalQueuePage')) },
                       { path: `${PATHS.SUPERVISOR_VOUCHERS}/:id`, lazy: page(() => import('@/features/supervisor/pages/FinalReviewPage')) },
                       { path: PATHS.SUPERVISOR_HISTORY, lazy: page(() => import('@/features/supervisor/pages/DecisionHistoryPage')) },
+                      { path: PATHS.SUPERVISOR_BUDGETS, lazy: page(() => import('@/features/supervisor/pages/SupervisorBudgetsPage')) },
+                      { path: PATHS.SUPERVISOR_FORECASTS, lazy: page(() => import('@/features/supervisor/pages/SupervisorForecastsPage')) },
+                      { path: PATHS.SUPERVISOR_AUDIT, lazy: page(() => import('@/features/supervisor/pages/SupervisorAuditPage')) },
+                      { path: PATHS.SUPERVISOR_REPORTS, lazy: page(() => import('@/features/supervisor/pages/SupervisorReportsPage')) },
+                      {
+                        path: `${PATHS.SUPERVISOR_REPORTS}/:id`,
+                        lazy: page(() => import('@/features/supervisor/pages/SupervisorReportPage')),
+                      },
+                      { path: PATHS.SUPERVISOR_HELP, lazy: page(() => import('@/features/help/pages/ReviewerHelpPage')) },
+                      { path: `${PATHS.SUPERVISOR_HELP}/:slug`, lazy: page(() => import('@/features/help/pages/GuidePage')) },
                       { path: PATHS.SUPERVISOR_FLAGGED, lazy: page(() => import('@/features/supervisor/pages/Level2FlaggedPage')) },
                       {
                         path: `${PATHS.SUPERVISOR_FLAGGED}/:id`,

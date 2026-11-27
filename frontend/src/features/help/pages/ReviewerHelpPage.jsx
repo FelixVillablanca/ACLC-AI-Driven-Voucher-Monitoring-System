@@ -9,20 +9,23 @@ import { GuideIcon } from '../components/GuideIcon'
 import StillNeedHelp from '../components/StillNeedHelp'
 import { guideText, readMinutes } from '../guides'
 import { useApprovalRules } from '../hooks/useApprovalRules'
-import { OFFICER_CATEGORIES, OFFICER_GUIDES, officerGuideLink, reviewRulesAtAGlance } from '../officerGuides'
+import { libraryFor } from '../library'
 import { usePageTitle } from '@/hooks/usePageTitle'
 
 /**
- * The Accounting Officer's Help & guides (/officer/help; Framer ylRPv8gjJ + menNRI3in Contact support), 2026-11-27.
+ * The Help & guides center of the Accounting Officer (/officer/help; Framer ylRPv8gjJ + menNRI3in Contact support) and,
+ * since 2026-11-27, of the Supervisor / Manager (/supervisor/help; Framer cR3NPU8IK + mZNmzhDdX): the signed-in role picks
+ * the guide set, categories and rules card (library.js).
  * Search (in the browser), 4 category cards (?category= filters the list), popular guides, "Review rules at a
  * glance" from the live approval rules, and "Still stuck?" with the company's real Admin(s). ?contact=1 opens
  * Contact support.
- * Code differs from the frame (real data only): no "▶ Reviewer walkthrough" (there's no video); "Still stuck?"
+ * Code differs from the frames (real data only): no "▶ Reviewer / Approver walkthrough" (there's no video); "Still stuck?"
  * names your company's Admin instead of a "finance systems team" with a 1-day reply promise; "Flags" not "AI flags".
  */
-export default function OfficerHelpPage() {
+export default function ReviewerHelpPage() {
   usePageTitle('Help & guides')
   const user = useAuthStore((s) => s.user)
+  const lib = libraryFor(user?.role)
   const rules = useApprovalRules()
   const [params, setParams] = useSearchParams()
   const category = params.get('category')
@@ -37,16 +40,16 @@ export default function OfficerHelpPage() {
       { replace: true },
     )
   const [query, setQuery] = useState('')
-  const results = useMemo(() => search(query, rules), [query, rules])
-  const listed = category ? OFFICER_GUIDES.filter((g) => g.category === category) : OFFICER_GUIDES.filter((g) => g.popular)
-  const activeCategory = OFFICER_CATEGORIES.find((c) => c.key === category)
+  const results = useMemo(() => search(lib.guides, query, rules), [lib, query, rules])
+  const listed = category ? lib.guides.filter((g) => g.category === category) : lib.guides.filter((g) => g.popular)
+  const activeCategory = lib.categories.find((c) => c.key === category)
 
   return (
     <div className="mx-auto flex w-full max-w-[1200px] flex-col gap-[18px] px-4 py-6 sm:px-7">
       <div className="flex flex-wrap items-end justify-between gap-2.5">
         <div className="flex flex-col gap-1">
           <h1 className="text-page-title">Help &amp; guides</h1>
-          <p className="text-body text-muted-foreground">Guides for Level 1 review, budgets, forecasts and reports</p>
+          <p className="text-body text-muted-foreground">{lib.subtitle}</p>
         </div>
         <button
           type="button"
@@ -67,7 +70,7 @@ export default function OfficerHelpPage() {
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search guides, e.g. “return a voucher” or “budget alert”"
+              placeholder={lib.searchHint}
               aria-label="Search guides"
               maxLength={80}
               className="text-body w-full bg-transparent outline-none placeholder:text-muted-foreground"
@@ -100,7 +103,7 @@ export default function OfficerHelpPage() {
                 <ul>
                   {results.map((g) => (
                     <li key={g.slug} className="border-b last:border-b-0">
-                      <Link to={officerGuideLink(g.slug)} className="flex flex-col gap-0.5 px-4 py-2.5 hover:bg-muted">
+                      <Link to={lib.link(g.slug)} className="flex flex-col gap-0.5 px-4 py-2.5 hover:bg-muted">
                         <span className="text-body-strong">{g.title}</span>
                         <span className="text-caption">{g.summary}</span>
                       </Link>
@@ -114,8 +117,8 @@ export default function OfficerHelpPage() {
       </section>
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4" role="list" aria-label="Guide topics">
-        {OFFICER_CATEGORIES.map((c) => {
-          const count = OFFICER_GUIDES.filter((g) => g.category === c.key).length
+        {lib.categories.map((c) => {
+          const count = lib.guides.filter((g) => g.category === c.key).length
           const on = category === c.key
           return (
             <button
@@ -155,7 +158,7 @@ export default function OfficerHelpPage() {
             {listed.map((g) => (
               <li key={g.slug} className="border-b last:border-b-0">
                 <Link
-                  to={officerGuideLink(g.slug)}
+                  to={lib.link(g.slug)}
                   className="flex items-center gap-3 px-[18px] py-3 outline-none hover:bg-muted focus-visible:bg-muted"
                 >
                   <GuideIcon guide={g} />
@@ -176,11 +179,11 @@ export default function OfficerHelpPage() {
             <div className="flex items-center gap-2">
               <ListChecks className="size-4 text-primary" aria-hidden="true" />
               <h2 id="rules-glance" className="text-card-title">
-                Review rules at a glance
+                {lib.rulesTitle}
               </h2>
             </div>
             <ul className="text-body flex list-disc flex-col gap-1.5 pl-5">
-              {reviewRulesAtAGlance(rules).map((r) => (
+              {lib.rulesAtAGlance(rules).map((r) => (
                 <li key={r}>{r}</li>
               ))}
             </ul>
@@ -196,14 +199,16 @@ export default function OfficerHelpPage() {
 }
 
 /** Guides whose text contains every typed word (2+ letters). */
-function search(query, rules) {
+function search(guides, query, rules) {
   const words = query
     .toLowerCase()
     .split(/\s+/)
     .filter((w) => w.length >= 2)
   if (!words.length) return []
-  return OFFICER_GUIDES.filter((g) => {
-    const text = guideText(g, rules).toLowerCase()
-    return words.every((w) => text.includes(w))
-  }).slice(0, 8)
+  return guides
+    .filter((g) => {
+      const text = guideText(g, rules).toLowerCase()
+      return words.every((w) => text.includes(w))
+    })
+    .slice(0, 8)
 }

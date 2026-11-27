@@ -197,4 +197,48 @@ class ReportsTest extends TestCase
         $this->api('POST', '/officer/reports', ['type' => 'custom', 'from' => '2026-10-01', 'to' => '2026-10-31', 'department_id' => $this->it->id], $outsider, $this->north->id)
             ->assertStatus(422)->assertJsonValidationErrors(['department_id']);
     }
+
+    /** Framer AaD8UZ08p + dcfDyyuKE (2026-11-27): company-wide monthly / quarterly reports wait for a Supervisor's sign-off. */
+    public function test_supervisor_signs_off_or_sends_back_reports(): void
+    {
+        $this->getJson('/api/v1/supervisor/reports')->assertUnauthorized();
+        $supervisor = User::factory()->supervisor()->create(['first_name' => 'Ramon', 'last_name' => 'Dela Cruz', 'company_id' => $this->apex->id]);
+        $supervisor->accessibleCompanies()->attach($this->apex->id, ['granted_status' => 'accepted']);
+
+        $monthly = $this->api('POST', '/officer/reports', ['type' => 'monthly', 'period' => '2026-10'])->assertCreated()
+            ->assertJsonPath('data.signoff.status', 'pending')->json('data.id');
+        $this->assertDatabaseHas('notifications', ['recipient_id' => $supervisor->id, 'type' => 'report_signoff']);
+        $quarterly = $this->api('POST', '/officer/reports', ['type' => 'quarterly', 'period' => '2026-Q3'])->assertCreated()->json('data.id');
+        $this->api('POST', '/officer/reports', ['type' => 'monthly', 'period' => '2026-10', 'department_id' => $this->it->id])->assertCreated()
+            ->assertJsonPath('data.signoff.status', 'not_needed');
+
+        $this->api('GET', '/supervisor/reports', [], $supervisor)->assertOk()
+            ->assertJsonPath('meta.total', 3)->assertJsonPath('meta.stats.to_sign.count', 2);
+        $this->api('GET', '/supervisor/reports', ['signoff' => 'pending'], $supervisor)->assertOk()->assertJsonPath('meta.total', 2);
+        $this->api('GET', "/supervisor/reports/{$monthly}", [], $supervisor)->assertOk()
+            ->assertJsonPath('data.checks.totals_match', true)->assertJsonPath('data.figures.total_spend', '350000.00');
+
+        // a voucher approved later in the period: the totals no longer match (shown, but still signable)
+        $this->approved('10000', '2026-10-25');
+        $this->api('GET', "/supervisor/reports/{$monthly}", [], $supervisor)->assertOk()
+            ->assertJsonPath('data.checks.totals_match', false)->assertJsonPath('data.checks.totals_now.total', '360000.00');
+
+        $this->api('POST', "/supervisor/reports/{$monthly}/signoff", ['comment' => 'Approved for the board.'], $supervisor)
+            ->assertOk()->assertJsonPath('data.signoff_status', 'signed');
+        $this->assertDatabaseHas('financial_reports', ['id' => $monthly, 'signoff_status' => 'signed', 'signed_by' => $supervisor->id, 'signoff_comment' => 'Approved for the board.']);
+        $this->assertDatabaseHas('notifications', ['recipient_id' => $this->officer->id, 'type' => 'report_signoff']);
+        $this->assertDatabaseHas('audit_logs', ['action' => 'report_signed_off', 'record_id' => $monthly]);
+        $this->api('POST', "/supervisor/reports/{$monthly}/signoff", [], $supervisor)->assertStatus(409)->assertJsonPath('code', 'REPORT_NOT_WAITING');
+        $this->api('GET', "/officer/reports/{$monthly}")->assertOk()->assertJsonPath('data.signoff.by', 'Ramon Dela Cruz');
+
+        $this->api('POST', "/supervisor/reports/{$quarterly}/return", [], $supervisor)->assertStatus(422)->assertJsonValidationErrors(['note']);
+        $this->api('POST', "/supervisor/reports/{$quarterly}/return", ['note' => 'Q3 is missing the Marketing refunds.'], $supervisor)->assertOk();
+        $this->assertDatabaseHas('financial_reports', ['id' => $quarterly, 'signoff_status' => 'returned', 'returned_note' => 'Q3 is missing the Marketing refunds.']);
+
+        $this->api('GET', "/supervisor/reports/{$monthly}/pdf", [], $supervisor)->assertOk()->assertHeader('Content-Type', 'application/pdf');
+        $this->api('GET', '/supervisor/reports')->assertForbidden(); // the officer
+        $outsider = User::factory()->supervisor()->create(['company_id' => $this->north->id]);
+        $outsider->accessibleCompanies()->attach($this->north->id, ['granted_status' => 'accepted']);
+        $this->api('GET', "/supervisor/reports/{$monthly}", [], $outsider, $this->north->id)->assertNotFound();
+    }
 }

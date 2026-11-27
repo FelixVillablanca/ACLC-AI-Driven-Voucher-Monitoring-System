@@ -17,6 +17,7 @@ class FinancialReport extends Model
         'approved_count', 'rejected_count', 'anomalies_flag', 'figures', 'includes', 'ai_summary', 'summary_status',
         'summary_highlights', 'summary_model', 'summary_tokens', 'summary_cost_usd', 'summary_error', 'summary_attempts',
         'summary_generated_at', 'file_path', 'generated_by', 'is_scheduled', 'generated_at',
+        'signoff_status', 'signed_by', 'signed_at', 'signoff_comment', 'signoff_checks', 'returned_note',
     ];
 
     protected function casts(): array
@@ -32,12 +33,25 @@ class FinancialReport extends Model
             'summary_generated_at' => 'datetime',
             'is_scheduled' => 'boolean',
             'generated_at' => 'datetime',
+            'signed_at' => 'datetime',
+            'signoff_checks' => 'array',
         ];
     }
 
     public function department(): BelongsTo
     {
         return $this->belongsTo(Department::class);
+    }
+
+    public function signer(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'signed_by');
+    }
+
+    /** Company-wide monthly / quarterly reports wait for a Supervisor's sign-off (user decision 2026-11-27). */
+    public static function needsSignoff(?int $departmentId, string $type): bool
+    {
+        return $departmentId === null && in_array($type, ['monthly', 'quarterly'], true);
     }
 
     public function generator(): BelongsTo

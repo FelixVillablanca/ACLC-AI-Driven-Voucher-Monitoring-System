@@ -9,8 +9,10 @@ use App\Domain\Approvals\Queries\Level2Flags;
 use App\Domain\Approvals\Queries\OfficerReviews;
 use App\Domain\Approvals\Queries\ReviewQueue;
 use App\Domain\Approvals\Queries\SupervisorDashboardSummary;
+use App\Domain\Approvals\Queries\SupervisorDecisions;
 use App\Domain\Approvals\Support\ApprovalRoute;
 use App\Domain\Approvals\Support\ReviewOptions;
+use App\Domain\Audit\AuditTrail;
 use App\Domain\Platform\SystemSettings;
 use App\Domain\Vouchers\Support\VoucherPdf;
 use App\Domain\Vouchers\VoucherStatus as S;
@@ -19,7 +21,10 @@ use App\Http\Requests\Approvals\ListReviewQueueRequest;
 use App\Http\Requests\Approvals\ReviewDecisionRequest;
 use App\Http\Resources\Approvals\QueueVoucherResource;
 use App\Http\Resources\Vouchers\VoucherResource;
+use App\Models\BudgetChangeRequest;
+use App\Models\FinancialReport;
 use App\Models\Voucher;
+use App\Support\Exports\TabularExport;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -38,7 +43,8 @@ use Illuminate\Support\Str;
  *   POST /supervisor/vouchers/{id}/return      send_to clerk | accounting + needs_changes + remarks
  *   POST /supervisor/vouchers/{id}/reject      reason + remarks
  *   POST /supervisor/vouchers/bulk-approve     ids (no flagged), all or nothing
- *   GET  /supervisor/reviews                   Decision history (your Level 2 decisions)
+ *   GET  /supervisor/reviews                   Decision history (your Level 2 decisions; Framer K_vQYIg74)
+ *   GET  /supervisor/reviews/export            the same as CSV
  *   GET  /supervisor/flagged                   flagged vouchers at Level 2 + stats (Framer ESBUdF0jl)
  *   GET  /supervisor/vouchers/{id}/investigation  signals, chart data, past payments to the payee (Framer lFqUUsfzi)
  * Another company's voucher, or a draft, = 404.
@@ -59,6 +65,12 @@ class SupervisorReviewController extends Controller
             ],
             'today' => $this->mine($request)->today(),
             'threshold' => $this->route->threshold(),
+            // Budgets sidebar item (Framer adI8wBXHd): Accounting's budget changes waiting for a Supervisor's sign-off
+            'budget_requests' => BudgetChangeRequest::query()->where('company_id', $request->attributes->get('company')->id)
+                ->where('status', 'pending')->count(),
+            // Financial reports sidebar item (Framer AaD8UZ08p): reports waiting for a Supervisor's sign-off
+            'reports_to_sign' => FinancialReport::query()->where('company_id', $request->attributes->get('company')->id)
+                ->where('signoff_status', 'pending')->count(),
         ]]);
     }
 
@@ -75,6 +87,7 @@ class SupervisorReviewController extends Controller
             'top' => QueueVoucherResource::collection($s->top())->resolve($request),
             'pipeline' => $s->pipeline(),
             'alert' => $s->alert(),
+            'signoffs' => $s->signoffs(),
         ]]);
     }
 
@@ -186,35 +199,100 @@ class SupervisorReviewController extends Controller
         ]]);
     }
 
+    /**
+     * GET /supervisor/reviews?month=2026-11|all&filter[action]=&search=&page= : Decision history (Framer K_vQYIg74).
+     * Your Level 2 decisions in this company for one month (default this month), + tab counts, the month's 3 cards and
+     * the months that have decisions.
+     */
     public function reviews(Request $request): JsonResponse
     {
-        $request->validate([
-            'filter' => ['sometimes', 'array'],
-            'filter.action' => ['sometimes', 'nullable', 'in:'.implode(',', OfficerReviews::ACTIONS)],
-            'page' => ['sometimes', 'integer', 'min:1'],
-        ]);
-        $mine = $this->mine($request);
-        $page = $mine->query($request->input('filter.action'))->addSelect(['a.step'])->paginate(20)->withQueryString();
+        [$month, $action, $search] = $this->historyFilters($request, ['page' => ['sometimes', 'integer', 'min:1']]);
+        $history = $this->decisions($request);
+        $page = $history->query($month, $action, $search)->paginate(20)->withQueryString();
 
         return response()->json([
-            'data' => collect($page->items())->map(fn ($r) => [
-                'id' => $r->id,
-                'action' => $r->action,
-                'step' => (int) $r->step,
-                'sent_to' => $r->action === 'returned' ? ($r->reason === 'to_accounting' ? 'accounting' : 'clerk') : null,
-                'remarks' => $r->remarks,
-                'needs_changes' => ReviewOptions::labels($r->needs_changes ? json_decode($r->needs_changes, true) : null),
-                'reason' => $r->action === 'rejected' && $r->reason ? (ReviewOptions::REJECT_REASONS[$r->reason] ?? $r->reason) : null,
-                'at' => Carbon::parse($r->created_at)->toIso8601String(),
-                'voucher' => [
-                    'id' => $r->voucher_id, 'voucher_number' => $r->voucher_number, 'payee_name' => $r->payee_name,
-                    'amount' => (string) $r->amount, 'status' => $r->status,
-                ],
-                'clerk' => trim(($r->clerk_first ?? '').' '.($r->clerk_last ?? '')) ?: null,
-            ])->all(),
-            'meta' => ['current_page' => $page->currentPage(), 'last_page' => $page->lastPage(), 'total' => $page->total(),
-                'from' => $page->firstItem(), 'to' => $page->lastItem(), 'today' => $mine->today()],
+            'data' => collect($page->items())->map(fn ($r) => $this->decisionRow($r))->all(),
+            'meta' => [
+                'current_page' => $page->currentPage(), 'last_page' => $page->lastPage(), 'total' => $page->total(),
+                'from' => $page->firstItem(), 'to' => $page->lastItem(),
+                'month' => $month, 'months' => $history->months(),
+                'counts' => $history->counts($month, $search),
+                'stats' => $history->stats($month),
+                'today' => $this->mine($request)->today(),
+            ],
         ]);
+    }
+
+    /** GET /supervisor/reviews/export (same filters): CSV of the decisions shown, audit `decisions_exported`. */
+    public function exportReviews(Request $request, TabularExport $export): Response
+    {
+        [$month, $action, $search] = $this->historyFilters($request);
+        $rows = $this->decisions($request)->query($month, $action, $search)->limit(5000)->get()->map(function ($r) {
+            $d = $this->decisionRow($r);
+
+            return [
+                Carbon::parse($d['at'])->format('Y-m-d H:i'), $d['voucher']['voucher_number'], $d['voucher']['payee_name'] ?? '',
+                $d['department'] ?? '', (float) $d['voucher']['amount'], ucfirst($d['action']).($d['sent_to'] ? " to {$d['sent_to']}" : ''),
+                $d['overrode_flag'] ? 'Yes' : 'No', $d['reason'] ?? '', implode(', ', $d['needs_changes'] ?? []), $d['remarks'] ?? '',
+            ];
+        })->all();
+        $headers = ['Decided at', 'Voucher', 'Payee', 'Department', 'Amount (PHP)', 'Decision', 'Approved while flagged',
+            'Reject reason', 'Needs changes', 'Your remarks'];
+        $company = $request->attributes->get('company');
+
+        AuditTrail::record([
+            'user_id' => $request->user()->id, 'company_id' => $company->id, 'action' => 'decisions_exported',
+            'table_name' => 'voucher_approvals',
+            'new_values' => ['month' => $month ?? 'all', 'action' => $action, 'search' => $search, 'count' => count($rows)],
+            'ip_address' => $request->ip(),
+        ]);
+        $name = 'decisions-'.str($company->name)->slug().'-'.($month ?? 'all').'.csv';
+
+        return response($export->csv($headers, $rows), 200, [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => 'attachment; filename="'.$name.'"',
+            'Cache-Control' => 'no-store',
+        ]);
+    }
+
+    /** @return array{0: ?string, 1: ?string, 2: ?string} month ("2026-11", null = every month), action, search */
+    private function historyFilters(Request $request, array $extra = []): array
+    {
+        $request->validate([
+            'month' => ['sometimes', 'nullable', 'regex:/^(all|\d{4}-(0[1-9]|1[0-2]))$/'],
+            'filter' => ['sometimes', 'array'],
+            'filter.action' => ['sometimes', 'nullable', 'in:'.implode(',', SupervisorDecisions::ACTIONS)],
+            'search' => ['sometimes', 'nullable', 'string', 'max:100'],
+        ] + $extra, ['month.regex' => 'Choose a month like 2026-11, or all.']);
+        $month = $request->input('month') ?: Carbon::now()->format('Y-m');
+
+        return [$month === 'all' ? null : $month, $request->input('filter.action') ?: null, trim((string) $request->input('search')) ?: null];
+    }
+
+    private function decisionRow(object $r): array
+    {
+        return [
+            'id' => $r->id,
+            'action' => $r->action,
+            'step' => (int) $r->step,
+            'sent_to' => $r->action === 'returned' ? ($r->reason === 'to_accounting' ? 'accounting' : 'clerk') : null,
+            'remarks' => $r->remarks,
+            'needs_changes' => ReviewOptions::labels($r->needs_changes ? json_decode($r->needs_changes, true) : null),
+            'reason' => $r->action === 'rejected' && $r->reason ? (ReviewOptions::REJECT_REASONS[$r->reason] ?? $r->reason) : null,
+            'overrode_flag' => $r->action === 'approved' && (bool) $r->ai_anomaly_flag,
+            'at' => Carbon::parse($r->created_at)->toIso8601String(),
+            'department' => $r->department_name,
+            'voucher' => [
+                'id' => $r->voucher_id, 'voucher_number' => $r->voucher_number, 'payee_name' => $r->payee_name,
+                'amount' => (string) $r->amount, 'status' => $r->status,
+            ],
+            'clerk' => trim(($r->clerk_first ?? '').' '.($r->clerk_last ?? '')) ?: null,
+        ];
+    }
+
+    private function decisions(Request $request): SupervisorDecisions
+    {
+        return new SupervisorDecisions($request->user(), $request->attributes->get('company'));
     }
 
     /** GET /supervisor/flagged?sort=score|oldest|amount_desc&page= : flagged vouchers waiting for Level 2 + stats. */

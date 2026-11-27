@@ -20,10 +20,11 @@ class ReportDirectory
 
     public function __construct(private Company $company) {}
 
-    public function list(?string $type, ?string $department, ?string $search): LengthAwarePaginator
+    public function list(?string $type, ?string $department, ?string $search, ?string $signoff = null): LengthAwarePaginator
     {
         return FinancialReport::query()->where('company_id', $this->company->id)
-            ->with(['department:id,name', 'generator:id,first_name,last_name'])
+            ->with(['department:id,name', 'generator:id,first_name,last_name', 'signer:id,first_name,last_name'])
+            ->when($signoff, fn ($q) => $q->where('signoff_status', $signoff))
             ->when($type, fn ($q) => $q->where('report_type', $type))
             ->when($department === 'all', fn ($q) => $q->whereNull('department_id'))
             ->when($department && $department !== 'all', fn ($q) => $q->where('department_id', (int) $department))
@@ -80,6 +81,15 @@ class ReportDirectory
             'generated_at' => $r->generated_at?->toIso8601String(),
             'generated_by' => $r->is_scheduled ? 'Automatic' : ($r->generator ? trim($r->generator->first_name.' '.$r->generator->last_name) : null),
             'is_scheduled' => (bool) $r->is_scheduled,
+            // Supervisor sign-off (2026-11-27): not_needed | pending | signed | returned
+            'signoff' => [
+                'status' => $r->signoff_status ?? 'not_needed',
+                'by' => $r->signer ? trim($r->signer->first_name.' '.$r->signer->last_name) : null,
+                'at' => $r->signed_at?->toIso8601String(),
+                'comment' => $r->signoff_comment,
+                'returned_note' => $r->returned_note,
+                'checks' => $r->signoff_checks,
+            ],
         ];
         if ($full) {
             $data += [

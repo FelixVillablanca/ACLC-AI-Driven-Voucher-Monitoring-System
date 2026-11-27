@@ -20,6 +20,8 @@ use Illuminate\Support\Facades\DB;
  * Scope (set by the server, never by the browser), for the Admin's Audit logs page (2026-11-22):
  *   company_only   only entries of this company
  *   hide_groups    action groups left out (an Admin never sees voucher activity), and their tables
+ *   finance_only   only voucher / budget / report / forecast activity (the Supervisor's Audit trail, 2026-11-27)
+ *   user_id, tables   one person / these tables (the Supervisor's User and Table filters)
  *
  * Read-only on purpose: nothing here can change or delete an entry.
  */
@@ -35,6 +37,17 @@ class AuditLogSearch
 
         if (! empty($f['company_only'])) {
             $q->where('audit_logs.company_id', (int) $f['company_only']);
+        }
+        // the Supervisor's Audit trail (2026-11-27): ONLY voucher, budget, report and forecast activity
+        if (! empty($f['finance_only'])) {
+            $q->where(fn (Builder $w) => $w->whereIn('audit_logs.action', AuditCatalog::actionsIn('vouchers') ?: [''])
+                ->orWhereIn('audit_logs.table_name', self::VOUCHER_TABLES));
+        }
+        if (! empty($f['user_id'])) {
+            $q->where('audit_logs.user_id', (int) $f['user_id']);
+        }
+        if (! empty($f['tables'])) {
+            $q->whereIn('audit_logs.table_name', $f['tables']);
         }
         if (! empty($f['hide_groups'])) {
             $hidden = collect($f['hide_groups'])->flatMap(fn (string $g) => AuditCatalog::actionsIn($g))->all();

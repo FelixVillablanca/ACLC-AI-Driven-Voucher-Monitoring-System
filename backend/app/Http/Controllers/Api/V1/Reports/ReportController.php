@@ -74,7 +74,7 @@ class ReportController extends Controller
         $report = $this->generate->generate($request->attributes->get('company'), $request->user(), $request->period(),
             $request->input('department_id') ? (int) $request->input('department_id') : null, $request->includes(), ip: $request->ip());
 
-        return response()->json(['data' => ReportDirectory::present($report->fresh(['department', 'generator']), full: true)], 201);
+        return response()->json(['data' => ReportDirectory::present($report->fresh(['department', 'generator', 'signer']), full: true)], 201);
     }
 
     public function show(Request $request, int $report, OpenAiClient $openai, OpenAiSpend $spend): JsonResponse
@@ -88,7 +88,7 @@ class ReportController extends Controller
         $this->find($request, $report);
         $fresh = $this->generate->rewriteSummary($report, $request->attributes->get('company'), $request->user(), $request->ip());
 
-        return response()->json(['data' => ReportDirectory::present($fresh->fresh(['department', 'generator']), full: true)]);
+        return response()->json(['data' => ReportDirectory::present($fresh->fresh(['department', 'generator', 'signer']), full: true)]);
     }
 
     public function pdf(Request $request, int $report): Response
@@ -128,7 +128,7 @@ class ReportController extends Controller
     private function find(Request $request, int $id): FinancialReport
     {
         return FinancialReport::query()->where('company_id', $request->attributes->get('company')->id)
-            ->with(['department:id,name', 'generator:id,first_name,last_name'])->findOrFail($id);
+            ->with(['department:id,name', 'generator:id,first_name,last_name', 'signer:id,first_name,last_name'])->findOrFail($id);
     }
 
     private function fileName(FinancialReport $r, string $ext): string

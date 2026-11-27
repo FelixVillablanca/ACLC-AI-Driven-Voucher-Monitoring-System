@@ -219,4 +219,58 @@ class BudgetsTest extends TestCase
         $this->api('PATCH', "/officer/budgets/{$id}", ['total_budget' => '1', 'alert_threshold_pct' => 80, 'reason' => 'Hacking', 'was_total' => '1', 'was_alert_pct' => 80], $outsider, $this->north->id)
             ->assertNotFound();
     }
+
+    /** Framer adI8wBXHd + KHqkVA77a (2026-11-27): the Supervisor signs off (or declines) Accounting's big budget changes. */
+    public function test_supervisor_signs_off_budget_changes(): void
+    {
+        $this->getJson('/api/v1/supervisor/budgets')->assertUnauthorized(); // before anyone signs in
+        $id = $this->allocate('1000000.00', 90);
+        $ask = fn (string $total, string $was) => $this->api('PATCH', "/officer/budgets/{$id}",
+            ['total_budget' => $total, 'alert_threshold_pct' => 90, 'reason' => 'Year-end laptop refresh', 'was_total' => $was, 'was_alert_pct' => 90])
+            ->assertStatus(202);
+        $ask('1400000', '1000000.00');
+        $request = DB::table('budget_change_requests')->where('status', 'pending')->value('id');
+
+        $this->api('GET', '/supervisor/budgets', [], $this->officer)->assertForbidden();
+        $this->api('GET', '/supervisor/summary', [], $this->supervisor)->assertOk()->assertJsonPath('data.budget_requests', 1);
+        $this->api('GET', '/supervisor/budgets', [], $this->supervisor)->assertOk()
+            ->assertJsonPath('data.summary.total_allocated', '1000000.00')
+            ->assertJsonPath('data.requests.0.id', $request)
+            ->assertJsonPath('data.requests.0.change', '400000.00')
+            ->assertJsonPath('data.requests.0.requested_by', 'Maria Santos')
+            ->assertJsonPath('data.requests_up_total', '400000.00');
+
+        // more than asked, or not more than now: 422
+        $this->api('POST', "/supervisor/budgets/requests/{$request}/approve", ['approved_budget' => '1500000'], $this->supervisor)
+            ->assertStatus(422)->assertJsonValidationErrors(['approved_budget']);
+        $this->api('POST', "/supervisor/budgets/requests/{$request}/approve", ['approved_budget' => '1000000'], $this->supervisor)
+            ->assertStatus(422);
+        // a smaller top-up is fine
+        $this->api('POST', "/supervisor/budgets/requests/{$request}/approve", ['approved_budget' => '1,300,000.00', 'note' => 'From contingency. Revisit in January.'], $this->supervisor)
+            ->assertOk()->assertJsonPath('data.status', 'approved');
+        $this->assertDatabaseHas('budget_allocations', ['id' => $id, 'total_budget' => '1300000.00', 'updated_by' => $this->supervisor->id]);
+        $this->assertDatabaseHas('budget_change_requests', ['id' => $request, 'status' => 'approved', 'decided_by' => $this->supervisor->id]);
+        $this->assertDatabaseHas('audit_logs', ['action' => 'budget_change_approved', 'record_id' => $id]);
+        $this->assertDatabaseHas('notifications', ['recipient_id' => $this->officer->id, 'type' => 'budget_change', 'title' => 'Budget change approved (a smaller amount): IT & Systems']);
+        $this->api('POST', "/supervisor/budgets/requests/{$request}/decline", ['note' => 'Too late'], $this->supervisor)
+            ->assertStatus(409)->assertJsonPath('code', 'REQUEST_ALREADY_DECIDED');
+
+        // decline needs a note; the budget stays
+        $ask('1800000', '1300000.00');
+        $second = DB::table('budget_change_requests')->where('status', 'pending')->value('id');
+        $this->api('POST', "/supervisor/budgets/requests/{$second}/decline", [], $this->supervisor)->assertStatus(422)->assertJsonValidationErrors(['note']);
+        $this->api('POST', "/supervisor/budgets/requests/{$second}/decline", ['note' => 'No approved plan on file.'], $this->supervisor)->assertOk();
+        $this->assertDatabaseHas('budget_allocations', ['id' => $id, 'total_budget' => '1300000.00']);
+        $this->assertDatabaseHas('budget_change_requests', ['id' => $second, 'status' => 'declined', 'decision_note' => 'No approved plan on file.']);
+
+        // another company's Supervisor: 404
+        $ask('1700000', '1300000.00');
+        $third = DB::table('budget_change_requests')->where('status', 'pending')->value('id');
+        $outsider = User::factory()->supervisor()->create(['company_id' => $this->north->id]);
+        $outsider->accessibleCompanies()->attach($this->north->id, ['granted_status' => 'accepted']);
+        $this->api('POST', "/supervisor/budgets/requests/{$third}/approve", [], $outsider, $this->north->id)->assertNotFound();
+        // the budget moved since the request was made: 409
+        DB::table('budget_allocations')->where('id', $id)->update(['total_budget' => '1350000.00']);
+        $this->api('POST', "/supervisor/budgets/requests/{$third}/approve", [], $this->supervisor)->assertStatus(409)->assertJsonPath('code', 'BUDGET_CHANGED');
+    }
 }

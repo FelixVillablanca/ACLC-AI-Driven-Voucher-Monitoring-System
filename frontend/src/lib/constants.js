@@ -103,7 +103,12 @@ export const PATHS = Object.freeze({
   SUPERVISOR_QUEUE: '/supervisor/queue', // the Approval queue (Framer RRXP4iCfd; the landing page until the dashboard came)
   SUPERVISOR_VOUCHERS: '/supervisor/vouchers', // /supervisor/vouchers/:id = final review of one voucher
   SUPERVISOR_HISTORY: '/supervisor/history', // Decision history
+  SUPERVISOR_BUDGETS: '/supervisor/budgets', // ?request={id}[&mode=decline] opens the sign-off window (Framer adI8wBXHd / KHqkVA77a)
+  SUPERVISOR_FORECASTS: '/supervisor/forecasts', // ?department={id} = one department (Framer wY0BB3HcK)
+  SUPERVISOR_AUDIT: '/supervisor/audit', // ?entry={id} opens one entry (Framer xqItzoFYK / cm5eFM0vJ)
+  SUPERVISOR_REPORTS: '/supervisor/reports', // /supervisor/reports/:id = one report + sign-off (Framer AaD8UZ08p / dcfDyyuKE)
   SUPERVISOR_FLAGGED: '/supervisor/flagged', // /supervisor/flagged/:id = investigate one flag (Framer ESBUdF0jl / lFqUUsfzi)
+  SUPERVISOR_HELP: '/supervisor/help', // /supervisor/help/:slug = one guide (Framer cR3NPU8IK / mZNmzhDdX, 2026-11-27)
   SUPERVISOR_NOTIFICATIONS: '/supervisor/notifications',
   SUPERVISOR_PROFILE: '/supervisor/profile',
   SUPERVISOR_CHANGE_PASSWORD: '/supervisor/change-password',
@@ -135,11 +140,12 @@ export const ACCOUNT_PATHS = Object.freeze({
     notifications: PATHS.OFFICER_NOTIFICATIONS,
     help: PATHS.OFFICER_HELP,
   }),
-  // Supervisors / Managers (2026-11-27): profile, password and notifications
+  // Supervisors / Managers (2026-11-27): profile, password, notifications and Help & guides
   [ROLES.SUPERVISOR]: Object.freeze({
     profile: PATHS.SUPERVISOR_PROFILE,
     changePassword: PATHS.SUPERVISOR_CHANGE_PASSWORD,
     notifications: PATHS.SUPERVISOR_NOTIFICATIONS,
+    help: PATHS.SUPERVISOR_HELP,
   }),
   [ROLES.SUPER_ADMIN]: Object.freeze({
     profile: PATHS.SUPERADMIN_PROFILE,

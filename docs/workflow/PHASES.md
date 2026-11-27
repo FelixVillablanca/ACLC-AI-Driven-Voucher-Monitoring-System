@@ -62,7 +62,7 @@ Phase 8  Deployment ─ put it on the internet (Docker, CI/CD, HTTPS, cloud back
 | 1 | Auth, tenancy & audit | 🟡 In progress: sign-in done; company scoping, policies, audit observer, company switcher left |
 | 2 | Admin & Super Admin module | 🟡 In progress: dashboards + several Super Admin tools done; most admin CRUD screens left |
 | 3 | Voucher core | 🟡 In progress: clerk vouchers + Drafts + Returned to me + Payees + Help & guides done; attachments, idempotency keys, PDF left |
-| 4 | Approvals & budgets | 🟡 In progress: Officer step 1 + budgets done; Supervisor Level 2 approval done (2026-11-27); budget sign-off screen left |
+| 4 | Approvals & budgets | 🟡 In progress: Officer step 1 + budgets done; Supervisor Level 2 approval + budget sign-off done (2026-11-27) |
 | 5 | AI service | ⬜ Not started (some groundwork ready: queue worker, failed-jobs catalog, ML health check) |
 | 6 | Reports & dashboards | ⬜ Not started |
 | 7 | Hardening | ⬜ Not started (tests are already written inside every phase) |
@@ -256,7 +256,51 @@ scheduler (§3.7), row locking for "only one at a time" rules (§3.4).
 ## Phase 4: Approvals & budgets
 
 **Goal:** officers and supervisors review vouchers, and budgets are spent safely.
-**Status:** 🟡 In progress (Accounting Officer step 1 done 2026-11-26; budgets, forecasts, reports and Help & guides 2026-11-27: **every Accounting Officer page is built**; **Supervisor Level 2 approval, dashboard and Flagged pages done 2026-11-27**; left: the Supervisor's budget sign-off screen and oversight pages).
+**Status:** 🟡 In progress (Accounting Officer step 1 done 2026-11-26; budgets, forecasts, reports and Help & guides 2026-11-27: **every Accounting Officer page is built**; **Supervisor Level 2 approval, dashboard, Flagged, Decision history, Budgets + budget sign-off, Forecasts, Audit trail, Financial reports + sign-off, Help & guides done 2026-11-27**: every Supervisor page is built).
+
+> **Polish 2026-11-27 (all Supervisor pages):** dashboard Reports button, budget card + alert open Budgets, new "Waiting for
+> your sign-off" card (`SupervisorDashboardSummary::signoffs()`); queue cleared state "Check budgets" / "Back to dashboard"
+> (frame `WAk4RKdFc`); Budgets → Forecasts button; stale "no page yet" notes removed. Live smoke test on the testing DB:
+> all 20 Supervisor endpoints answer 200.
+
+> **Done 2026-11-27: Supervisor Help & guides** (Framer `cR3NPU8IK` center, `mZNmzhDdX` contact). No migration.
+> `features/help/supervisorGuides.js` (14 guides), the officer's help page became `ReviewerHelpPage` (role-aware via `library.js`),
+> `ContactSupportModal` lists the Supervisor's vouchers; backend `SendSupportMessage::SUPERVISOR_TOPICS`, `/approval-rules`
+> gained `budget_signoff_above`. Test in `SupportMessagesTest`. **Every Supervisor / Manager page is built.**
+
+> **Done 2026-11-27: Supervisor Financial reports + sign-off** (Framer `AaD8UZ08p` list, `dcfDyyuKE` sign-off). User decisions:
+> migration `2026_11_27_000005_add_report_signoff` (**testing DB only**: `financial_reports.signoff_status` not_needed / pending /
+> signed / returned, `signed_by`, `signed_at`, `signoff_comment`, `signoff_checks`, `returned_note`; notification type `report_signoff`);
+> only company-wide MONTHLY + QUARTERLY reports need a sign-off (`FinancialReport::needsSignoff`; existing ones set to pending).
+> `GenerateReport` sets pending + tells the Supervisors; `Domain/Reporting/Actions/SignOffReport` (checks: totals worked out now,
+> summary reviewed, open flags noted; sign off / send back with a note; 409 `REPORT_NOT_WAITING`; audit `report_signed_off|report_returned`;
+> bell to the officer). API `/supervisor/reports[/{id}[/signoff|/return|/pdf]]`. PDF + the Officer's pages show the sign-off.
+> Test in `ReportsTest`.
+
+> **Done 2026-11-27: Supervisor Audit trail** (Framer `xqItzoFYK` list, `cm5eFM0vJ` entry). No migration. `GET /supervisor/audit`,
+> `/{id}`, `/export` (`SupervisorAuditController`, `ListSupervisorAuditRequest`). `AuditLogSearch` gained `finance_only` (vouchers
+> group actions or `VOUCHER_TABLES`), `user_id`, `tables`; `AuditEntryPresenter(finance: true)` + `AuditCatalog::redact($v, withMoney)`
+> keep money visible for the Supervisor (secrets always hidden; Admin / Super Admin pages unchanged). `RunAnomalyCheck` writes
+> audit `voucher_flagged` (by System). Test in `SupervisorReviewTest`.
+
+> **Done 2026-11-27: Supervisor Forecasts** (Framer `wY0BB3HcK`). No migration. Read-only `GET /supervisor/forecasts[?department=]`
+> (`SupervisorForecastController`): the same stored forecasts as Accounting (`ForecastBoard::overview(3)` / `department`), plus
+> `ForecastBoard::yearEnd()` (FY approved so far + the rest of this month's forecast + stored months inside the FY vs the
+> budgets; `complete` = reaches the FY end) and `next_month` on each overview row. Test in `ForecastsTest`.
+
+> **Done 2026-11-27: Supervisor Budgets + budget sign-off** (Framer `adI8wBXHd` overview, `KHqkVA77a` approve top-up). No
+> migration (uses `budget_change_requests` from `2026_11_27_000002`). `Domain/Budgets/Actions/DecideBudgetChange`: approve =
+> the requested amount or a smaller change in the same direction + the requested alert %, request approved, audit
+> `budget_change_approved`, alert check, bell `budget_change` to the officer; decline = note required, audit
+> `budget_change_declined`, bell. 409 `REQUEST_ALREADY_DECIDED` / `BUDGET_CHANGED`, 403 `SELF_SIGNOFF`, another company = 404.
+> API `GET /supervisor/budgets`, `POST /supervisor/budgets/requests/{id}/approve|decline` (`SupervisorBudgetController`,
+> `DecideBudgetChangeRequest`). `/supervisor/summary.budget_requests` feeds the sidebar. Tests in `BudgetsTest`.
+
+> **Done 2026-11-27: Supervisor Decision history** (Framer `K_vQYIg74`). No migration.
+> `Domain/Approvals/Queries/SupervisorDecisions` (your Level 2 decisions for one month or all months; tab counts; average
+> decision time from the Level 1 approval vs the month before; flags overridden = approved while flagged). API
+> `GET /supervisor/reviews?month=&filter[action]=&search=` + `GET /supervisor/reviews/export` (CSV, audit `decisions_exported`).
+> Test in `SupervisorReviewTest`.
 
 > **Done 2026-11-27: Supervisor Flagged** (Framer `ESBUdF0jl` list, `lFqUUsfzi` investigate). No migration.
 > `Domain/Approvals/Queries/Level2Flags` (flagged vouchers at Level 2, sorts score / oldest / amount; open flags + money on
@@ -305,7 +349,7 @@ scheduler (§3.7), row locking for "only one at a time" rules (§3.4).
 - **Segregation of duties:** nobody approves their own voucher.
 - **Step 2 routing:** AI-flagged or high-value vouchers (over the Super Admin's threshold, ₱50,000.00 by default)
   must go to a supervisor.
-- ~~**Budgets:** consumption with `lockForUpdate`, threshold alerts.~~ Done 2026-11-27. Left: the Supervisor's budget sign-off screen. (The final approval already adds to the budget through `ConsumeBudget`.)
+- ~~**Budgets:** consumption with `lockForUpdate`, threshold alerts.~~ Done 2026-11-27. Done 2026-11-27 (Supervisor budget sign-off). (The final approval adds to the budget through `ConsumeBudget`.)
 - **Events → listeners → notifications** (queued): "voucher approved", "voucher pending", "budget alert".
 
 **Concepts:** pessimistic locking and race conditions (§3.4), event-driven design and queues with retries (§3.6).

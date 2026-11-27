@@ -3,6 +3,7 @@
 namespace App\Jobs;
 
 use App\Domain\AI\Anomaly\RuleBasedAnomalyCheck;
+use App\Domain\Audit\AuditTrail;
 use App\Domain\Vouchers\VoucherStatus as S;
 use App\Models\Notification;
 use App\Models\User;
@@ -18,7 +19,8 @@ use Illuminate\Support\Facades\DB;
  * The automatic check after a voucher is submitted (or resubmitted), in the background so Submit stays fast.
  * Writes the score, the reason, the signals and the source ('rules' until Phase 5) without touching
  * updated_at. Only while the voucher still waits for Accounting (`pending`). A newly flagged voucher
- * notifies the company's Accounting Officers (bell, type anomaly_flagged).
+ * notifies the company's Accounting Officers (bell, type anomaly_flagged) and writes an audit row `voucher_flagged`
+ * (by the system).
  */
 class RunAnomalyCheck implements ShouldQueue
 {
@@ -50,6 +52,13 @@ class RunAnomalyCheck implements ShouldQueue
         ]);
 
         if ($result['flagged']) {
+            // Audit trail (2026-11-27, Framer xqItzoFYK "System flagged …"): who = the system, no IP
+            AuditTrail::record([
+                'user_id' => null, 'company_id' => $voucher->company_id, 'action' => 'voucher_flagged',
+                'table_name' => 'vouchers', 'record_id' => $voucher->id,
+                'new_values' => ['voucher_number' => $voucher->voucher_number, 'score' => (string) $result['score'],
+                    'reason' => $result['reason'], 'source' => 'rules'],
+            ]);
             User::query()->where('role', 'accounting_officer')->where('is_active', true)
                 ->whereHas('accessibleCompanies', fn ($q) => $q->where('companies.id', $voucher->company_id)->where('user_company_access.granted_status', 'accepted'))
                 ->pluck('id')

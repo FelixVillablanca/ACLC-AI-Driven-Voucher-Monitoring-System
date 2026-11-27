@@ -81,6 +81,14 @@
     <p>{{ $peso($f['forecast']['predicted']) }} (likely {{ $peso($f['forecast']['lower']) }} – {{ $peso($f['forecast']['upper']) }}), straight-line trend of approved spending.</p>
   @endif
 
+  @if (($report['signoff']['status'] ?? null) === 'signed')
+    <h2>Manager sign-off</h2>
+    <p>Signed off by {{ $report['signoff']['by'] }} on {{ \Illuminate\Support\Carbon::parse($report['signoff']['at'])->format('M j, Y · g:i A') }}.</p>
+    @if ($report['signoff']['comment'])<p>Comments for the board: “{{ $report['signoff']['comment'] }}”</p>@endif
+  @elseif (($report['signoff']['status'] ?? null) === 'pending')
+    <p class="foot">Not signed off yet: waiting for a Supervisor.</p>
+  @endif
+
   <div class="foot">Spend = vouchers with their final approval in the period. Figures frozen when the report was generated.</div>
 </body>
 </html>

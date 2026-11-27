@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Api;
 
+use App\Domain\Audit\AuditTrail;
 use App\Models\BudgetAllocation;
 use App\Models\Company;
 use App\Models\Department;
@@ -196,9 +197,50 @@ class SupervisorReviewTest extends TestCase
             ->assertJsonPath('data.top.0.id', $flagged)
             ->assertJsonPath('data.pipeline.level2', 2)
             ->assertJsonPath('data.alert.department', 'IT & Systems')
-            ->assertJsonPath('data.alert.after_pct', 131); // (255,000 + 140,000) / 300,000
+            ->assertJsonPath('data.alert.after_pct', 131) // (255,000 + 140,000) / 300,000
+            ->assertJsonPath('data.signoffs.budget_changes', 0)
+            ->assertJsonPath('data.signoffs.reports', 0);
 
         $this->api('GET', '/supervisor/dashboard', [], $this->officer)->assertForbidden();
+    }
+
+    /** Framer K_vQYIg74, 2026-11-27: month filter, tabs, search, the 3 cards, CSV export. */
+    public function test_decision_history_month_stats_and_export(): void
+    {
+        $flagged = $this->atLevel2('90000.00', flagged: true);
+        $returned = $this->atLevel2('60000.00');
+        $old = $this->atLevel2('70000.00');
+        DB::table('vouchers')->whereIn('id', [$returned, $old])->update(['ai_anomaly_flag' => 0]);
+        // Level 1 approved 2 hours before each decision
+        DB::table('voucher_approvals')->where('step', 1)->update(['created_at' => now()->subHours(2)]);
+        $this->api('POST', "/supervisor/vouchers/{$flagged}/approve", ['remarks' => 'Peak season deliveries.'])->assertOk();
+        $this->api('POST', "/supervisor/vouchers/{$returned}/return", ['send_to' => 'clerk', 'needs_changes' => ['payee'], 'remarks' => 'Needs the official receipt.'])->assertOk();
+        $this->api('POST', "/supervisor/vouchers/{$old}/reject", ['reason' => 'no_budget', 'remarks' => 'No budget left.'])->assertOk();
+        // the rejection happened last month
+        DB::table('voucher_approvals')->where('voucher_id', $old)->where('step', 2)->update(['created_at' => now()->startOfMonth()->subDays(3)]);
+
+        $this->api('GET', '/supervisor/reviews')->assertOk()
+            ->assertJsonPath('meta.month', now()->format('Y-m'))
+            ->assertJsonPath('meta.total', 2)
+            ->assertJsonPath('meta.counts.approved', 1)
+            ->assertJsonPath('meta.counts.returned', 1)
+            ->assertJsonPath('meta.counts.rejected', 0)
+            ->assertJsonPath('meta.stats.overridden', 1)
+            ->assertJsonPath('meta.stats.overridden_with_remarks', 1)
+            ->assertJsonPath('meta.stats.average_hours', 2)
+            ->assertJsonPath('meta.months.1', now()->startOfMonth()->subDays(3)->format('Y-m'));
+        $this->api('GET', '/supervisor/reviews', ['filter' => ['action' => 'approved']])->assertOk()
+            ->assertJsonPath('meta.total', 1)->assertJsonPath('data.0.overrode_flag', true)->assertJsonPath('data.0.department', 'IT & Systems');
+        $this->api('GET', '/supervisor/reviews', ['month' => 'all'])->assertOk()->assertJsonPath('meta.total', 3);
+        $this->api('GET', '/supervisor/reviews', ['month' => 'all', 'search' => 'nomatch'])->assertOk()->assertJsonPath('meta.total', 0);
+        $this->api('GET', '/supervisor/reviews', ['month' => '2026-13'])->assertStatus(422)->assertJsonValidationErrors(['month']);
+
+        $csv = $this->actingAs($this->supervisor)->get('/api/v1/supervisor/reviews/export?month=all', ['X-Company-ID' => (string) $this->apex->id]);
+        $csv->assertOk()->assertHeader('Content-Type', 'text/csv; charset=UTF-8');
+        $this->assertStringContainsString('Peak season deliveries.', $csv->getContent());
+        $this->assertDatabaseHas('audit_logs', ['action' => 'decisions_exported', 'user_id' => $this->supervisor->id]);
+
+        $this->api('GET', '/supervisor/reviews/export', [], $this->officer)->assertForbidden();
     }
 
     /** Framer ESBUdF0jl (list) + lFqUUsfzi (investigate), 2026-11-27. */
@@ -237,5 +279,54 @@ class SupervisorReviewTest extends TestCase
         $outsider->accessibleCompanies()->attach($this->north->id, ['granted_status' => 'accepted']);
         $this->api('GET', "/supervisor/vouchers/{$high}/investigation", [], $outsider, $this->north->id)->assertNotFound();
         $this->api('GET', '/supervisor/flagged', [], $outsider, $this->north->id)->assertOk()->assertJsonCount(0, 'data');
+    }
+
+    /** Framer xqItzoFYK (list) + cm5eFM0vJ (entry), 2026-11-27: company finance activity only, money visible, secrets never. */
+    public function test_audit_trail_scope_filters_entry_and_export(): void
+    {
+        $this->getJson('/api/v1/supervisor/audit')->assertUnauthorized();
+        $id = $this->atLevel2('60000.00');
+        $this->api('POST', "/supervisor/vouchers/{$id}/approve", ['remarks' => 'As budgeted.'])->assertOk();
+        $budget = BudgetAllocation::create(['company_id' => $this->apex->id, 'department_id' => $this->dept, 'fiscal_year' => now()->year,
+            'total_budget' => '2500000.00', 'used_amount' => '0', 'alert_threshold_pct' => 90]);
+        AuditTrail::record(['user_id' => $this->officer->id, 'company_id' => $this->apex->id, 'action' => 'budget_updated',
+            'table_name' => 'budget_allocations', 'record_id' => $budget->id,
+            'old_values' => ['total_budget' => '2400000.00'], 'new_values' => ['total_budget' => '2500000.00', 'reason' => 'Laptops']]);
+        // not finance activity / another company: never shown
+        AuditTrail::record(['user_id' => $this->officer->id, 'company_id' => $this->apex->id, 'action' => 'password_changed',
+            'table_name' => 'users', 'record_id' => $this->officer->id, 'new_values' => ['password' => 'secret']]);
+        AuditTrail::record(['user_id' => $this->officer->id, 'company_id' => $this->north->id, 'action' => 'budget_updated',
+            'table_name' => 'budget_allocations', 'record_id' => 999]);
+
+        $list = $this->api('GET', '/supervisor/audit')->assertOk()
+            ->assertJsonPath('data.0.action.key', 'budget_updated')
+            ->assertJsonPath('data.0.record.title', 'IT & Systems')
+            ->assertJsonPath('data.0.changes.0.new', '2500000.00') // money visible to the Supervisor
+            ->assertJsonPath('meta.summary.decisions', 2) // Level 1 + Level 2 approvals
+            ->assertJsonPath('meta.summary.sensitive', 1);
+        $keys = collect($list->json('data'))->pluck('action.key');
+        $this->assertNotContains('password_changed', $keys);
+        $this->assertSame(1, $keys->filter(fn ($k) => $k === 'budget_updated')->count());
+        $approved = collect($list->json('data'))->first(fn ($e) => $e['action']['key'] === 'voucher_approved' && str_contains($e['record']['subtitle'], 'step 2'));
+        $this->assertNotNull($approved);
+
+        $this->api('GET', '/supervisor/audit', ['action' => 'voucher_approved', 'user' => $this->supervisor->id])->assertOk()->assertJsonPath('meta.total', 1);
+        $this->api('GET', '/supervisor/audit', ['table' => 'budget_allocations'])->assertOk()->assertJsonPath('meta.total', 1);
+        $this->api('GET', '/supervisor/audit', ['action' => 'password_changed'])->assertStatus(422);
+        $this->api('GET', '/supervisor/audit', ['range' => '90d', 'search' => 'nomatch'])->assertOk()->assertJsonPath('meta.total', 0);
+
+        $entry = $list->json('data.0.id');
+        $this->api('GET', "/supervisor/audit/{$entry}")->assertOk()
+            ->assertJsonPath('data.link.kind', 'budget')->assertJsonPath('data.integrity', 'intact');
+        $hidden = DB::table('audit_logs')->where('action', 'password_changed')->value('id');
+        $this->api('GET', "/supervisor/audit/{$hidden}")->assertNotFound();
+
+        $csv = $this->actingAs($this->supervisor)->get('/api/v1/supervisor/audit/export', ['X-Company-ID' => (string) $this->apex->id]);
+        $csv->assertOk()->assertHeader('Content-Type', 'text/csv; charset=UTF-8');
+        $this->assertStringContainsString('2500000.00', $csv->getContent());
+        $this->assertStringNotContainsString('secret', $csv->getContent());
+        $this->assertDatabaseHas('audit_logs', ['action' => 'audit_exported', 'user_id' => $this->supervisor->id]);
+
+        $this->api('GET', '/supervisor/audit', [], $this->officer)->assertForbidden();
     }
 }

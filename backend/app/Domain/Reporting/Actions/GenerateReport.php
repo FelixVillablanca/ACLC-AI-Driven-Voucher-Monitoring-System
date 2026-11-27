@@ -2,6 +2,7 @@
 
 namespace App\Domain\Reporting\Actions;
 
+use App\Domain\Approvals\Support\ApprovalRoute;
 use App\Domain\Audit\AuditTrail;
 use App\Domain\Reporting\Support\ReportFigures;
 use App\Domain\Reporting\Support\ReportPeriod;
@@ -55,6 +56,7 @@ class GenerateReport
                 'generated_by' => $by?->id,
                 'is_scheduled' => $scheduled,
                 'generated_at' => now(),
+                'signoff_status' => FinancialReport::needsSignoff($department?->id, $period->type) ? 'pending' : 'not_needed',
             ]);
             AuditTrail::record([
                 'user_id' => $by?->id, 'company_id' => $company->id, 'action' => 'report_generated',
@@ -66,6 +68,9 @@ class GenerateReport
             return $report;
         });
 
+        if ($report->signoff_status === 'pending') {
+            DB::afterCommit(fn () => self::askForSignoff($report, $company));
+        }
         if ($report->summary_status === 'queued') {
             WriteReportSummary::dispatch($report->id)->afterCommit();
         } elseif ($scheduled) {
@@ -107,6 +112,20 @@ class GenerateReport
         WriteReportSummary::dispatch($report->id)->afterCommit();
 
         return $report;
+    }
+
+    /** Bell notice to the company's Supervisors: a company-wide monthly / quarterly report waits for their sign-off. */
+    public static function askForSignoff(FinancialReport $report, Company $company): void
+    {
+        foreach (ApprovalRoute::supervisorsOf($company) as $supervisor) {
+            Notification::create([
+                'recipient_id' => $supervisor->id,
+                'type' => 'report_signoff',
+                'title' => "Report to sign off: {$report->title}",
+                'message' => ($report->is_scheduled ? 'The automatic monthly report' : 'A report from Accounting')
+                    ." for {$company->name} is waiting for your sign-off.",
+            ]);
+        }
     }
 
     /** Bell notice: to whoever made the report, or every Accounting Officer of the company for an automatic one. */

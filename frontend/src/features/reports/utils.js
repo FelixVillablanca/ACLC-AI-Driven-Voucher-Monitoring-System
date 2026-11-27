@@ -37,3 +37,11 @@ export function quarterChoices(now = new Date()) {
 
 /** Whole-number change pill text: "▲ 12%" / "▼ 3%" */
 export const changeText = (pct) => (pct == null ? null : `${pct >= 0 ? '▲' : '▼'} ${Math.abs(pct)}%`)
+
+/** The Supervisor's sign-off of a report (2026-11-27): tone + short label per signoff.status. */
+export const SIGNOFF_STATUS = {
+  pending: { tone: 'warning', label: 'Waiting for sign-off' },
+  signed: { tone: 'success', label: 'Signed off' },
+  returned: { tone: 'danger', label: 'Sent back' },
+  not_needed: { tone: 'neutral', label: 'No sign-off needed' },
+}

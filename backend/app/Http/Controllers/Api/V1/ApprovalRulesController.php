@@ -21,6 +21,8 @@ class ApprovalRulesController extends Controller
             'high_value_threshold' => (string) $settings->get(SystemSettings::HIGH_VALUE_THRESHOLD, $default(SystemSettings::HIGH_VALUE_THRESHOLD)),
             'ai_flagged_needs_step2' => (bool) $settings->get(SystemSettings::AI_FLAGGED_NEEDS_STEP_2, $default(SystemSettings::AI_FLAGGED_NEEDS_STEP_2)),
             'review_sla_hours' => (int) $settings->value(SystemSettings::REVIEW_SLA_HOURS),
+            // budget changes bigger than this wait for a Supervisor's sign-off (the Supervisor's help guides, 2026-11-27)
+            'budget_signoff_above' => (string) $settings->value(SystemSettings::BUDGET_CHANGE_SIGNOFF_ABOVE),
             'submitting_live' => true,
             // Accounting Officers review since 2026-11-26; the Supervisor's step 2 screens come next
             'reviewing_live' => true,

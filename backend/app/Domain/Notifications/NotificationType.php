@@ -39,6 +39,9 @@ enum NotificationType: string
     // Financial reports (added 2026-11-27): a report (and its AI summary) is ready, or its summary failed
     case ReportReady = 'report_ready';
 
+    // Report sign-off (added 2026-11-27): a report waits for a Supervisor / was signed / was sent back to Accounting
+    case ReportSignoff = 'report_signoff';
+
     public function category(): string
     {
         return match ($this) {
@@ -52,7 +55,7 @@ enum NotificationType: string
             self::CompanyChanged => 'companies',
             self::SystemAlert => 'system',
             self::SupportRequest => 'support',
-            self::ReportReady => 'reports',
+            self::ReportReady, self::ReportSignoff => 'reports',
         };
     }
 

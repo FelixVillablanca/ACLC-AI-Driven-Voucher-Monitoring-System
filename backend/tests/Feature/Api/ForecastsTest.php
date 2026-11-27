@@ -136,4 +136,40 @@ class ForecastsTest extends TestCase
         $this->api('GET', "/officer/forecasts/departments/{$northDept->id}")->assertNotFound();
         $this->api('GET', '/officer/forecasts/export?format=pdf')->assertStatus(422);
     }
+
+    /** Framer wY0BB3HcK (2026-11-27): the Supervisor's read-only forecasts + the year-end projection. */
+    public function test_supervisor_forecasts_and_year_end(): void
+    {
+        $this->getJson('/api/v1/supervisor/forecasts')->assertUnauthorized();
+        $supervisor = User::factory()->supervisor()->create(['company_id' => $this->apex->id]);
+        $supervisor->accessibleCompanies()->attach($this->apex->id, ['granted_status' => 'accepted']);
+        foreach (['2026-07-10' => '100000', '2026-08-10' => '110000', '2026-09-10' => '120000', '2026-10-10' => '130000'] as $d => $a) {
+            $this->approved($a, $d);
+        }
+        DB::table('budget_allocations')->insert([
+            'company_id' => $this->apex->id, 'department_id' => $this->it->id, 'fiscal_year' => 2026, 'total_budget' => '600000.00',
+            'used_amount' => '460000.00', 'alert_threshold_pct' => 90, 'created_at' => now(), 'updated_at' => now(),
+        ]);
+
+        // FY 2026 = Jan–Dec: 460k approved + Nov 140k + Dec 150k forecast = 750k, 150k over the 600k plan
+        $this->api('GET', '/supervisor/forecasts', [], $supervisor)->assertOk()
+            ->assertJsonPath('data.view', 'company')
+            ->assertJsonPath('data.next_month.predicted', '150000.00')
+            ->assertJsonPath('data.rows.0.next_month.predicted', '150000.00')
+            ->assertJsonPath('data.year_end.approved', '460000.00')
+            ->assertJsonPath('data.year_end.projection', '750000.00')
+            ->assertJsonPath('data.year_end.through', 'December 2026')
+            ->assertJsonPath('data.year_end.complete', true)
+            ->assertJsonPath('data.year_end.diff', '150000.00')
+            ->assertJsonPath('data.departments.0.name', 'IT & Systems')
+            ->assertJsonPath('data.pending_requests.count', 0);
+        $this->api('GET', "/supervisor/forecasts?department={$this->it->id}", [], $supervisor)->assertOk()
+            ->assertJsonPath('data.view', 'department')
+            ->assertJsonPath('data.department.name', 'IT & Systems')
+            ->assertJsonPath('data.year_end.plan', '600000.00');
+
+        $northDept = Department::factory()->for($this->north)->create();
+        $this->api('GET', "/supervisor/forecasts?department={$northDept->id}", [], $supervisor)->assertNotFound();
+        $this->api('GET', '/supervisor/forecasts')->assertForbidden(); // the officer
+    }
 }

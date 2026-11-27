@@ -7,6 +7,7 @@ use App\Http\Middleware\EnsureAccountInGoodStanding;
 use App\Http\Middleware\EnsureUserHasRole;
 use App\Http\Middleware\ForceJsonResponse;
 use App\Http\Middleware\ResolveCompany;
+use App\Http\Middleware\SetSecurityHeaders;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -22,9 +23,13 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         // Runs on EVERY request (even unknown URLs), so every response has a tracking number
         $middleware->prepend(AssignRequestId::class);
+        // Security headers on EVERY answer, errors and unknown URLs included (Phase 7 step 1, 2026-11-28):
+        // nosniff, no framing, strict CSP, HSTS over HTTPS. The server only answers JSON and files (the app is the React build).
+        $middleware->append(SetSecurityHeaders::class);
 
         // Runs on every /api request
         $middleware->api(prepend: [ForceJsonResponse::class]);
+
         // Sanctum SPA login: requests from the React app (SANCTUM_STATEFUL_DOMAINS)
         // get a session cookie + CSRF protection, so no token is stored in the browser.
         $middleware->statefulApi();

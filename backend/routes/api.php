@@ -12,17 +12,21 @@ use App\Http\Controllers\Api\V1\Admin\UserController as AdminUserController;
 use App\Http\Controllers\Api\V1\ApprovalRulesController;
 use App\Http\Controllers\Api\V1\Approvals\OfficerDashboardController;
 use App\Http\Controllers\Api\V1\Approvals\OfficerReviewController;
+use App\Http\Controllers\Api\V1\Approvals\SupervisorAuditController;
 use App\Http\Controllers\Api\V1\Approvals\SupervisorReviewController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\Budgets\BudgetController;
+use App\Http\Controllers\Api\V1\Budgets\SupervisorBudgetController;
 use App\Http\Controllers\Api\V1\Clerk\DashboardController as ClerkDashboardController;
 use App\Http\Controllers\Api\V1\Forecasts\ForecastController;
+use App\Http\Controllers\Api\V1\Forecasts\SupervisorForecastController;
 use App\Http\Controllers\Api\V1\HealthController;
 use App\Http\Controllers\Api\V1\InvitationController;
 use App\Http\Controllers\Api\V1\MyCompanyAccessController;
 use App\Http\Controllers\Api\V1\NotificationController;
 use App\Http\Controllers\Api\V1\Payees\PayeeController;
 use App\Http\Controllers\Api\V1\Reports\ReportController;
+use App\Http\Controllers\Api\V1\Reports\SupervisorReportController;
 use App\Http\Controllers\Api\V1\SuperAdmin\AdminController as SuperAdminAdminController;
 use App\Http\Controllers\Api\V1\SuperAdmin\AuditLogController;
 use App\Http\Controllers\Api\V1\SuperAdmin\BackupController;
@@ -315,8 +319,39 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
                 Route::post('/vouchers/{voucher}/reject', 'reject')->whereNumber('voucher')->middleware('throttle:60,1')->name('vouchers.reject');
                 Route::post('/vouchers/bulk-approve', 'bulkApprove')->middleware('throttle:10,1')->name('vouchers.bulk-approve');
                 Route::get('/reviews', 'reviews')->name('reviews');
+                Route::get('/reviews/export', 'exportReviews')->middleware('throttle:10,1')->name('reviews.export'); // Framer K_vQYIg74
                 Route::get('/flagged', 'flagged')->name('flagged'); // Framer ESBUdF0jl
                 Route::get('/vouchers/{voucher}/investigation', 'investigation')->whereNumber('voucher')->name('vouchers.investigation'); // lFqUUsfzi
+            });
+
+        // SUPERVISOR / MANAGER financial reports (2026-11-27, Framer AaD8UZ08p / dcfDyyuKE): read + sign off / send back
+        Route::prefix('supervisor/reports')->name('supervisor.reports.')->controller(SupervisorReportController::class)
+            ->middleware(['role:supervisor_manager', 'company'])->group(function () {
+                Route::get('/', 'index')->name('index');
+                Route::get('/{report}', 'show')->whereNumber('report')->name('show');
+                Route::post('/{report}/signoff', 'signOff')->whereNumber('report')->middleware('throttle:30,1')->name('signoff');
+                Route::post('/{report}/return', 'sendBack')->whereNumber('report')->middleware('throttle:30,1')->name('return');
+                Route::get('/{report}/pdf', 'pdf')->whereNumber('report')->middleware('throttle:30,1')->name('pdf');
+            });
+
+        // SUPERVISOR / MANAGER audit trail (2026-11-27, Framer xqItzoFYK / cm5eFM0vJ): read-only, finance activity of the company
+        Route::prefix('supervisor/audit')->name('supervisor.audit.')->controller(SupervisorAuditController::class)
+            ->middleware(['role:supervisor_manager', 'company'])->group(function () {
+                Route::get('/', 'index')->name('index');
+                Route::get('/export', 'export')->middleware('throttle:10,1')->name('export');
+                Route::get('/{id}', 'show')->whereNumber('id')->name('show');
+            });
+
+        // SUPERVISOR / MANAGER forecasts (2026-11-27, Framer wY0BB3HcK): read-only, ?department= for one department
+        Route::get('supervisor/forecasts', [SupervisorForecastController::class, 'index'])
+            ->middleware(['role:supervisor_manager', 'company'])->name('supervisor.forecasts.index');
+
+        // SUPERVISOR / MANAGER budgets (2026-11-27, Framer adI8wBXHd / KHqkVA77a): read-only budgets + sign-off of Accounting's changes
+        Route::prefix('supervisor/budgets')->name('supervisor.budgets.')->controller(SupervisorBudgetController::class)
+            ->middleware(['role:supervisor_manager', 'company'])->group(function () {
+                Route::get('/', 'index')->name('index');
+                Route::post('/requests/{changeRequest}/approve', 'approve')->whereNumber('changeRequest')->middleware('throttle:30,1')->name('requests.approve');
+                Route::post('/requests/{changeRequest}/decline', 'decline')->whereNumber('changeRequest')->middleware('throttle:30,1')->name('requests.decline');
             });
 
         // ACCOUNTING OFFICER budgets (2026-11-27, Framer AwnFnuBYJ / kpJmhDxKE / MGf9CXv2s): yearly, per department

@@ -100,6 +100,7 @@ class AuditCatalog
         'voucher_approved' => ['label' => 'Voucher approved', 'group' => 'vouchers', 'tone' => 'success'],
         'voucher_rejected' => ['label' => 'Voucher rejected', 'group' => 'vouchers', 'tone' => 'danger'],
         'voucher_returned' => ['label' => 'Voucher returned', 'group' => 'vouchers', 'tone' => 'warning'],
+        'voucher_flagged' => ['label' => 'Flagged by the automatic check', 'group' => 'vouchers', 'tone' => 'warning'],
         'voucher_flag_cleared' => ['label' => 'Flag cleared (false alarm)', 'group' => 'vouchers', 'tone' => 'primary'],
         // Budgets (2026-11-27): the Accounting Officer's yearly department budgets
         'budget_allocated' => ['label' => 'Budget allocated', 'group' => 'vouchers', 'tone' => 'success'],
@@ -107,9 +108,14 @@ class AuditCatalog
         'budget_change_requested' => ['label' => 'Budget change sent for sign-off', 'group' => 'vouchers', 'tone' => 'warning'],
         'report_generated' => ['label' => 'Financial report generated', 'group' => 'vouchers', 'tone' => 'success'],
         'report_summary_requested' => ['label' => 'Report summary requested', 'group' => 'vouchers', 'tone' => 'neutral'],
+        'report_signed_off' => ['label' => 'Financial report signed off', 'group' => 'vouchers', 'tone' => 'success'],
+        'report_returned' => ['label' => 'Financial report sent back', 'group' => 'vouchers', 'tone' => 'warning'],
         'report_downloaded' => ['label' => 'Financial report downloaded', 'group' => 'vouchers', 'tone' => 'neutral'],
         'forecasts_exported' => ['label' => 'Forecast exported', 'group' => 'vouchers', 'tone' => 'neutral'],
+        'decisions_exported' => ['label' => 'Decision history exported', 'group' => 'vouchers', 'tone' => 'neutral'],
         'budget_change_cancelled' => ['label' => 'Budget change request cancelled', 'group' => 'vouchers', 'tone' => 'neutral'],
+        'budget_change_approved' => ['label' => 'Budget change approved', 'group' => 'vouchers', 'tone' => 'success'],
+        'budget_change_declined' => ['label' => 'Budget change declined', 'group' => 'vouchers', 'tone' => 'danger'],
         'voucher_cancelled' => ['label' => 'Voucher cancelled', 'group' => 'vouchers', 'tone' => 'neutral'],
         'voucher_draft_deleted' => ['label' => 'Draft deleted', 'group' => 'vouchers', 'tone' => 'warning'],
         'voucher_draft_expired' => ['label' => 'Old draft deleted (30 days)', 'group' => 'vouchers', 'tone' => 'neutral'],
@@ -123,6 +129,9 @@ class AuditCatalog
 
     /** Fields whose VALUES are never shown or exported here: money (no voucher access) and secrets. */
     private const HIDDEN_FIELD = '/amount|price|budget|spend|total|password|secret|token|recovery/i';
+
+    /** Secrets only (never shown to anyone). */
+    private const SECRET_FIELD = '/password|secret|token|recovery/i';
 
     public static function describe(string $action): array
     {
@@ -159,16 +168,20 @@ class AuditCatalog
         ])->values()->all();
     }
 
-    /** Values with money and secrets replaced by "hidden" (recursively). */
-    public static function redact(mixed $values): mixed
+    /**
+     * Values with money and secrets replaced by "hidden" (recursively). $withMoney (the Supervisor's Audit trail,
+     * 2026-11-27: a finance role) keeps money visible and hides only secrets.
+     */
+    public static function redact(mixed $values, bool $withMoney = false): mixed
     {
         if (! is_array($values)) {
             return $values;
         }
+        $pattern = $withMoney ? self::SECRET_FIELD : self::HIDDEN_FIELD;
         foreach ($values as $key => $value) {
-            $values[$key] = is_string($key) && preg_match(self::HIDDEN_FIELD, $key)
+            $values[$key] = is_string($key) && preg_match($pattern, $key)
                 ? '(hidden)'
-                : self::redact($value);
+                : self::redact($value, $withMoney);
         }
 
         return $values;

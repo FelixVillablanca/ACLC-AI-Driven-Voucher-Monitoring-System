@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { AnimatePresence } from 'framer-motion'
-import { CheckCheck, ChevronDown, History, Info, Search, SearchX } from 'lucide-react'
+import { CheckCheck, ChevronDown, History, Info, LayoutDashboard, PieChart, Search, SearchX } from 'lucide-react'
 import toast from 'react-hot-toast'
 import ConfirmDialog from '@/components/common/ConfirmDialog'
 import EmptyState from '@/components/common/EmptyState'
@@ -24,13 +24,12 @@ const primaryBtn =
   'text-auth-button flex h-[38px] items-center gap-1.5 rounded-lg bg-primary px-4 text-primary-foreground outline-none hover:bg-primary/90 focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50'
 
 /**
- * APPROVAL QUEUE (/supervisor, the Supervisor's landing page; Framer RRXP4iCfd list, WAk4RKdFc cleared), 2026-11-27.
+ * APPROVAL QUEUE (/supervisor/queue; Framer RRXP4iCfd list, WAk4RKdFc cleared), 2026-11-27. (The dashboard is the landing page.)
  * Every voucher that passed Level 1 and waits for final approval (`under_review`) in the company in the switcher,
  * oldest first. Tabs / search / sort / page in the address (?view=&q=&sort=&page=). "Approve selected" = bulk final
  * approval (flagged vouchers can't be picked). Reloads after a decision and every 60 s.
  * Code differs from the frames: no "Escalated" tab (officers can't escalate by hand); the row shows category · payee
- * (no item description in the queue); the cleared state links to Decision history (no Supervisor dashboard or
- * budgets page yet).
+ * (no item description in the queue). The cleared state has the frame's "Check budgets" + "Back to dashboard".
  */
 export default function ApprovalQueuePage() {
   usePageTitle('Approval queue')
@@ -380,6 +379,17 @@ function Cleared({ firstName, today }) {
           <Pill tone="danger">{today.rejected} rejected</Pill>
         </div>
       )}
+      <div className="flex flex-wrap justify-center gap-2.5 pt-2">
+        <Link
+          to={PATHS.SUPERVISOR_BUDGETS}
+          className="text-body-strong flex h-[38px] items-center gap-1.5 rounded-lg border bg-card px-3.5 outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring/50"
+        >
+          <PieChart className="size-4" aria-hidden="true" /> Check budgets
+        </Link>
+        <Link to={PATHS.SUPERVISOR} className={primaryBtn}>
+          <LayoutDashboard className="size-4" aria-hidden="true" /> Back to dashboard
+        </Link>
+      </div>
     </section>
   )
 }

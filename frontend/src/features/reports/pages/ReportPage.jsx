@@ -11,7 +11,7 @@ import { formatDate, formatMoney, formatNumber } from '@/lib/formatters'
 import { cn } from '@/lib/utils'
 import { useCompanyStore } from '@/stores/useCompanyStore'
 import { downloadReport, getReport, rewriteSummary } from '../api'
-import { changeText } from '../utils'
+import { SIGNOFF_STATUS, changeText } from '../utils'
 import { usePageTitle } from '@/hooks/usePageTitle'
 
 const outlineBtn =
@@ -151,6 +151,24 @@ export default function ReportPage() {
               {f.budget ? `${compactMoney(f.budget.used)} of ${compactMoney(f.budget.total)}` : 'No budget set'}
             </Card>
           </div>
+
+          {r.signoff?.status && r.signoff.status !== 'not_needed' && (
+            <p
+              className={cn(
+                'text-body rounded-xl border px-4 py-3',
+                r.signoff.status === 'signed' && 'border-success/30 bg-success-soft',
+                r.signoff.status === 'pending' && 'border-warning/40 bg-warning-soft',
+                r.signoff.status === 'returned' && 'border-danger/40 bg-danger-soft',
+              )}
+            >
+              <strong className="font-semibold">{SIGNOFF_STATUS[r.signoff.status].label}</strong>
+              {r.signoff.status === 'pending' && ': a Supervisor signs off company-wide monthly and quarterly reports.'}
+              {r.signoff.status === 'signed' &&
+                ` by ${r.signoff.by ?? 'a Supervisor'} on ${formatDate(r.signoff.at, 'MMM d, yyyy')}${r.signoff.comment ? ` · “${r.signoff.comment}”` : ''}`}
+              {r.signoff.status === 'returned' &&
+                ` by ${r.signoff.by ?? 'a Supervisor'}: “${r.signoff.returned_note}” Generate a new report once it’s fixed.`}
+            </p>
+          )}
 
           <SummaryCard r={r} busy={busy === 'summary'} onWrite={summary} />
 

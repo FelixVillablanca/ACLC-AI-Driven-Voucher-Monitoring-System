@@ -284,7 +284,7 @@ export const OFFICER_GUIDES = [
             ordered: true,
           },
           {
-            note: 'A change of the amount bigger than the sign-off limit (₱250,000.00 unless the Super Admin changed it) isn’t applied at once: it waits for a Supervisor’s sign-off and shows as “Change waiting”. You can cancel your own request.',
+            note: 'A change of the amount bigger than the sign-off limit (₱250,000.00 unless the Super Admin changed it) isn’t applied at once: it waits for a Supervisor’s sign-off and shows as “Change waiting”. You can cancel your own request. The Supervisor approves it (a top-up may be approved for less than you asked) or declines it with a reason, and you get a bell notice either way.',
             tone: 'warning',
             title: 'Big changes need sign-off',
           },
@@ -370,7 +370,7 @@ export const OFFICER_GUIDES = [
             ordered: true,
           },
           {
-            p: 'The figures are frozen when the report is made: later approvals don’t change it. A monthly report for all departments is also made automatically on the 1st of every month.',
+            p: 'The figures are frozen when the report is made: later approvals don’t change it. A monthly report for all departments is also made automatically on the 1st of every month. Company-wide monthly and quarterly reports then wait for a Supervisor’s sign-off: they either sign it off or send it back with a note, and you get a bell notice. A report sent back stays as it is; generate a new one once it’s fixed.',
           },
         ],
       },

@@ -169,7 +169,9 @@ return [
     |
     */
 
-    'secure' => env('SESSION_SECURE_COOKIE'),
+    // Phase 7 step 1 (2026-11-28): HTTPS-only cookies by default in production; set SESSION_SECURE_COOKIE=false only for a
+    // production test over plain http (never in real use).
+    'secure' => env('SESSION_SECURE_COOKIE', env('APP_ENV') === 'production'),
 
     /*
     |--------------------------------------------------------------------------

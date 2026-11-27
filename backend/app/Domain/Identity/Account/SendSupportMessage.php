@@ -44,10 +44,25 @@ class SendSupportMessage
         'other' => 'Something else',
     ];
 
+    /** Supervisors / Managers (Framer mZNmzhDdX, 2026-11-27): Level 2, sign-offs, oversight; "someone covering for me" (no delegation yet). */
+    public const SUPERVISOR_TOPICS = [
+        'voucher' => 'Problem with a Level 2 voucher',
+        'signoff' => 'Budget or report sign-off',
+        'budgets' => 'Budgets or forecasts',
+        'reports' => 'Financial reports or the audit trail',
+        'access' => 'Company access, or a colleague covering for me',
+        'account' => 'Signing in or my account',
+        'other' => 'Something else',
+    ];
+
     /** @return array<string, string> the topics a role can pick */
     public static function topicsFor(?string $role): array
     {
-        return $role === 'accounting_clerk' ? self::TOPICS : self::REVIEWER_TOPICS;
+        return match ($role) {
+            'accounting_clerk' => self::TOPICS,
+            'supervisor_manager' => self::SUPERVISOR_TOPICS,
+            default => self::REVIEWER_TOPICS,
+        };
     }
 
     /** @return array{admins: int, emailed: int} */

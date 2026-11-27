@@ -132,4 +132,20 @@ class SupportMessagesTest extends TestCase
         $this->api('POST', '/support/messages', ['topic' => 'payees', 'message' => 'Clerk-only topic from an officer.'], $officer)
             ->assertStatus(422)->assertJsonValidationErrors(['topic']);
     }
+
+    /** Framer mZNmzhDdX (2026-11-27): the Supervisor's own topics (sign-off, someone covering for me). */
+    public function test_a_supervisor_gets_supervisor_topics(): void
+    {
+        $supervisor = User::factory()->supervisor()->create(['company_id' => $this->apex->id]);
+        $supervisor->accessibleCompanies()->attach($this->apex->id, ['granted_status' => 'accepted']);
+
+        $this->api('GET', '/support/contacts', [], $supervisor)->assertOk()
+            ->assertJsonFragment(['key' => 'signoff', 'label' => 'Budget or report sign-off'])
+            ->assertJsonFragment(['key' => 'access', 'label' => 'Company access, or a colleague covering for me'])
+            ->assertJsonMissing(['key' => 'payees']);
+        $this->api('POST', '/support/messages', ['topic' => 'signoff', 'message' => 'The October report shows the wrong total.'], $supervisor)
+            ->assertCreated();
+        $this->assertDatabaseHas('notifications', ['recipient_id' => $this->admin->id, 'type' => 'support_request']);
+        $this->api('GET', '/approval-rules', [], $supervisor)->assertOk()->assertJsonPath('data.budget_signoff_above', '250000.00');
+    }
 }
