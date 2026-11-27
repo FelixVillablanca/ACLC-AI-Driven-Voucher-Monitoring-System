@@ -33,7 +33,7 @@ class OfficerDashboardSummary
 
         return [
             'total' => $base()->count(),
-            'total_amount' => (string) $base()->sum('amount'),
+            'total_amount' => number_format((float) $base()->sum('amount'), 2, '.', ''), // "0.00", like every other amount
             'older_than_24h' => $base()->where('submitted_at', '<=', now()->subDay())->count(),
             'near_sla' => $base()->where('submitted_at', '<=', $this->route->nearSlaSince())->count(),
             'flagged' => $base()->where('ai_anomaly_flag', true)->whereNull('ai_review_finding')->count(),

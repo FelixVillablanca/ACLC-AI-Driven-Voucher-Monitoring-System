@@ -77,6 +77,7 @@ const OFFICER_NOTIFICATION_LINKS = {
   types: {
     budget_alert: PATHS.OFFICER_BUDGETS, // a budget passed its alert: the Budgets page, not the voucher that did it
     report_ready: PATHS.OFFICER_REPORTS, // a financial report (or its AI summary) is ready
+    anomaly_flagged: (id) => `${PATHS.OFFICER_FLAGGED}/${id}`, // a new flag → its Investigate page
   },
   categories: {
     access: '?companies=manage',
@@ -86,11 +87,15 @@ const OFFICER_NOTIFICATION_LINKS = {
   },
 }
 
-/** A landing area that only ONE operational role can open, e.g. /clerk for accounting clerks. */
-const roleArea = (role, path) => ({
-  element: <RequireRole roles={[role]} />,
-  children: [{ element: <RequireCompany />, children: [{ path, lazy: page(() => import('@/pages/RoleHomePage')) }] }],
-})
+/** Where the Supervisor's bell links go (2026-11-27): a voucher notice opens its final review page. */
+const SUPERVISOR_NOTIFICATION_LINKS = {
+  viewAll: PATHS.SUPERVISOR_NOTIFICATIONS,
+  voucher: (id) => `${PATHS.SUPERVISOR_VOUCHERS}/${id}`,
+  categories: {
+    access: '?companies=manage',
+    vouchers: PATHS.SUPERVISOR_QUEUE,
+  },
+}
 
 export const router = createBrowserRouter([
   {
@@ -356,7 +361,58 @@ export const router = createBrowserRouter([
               },
             ],
           },
-          roleArea(ROLES.SUPERVISOR, PATHS.SUPERVISOR),
+          // SUPERVISOR / MANAGER (Phase 4 Level 2, Framer RRXP4iCfd …, 2026-11-27): the Approval queue is the landing page
+          {
+            element: <RequireRole roles={[ROLES.SUPERVISOR]} />,
+            children: [
+              {
+                element: <RequireCompany />,
+                children: [
+                  {
+                    lazy: async () => {
+                      const [
+                        { default: OperationsLayout },
+                        { NotificationBell },
+                        { SupervisorNav },
+                        { JoinCompanyModal, MANAGE_COMPANIES_SEARCH },
+                      ] = await Promise.all([
+                        import('@/components/layout/OperationsLayout'),
+                        import('@/features/notifications'),
+                        import('@/features/supervisor'),
+                        import('@/features/joinCompany'),
+                      ])
+                      return {
+                        Component: () => (
+                          <OperationsLayout
+                            nav={SupervisorNav}
+                            onSignOut={signOut}
+                            notifications={<NotificationBell links={SUPERVISOR_NOTIFICATION_LINKS} />}
+                            accountLinks={ACCOUNT_PATHS[ROLES.SUPERVISOR]}
+                            manageCompaniesSearch={MANAGE_COMPANIES_SEARCH}
+                            overlays={<JoinCompanyModal />}
+                          />
+                        ),
+                      }
+                    },
+                    children: [
+                      { path: PATHS.SUPERVISOR, lazy: page(() => import('@/features/dashboard/pages/SupervisorDashboardPage')) },
+                      { path: PATHS.SUPERVISOR_QUEUE, lazy: page(() => import('@/features/supervisor/pages/ApprovalQueuePage')) },
+                      { path: `${PATHS.SUPERVISOR_VOUCHERS}/:id`, lazy: page(() => import('@/features/supervisor/pages/FinalReviewPage')) },
+                      { path: PATHS.SUPERVISOR_HISTORY, lazy: page(() => import('@/features/supervisor/pages/DecisionHistoryPage')) },
+                      { path: PATHS.SUPERVISOR_FLAGGED, lazy: page(() => import('@/features/supervisor/pages/Level2FlaggedPage')) },
+                      {
+                        path: `${PATHS.SUPERVISOR_FLAGGED}/:id`,
+                        lazy: page(() => import('@/features/supervisor/pages/InvestigateFlagPage')),
+                      },
+                      notificationsPage(PATHS.SUPERVISOR_NOTIFICATIONS, SUPERVISOR_NOTIFICATION_LINKS),
+                      { path: PATHS.SUPERVISOR_PROFILE, lazy: page(() => import('@/features/account/pages/MyProfilePage')) },
+                      { path: PATHS.SUPERVISOR_CHANGE_PASSWORD, lazy: page(() => import('@/features/account/pages/ChangePasswordPage')) },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
         ],
       },
 

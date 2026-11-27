@@ -15,6 +15,7 @@ import ForecastChart from '../components/ForecastChart'
 import HowCalculatedDialog from '../components/HowCalculatedDialog'
 import RiskPill from '../components/RiskPill'
 import { FORECASTS_CHANGED_EVENT, MONTH_CHOICES } from '../utils'
+import { usePageTitle } from '@/hooks/usePageTitle'
 
 const outlineBtn =
   'text-body-strong flex h-[38px] items-center gap-1.5 rounded-lg border bg-card px-3.5 outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50'
@@ -57,6 +58,7 @@ export default function DepartmentForecastPage() {
 
   const status = state.key === key ? state.status : 'loading'
   const d = status === 'success' ? state.data : null
+  usePageTitle(d ? `${d.department.name} forecast` : 'Forecast')
   const backTo = `${PATHS.OFFICER_FORECASTS}${months !== 3 ? `?months=${months}` : ''}`
 
   if (status === 'error') {

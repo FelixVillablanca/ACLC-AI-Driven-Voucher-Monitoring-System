@@ -46,6 +46,7 @@ class ReportController extends Controller
             'data' => collect($page->items())->map(fn ($r) => ReportDirectory::present($r))->all(),
             'meta' => [
                 'current_page' => $page->currentPage(), 'last_page' => $page->lastPage(), 'total' => $page->total(), 'per_page' => $page->perPage(),
+                'company' => $request->attributes->get('company')->name,
                 'stats' => $directory->stats(),
                 'ai' => ['configured' => $openai->configured(), 'model' => $openai->model(), 'paused' => $openai->configured() && $spend->paused()],
                 'departments' => DB::table('departments')->where('company_id', $request->attributes->get('company')->id)->orderBy('name')->get(['id', 'name']),

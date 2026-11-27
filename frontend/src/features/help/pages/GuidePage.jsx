@@ -9,6 +9,7 @@ import ContactSupportModal from '../components/ContactSupportModal'
 import { readMinutes } from '../guides'
 import { libraryFor } from '../library'
 import { useApprovalRules } from '../hooks/useApprovalRules'
+import { usePageTitle } from '@/hooks/usePageTitle'
 
 const NOTE_TONES = {
   info: { box: 'border-primary-soft bg-primary-faint', icon: 'text-primary', Icon: Info },
@@ -37,6 +38,7 @@ export default function GuidePage() {
   const role = useAuthStore((s) => s.user?.role)
   const lib = libraryFor(role)
   const guide = lib.bySlug(slug)
+  usePageTitle(guide?.title ?? 'Help & guides')
   const rules = useApprovalRules()
   const [params, setParams] = useSearchParams()
   const contactOpen = params.get('contact') === '1'

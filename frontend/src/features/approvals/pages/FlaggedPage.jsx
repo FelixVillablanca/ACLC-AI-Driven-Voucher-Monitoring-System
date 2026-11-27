@@ -13,6 +13,7 @@ import { listFlagged } from '../api'
 import HowFlagsWorkDialog from '../components/HowFlagsWorkDialog'
 import MarkNormalDialog from '../components/MarkNormalDialog'
 import { announceReviewsChanged, flaggedPath, REVIEWS_CHANGED_EVENT, scoreLevel, waitedText } from '../utils'
+import { usePageTitle } from '@/hooks/usePageTitle'
 
 const LEVEL = {
   high: { box: 'border-danger bg-danger-soft', text: 'text-danger' },
@@ -28,6 +29,7 @@ const LEVEL = {
  * decision 2026-11-27); "Confirmed issues · ₱… held back" counts returned-as-needs-changes or rejected flags.
  */
 export default function FlaggedPage() {
+  usePageTitle('Flagged vouchers')
   const [params, setParams] = useSearchParams()
   const navigate = useNavigate()
   const companyId = useCompanyStore((s) => s.activeCompanyId)

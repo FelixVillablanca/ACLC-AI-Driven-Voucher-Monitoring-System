@@ -33,7 +33,7 @@ class TransitionVoucher
         'draft' => ['pending', 'cancelled'],
         'returned' => ['pending', 'cancelled'],
         'pending' => ['under_review', 'approved', 'rejected', 'returned'],
-        'under_review' => ['approved', 'rejected', 'returned'],
+        'under_review' => ['approved', 'rejected', 'returned', 'pending'], // pending = the Supervisor sent it back to Accounting (2026-11-27)
         'approved' => [],
         'rejected' => [],
         'cancelled' => [],

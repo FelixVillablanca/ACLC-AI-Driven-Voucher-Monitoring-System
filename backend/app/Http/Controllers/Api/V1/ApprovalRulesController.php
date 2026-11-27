@@ -24,7 +24,7 @@ class ApprovalRulesController extends Controller
             'submitting_live' => true,
             // Accounting Officers review since 2026-11-26; the Supervisor's step 2 screens come next
             'reviewing_live' => true,
-            'supervisor_live' => false,
+            'supervisor_live' => true, // the Supervisor's Level 2 screens (2026-11-27)
         ]]);
     }
 }

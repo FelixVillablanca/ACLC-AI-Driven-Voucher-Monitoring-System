@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/stores/useAuthStore'
 import { useCompanyStore } from '@/stores/useCompanyStore'
 import { getOfficerDashboard } from '../api'
+import { usePageTitle } from '@/hooks/usePageTitle'
 
 /**
  * ACCOUNTING OFFICER DASHBOARD (/officer, the landing page; Framer tfDekIe0N), 2026-11-27.
@@ -21,6 +22,7 @@ import { getOfficerDashboard } from '../api'
  * "AI-flagged" is "Flagged" (the automatic check is rule-based for now).
  */
 export default function OfficerDashboardPage() {
+  usePageTitle('Dashboard')
   const navigate = useNavigate()
   const user = useAuthStore((s) => s.user)
   const companyId = useCompanyStore((s) => s.activeCompanyId)

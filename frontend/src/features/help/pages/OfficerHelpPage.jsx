@@ -10,6 +10,7 @@ import StillNeedHelp from '../components/StillNeedHelp'
 import { guideText, readMinutes } from '../guides'
 import { useApprovalRules } from '../hooks/useApprovalRules'
 import { OFFICER_CATEGORIES, OFFICER_GUIDES, officerGuideLink, reviewRulesAtAGlance } from '../officerGuides'
+import { usePageTitle } from '@/hooks/usePageTitle'
 
 /**
  * The Accounting Officer's Help & guides (/officer/help; Framer ylRPv8gjJ + menNRI3in Contact support), 2026-11-27.
@@ -20,6 +21,7 @@ import { OFFICER_CATEGORIES, OFFICER_GUIDES, officerGuideLink, reviewRulesAtAGla
  * names your company's Admin instead of a "finance systems team" with a 1-day reply promise; "Flags" not "AI flags".
  */
 export default function OfficerHelpPage() {
+  usePageTitle('Help & guides')
   const user = useAuthStore((s) => s.user)
   const rules = useApprovalRules()
   const [params, setParams] = useSearchParams()

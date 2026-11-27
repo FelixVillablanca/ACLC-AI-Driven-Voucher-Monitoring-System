@@ -6,6 +6,7 @@ namespace App\Domain\Vouchers;
  * The voucher statuses (vouchers.status), agreed 2026-11-22:
  *   draft → pending (with the Accounting Officer, step 1) → under_review (with the Supervisor, step 2)
  *         → approved | rejected;  pending / under_review → returned (back to the clerk) → pending
+ *   under_review → pending (the Supervisor returns it to Accounting, Framer PlbU6CVEj, 2026-11-27)
  *   draft / returned → cancelled
  * The single state machine that moves vouchers between them comes with Phase 3 (TransitionVoucher).
  */

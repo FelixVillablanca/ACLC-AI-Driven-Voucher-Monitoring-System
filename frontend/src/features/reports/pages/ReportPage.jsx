@@ -12,6 +12,7 @@ import { cn } from '@/lib/utils'
 import { useCompanyStore } from '@/stores/useCompanyStore'
 import { downloadReport, getReport, rewriteSummary } from '../api'
 import { changeText } from '../utils'
+import { usePageTitle } from '@/hooks/usePageTitle'
 
 const outlineBtn =
   'text-body-strong flex h-[38px] items-center gap-1.5 rounded-lg border bg-card px-3.5 outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50'
@@ -55,6 +56,7 @@ export default function ReportPage() {
 
   const status = state.key === key ? state.status : 'loading'
   const r = status === 'success' ? state.data : null
+  usePageTitle(r?.title ?? 'Financial report')
 
   const summary = async () => {
     setBusy('summary')

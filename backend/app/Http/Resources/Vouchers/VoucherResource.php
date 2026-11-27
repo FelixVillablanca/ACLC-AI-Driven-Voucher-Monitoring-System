@@ -100,7 +100,9 @@ class VoucherResource extends JsonResource
                 ->map(fn ($a) => [
                     'step' => (int) $a->step, 'role' => $a->role_at_time, 'action' => $a->action, 'remarks' => $a->remarks,
                     'needs_changes' => ReviewOptions::labels($a->needs_changes ? json_decode($a->needs_changes, true) : null),
-                    'reason' => $a->reason ? (ReviewOptions::REJECT_REASONS[$a->reason] ?? $a->reason) : null,
+                    'reason' => $a->action === 'rejected' && $a->reason ? (ReviewOptions::REJECT_REASONS[$a->reason] ?? $a->reason) : null,
+                    // a Level 2 return goes to the clerk or back to Accounting (2026-11-27)
+                    'sent_to' => $a->action === 'returned' ? ($a->reason === 'to_accounting' ? 'accounting' : 'clerk') : null,
                     'by' => trim("{$a->first_name} {$a->last_name}") ?: null,
                     'at' => $a->created_at ? Carbon::parse($a->created_at)->toIso8601String() : null,
                 ])->all(),

@@ -44,11 +44,15 @@ export const NOTIFICATIONS_CHANGED_EVENT = 'advms:notifications-changed'
 /**
  * Where a click on a notification goes: its type's page first (e.g. draft reminders → Drafts, since the
  * draft may be gone), then its voucher (when the role's links have `voucher`), then its category's page.
- * null = nowhere (it's just marked read).
+ * null = nowhere (it's just marked read). A type's link may be a function of the voucher id (2026-11-27), e.g. a flag
+ * notice → that voucher's Investigate page; it's skipped when the notice has no voucher.
  */
 export function notificationTarget(links, item) {
   if (!links) return null
-  if (links.types?.[item.type]) return links.types[item.type]
+  const byType = links.types?.[item.type]
+  if (typeof byType === 'function') {
+    if (item.voucher_id) return byType(item.voucher_id)
+  } else if (byType) return byType
   if (item.voucher_id && links.voucher) return links.voucher(item.voucher_id)
   return links.categories?.[item.category] ?? null
 }

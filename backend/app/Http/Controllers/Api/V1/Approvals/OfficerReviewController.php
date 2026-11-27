@@ -122,6 +122,7 @@ class OfficerReviewController extends Controller
                 'similar' => $queue->similar($v),
                 'budget' => $queue->budget($v),
                 'position' => $pending ? $queue->position($v->id) : null,
+                'supervisor_return' => $pending ? $this->supervisorReturn($v) : null,
             ],
         ]]);
     }
@@ -265,6 +266,27 @@ class OfficerReviewController extends Controller
     }
 
     /** The voucher after a decision, for the screen (status, number, next one to review). */
+    /**
+     * The Supervisor sent this voucher back to Accounting (Level 2 return, 2026-11-27) and nobody decided on it since:
+     * who, what needs fixing and their note, for the banner on the review page.
+     */
+    private function supervisorReturn(Voucher $v): ?array
+    {
+        $last = DB::table('voucher_approvals as a')->leftJoin('users as u', 'u.id', '=', 'a.approver_id')
+            ->where('a.voucher_id', $v->id)->orderByDesc('a.id')
+            ->first(['a.step', 'a.action', 'a.reason', 'a.remarks', 'a.needs_changes', 'a.created_at', 'u.first_name', 'u.last_name']);
+        if (! $last || (int) $last->step !== 2 || $last->action !== 'returned' || $last->reason !== 'to_accounting') {
+            return null;
+        }
+
+        return [
+            'by' => trim("{$last->first_name} {$last->last_name}"),
+            'remarks' => $last->remarks,
+            'needs_changes' => ReviewOptions::labels($last->needs_changes ? json_decode($last->needs_changes, true) : null),
+            'at' => Carbon::parse($last->created_at)->toIso8601String(),
+        ];
+    }
+
     private function decided(Voucher $v, Request $request): array
     {
         return ['id' => $v->id, 'voucher_number' => $v->voucher_number, 'status' => $v->status, 'next_id' => $this->queue($request)->nextId()];

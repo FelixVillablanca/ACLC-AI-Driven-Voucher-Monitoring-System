@@ -13,6 +13,7 @@ import { listReports } from '../api'
 import GenerateReportModal from '../components/GenerateReportModal'
 import SchedulesDialog from '../components/SchedulesDialog'
 import { changeText, reportPath, SUMMARY_STATUS, TYPE_LABEL } from '../utils'
+import { usePageTitle } from '@/hooks/usePageTitle'
 
 const outlineBtn =
   'text-body-strong flex h-[38px] items-center gap-1.5 rounded-lg border bg-card px-3.5 outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50'
@@ -29,6 +30,7 @@ const selectClass = 'text-body h-[38px] appearance-none rounded-lg border bg-car
  * type = a custom date range for one department; Schedules is read-only (one automatic monthly report).
  */
 export default function ReportsPage() {
+  usePageTitle('Financial reports')
   const [params, setParams] = useSearchParams()
   const navigate = useNavigate()
   const companyId = useCompanyStore((s) => s.activeCompanyId)
@@ -81,7 +83,7 @@ export default function ReportsPage() {
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div className="flex flex-col gap-1">
           <h1 className="text-page-title">Financial reports</h1>
-          <p className="text-body text-muted-foreground">Generated reports with AI narrative summaries</p>
+          <p className="text-body text-muted-foreground">Generated reports with AI narrative summaries{d ? ` · ${d.meta.company}` : ''}</p>
         </div>
         <div className="flex flex-wrap items-center gap-2.5">
           <button type="button" onClick={() => setSchedules(true)} disabled={!d} className={outlineBtn}>

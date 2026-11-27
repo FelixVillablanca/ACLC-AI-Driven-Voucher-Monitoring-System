@@ -17,6 +17,9 @@ use Illuminate\Support\Facades\DB;
  * Views (tabs): all · ai_flagged · high_value (≥ threshold) · near_sla (waited ≥ 75% of the review SLA) ·
  * resubmitted (came back after a return). Filters: department, amount range, search (number, payee, clerk).
  * "Waiting since" = submitted_at, which a resubmit moves, so a fixed voucher starts a new wait.
+ *
+ * LEVEL 2 (2026-11-27, the Supervisor's Approval queue, Framer RRXP4iCfd): `step: 2` reads `under_review` vouchers
+ * instead; views ai_flagged + high_value; each row also carries who approved Level 1 and when (= waiting since).
  */
 class ReviewQueue
 {
@@ -24,11 +27,21 @@ class ReviewQueue
 
     public const SORTS = ['oldest', 'newest', 'amount_desc', 'amount_asc'];
 
-    public function __construct(private User $officer, private Company $company, private ApprovalRoute $route) {}
+    public const LEVEL2_VIEWS = ['ai_flagged', 'high_value'];
+
+    public function __construct(private User $officer, private Company $company, private ApprovalRoute $route, private int $step = 1) {}
 
     public function base(): Builder
     {
-        return Voucher::query()->where('vouchers.company_id', $this->company->id)->where('vouchers.status', S::Pending->value);
+        return Voucher::query()->where('vouchers.company_id', $this->company->id)
+            ->where('vouchers.status', $this->step === 2 ? S::UnderReview->value : S::Pending->value);
+    }
+
+    /** The latest Level 1 approval of each voucher (who + when), for the Level 2 rows. */
+    private function level1(mixed $column)
+    {
+        return DB::table('voucher_approvals as l1')->select($column)->whereColumn('l1.voucher_id', 'vouchers.id')
+            ->where('l1.step', 1)->where('l1.action', 'approved')->orderByDesc('l1.id')->limit(1);
     }
 
     public function list(array $filters): Builder
@@ -43,6 +56,13 @@ class ReviewQueue
                     ->whereColumn('voucher_approvals.voucher_id', 'vouchers.id')->where('action', 'returned'),
             ])
             ->with('category:id,name');
+        if ($this->step === 2) {
+            $q->addSelect([
+                'level1_at' => $this->level1('l1.created_at'),
+                'level1_by' => $this->level1(DB::raw("(SELECT CONCAT(u.first_name, ' ', u.last_name) FROM users u WHERE u.id = l1.approver_id)")),
+                'level1_remarks' => $this->level1('l1.remarks'),
+            ]);
+        }
 
         return match ($filters['sort'] ?? null) {
             'newest' => $q->orderByDesc('vouchers.submitted_at')->orderByDesc('vouchers.id'),
@@ -102,6 +122,10 @@ class ReviewQueue
 
             return $q->count();
         };
+
+        if ($this->step === 2) {
+            return ['all' => $count(null), 'ai_flagged' => $count('ai_flagged'), 'high_value' => $count('high_value')];
+        }
 
         return [
             'all' => $count(null),
@@ -169,8 +193,8 @@ class ReviewQueue
     }
 
     /**
-     * The department's budget for THIS month (budget_allocations), read-only (user decision 2026-11-26):
-     * used now and after this voucher. Approving doesn't deduct yet; that comes with the Budgets screens.
+     * The department's budget for this fiscal year: used now and after this voucher (its FINAL approval adds it,
+     * ConsumeBudget). `over_by` = how much it would go over (null when it stays within).
      */
     public function budget(Voucher $voucher): ?array
     {
@@ -195,6 +219,7 @@ class ReviewQueue
             'after_pct' => $pct($after),
             'alert_pct' => (float) $row->alert_threshold_pct,
             'remaining_after' => bcsub((string) $row->total_budget, $after, 2),
+            'over_by' => bccomp($after, (string) $row->total_budget, 2) > 0 ? bcsub($after, (string) $row->total_budget, 2) : null,
         ];
     }
 }

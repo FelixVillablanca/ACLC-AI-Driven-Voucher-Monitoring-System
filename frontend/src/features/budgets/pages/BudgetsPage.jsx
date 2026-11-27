@@ -12,6 +12,7 @@ import { getBudgets } from '../api'
 import BudgetFormModal from '../components/BudgetFormModal'
 import UsageBar from '../components/UsageBar'
 import { BUDGETS_CHANGED_EVENT, budgetPath, compactMoney, pctText, TONE_TEXT, usageTone } from '../utils'
+import { usePageTitle } from '@/hooks/usePageTitle'
 
 const outlineBtn =
   'text-body-strong flex h-[38px] items-center gap-1.5 rounded-lg border bg-card px-3.5 outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50'
@@ -26,6 +27,7 @@ const primaryBtn =
  * "Change waiting" while a sign-off request is open; "Pending vouchers" = vouchers still in review.
  */
 export default function BudgetsPage() {
+  usePageTitle('Budgets')
   const [params, setParams] = useSearchParams()
   const navigate = useNavigate()
   const companyId = useCompanyStore((s) => s.activeCompanyId)

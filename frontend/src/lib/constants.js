@@ -99,7 +99,14 @@ export const PATHS = Object.freeze({
   OFFICER_NOTIFICATIONS: '/officer/notifications',
   OFFICER_PROFILE: '/officer/profile',
   OFFICER_CHANGE_PASSWORD: '/officer/change-password',
-  SUPERVISOR: '/supervisor',
+  SUPERVISOR: '/supervisor', // the Supervisor's dashboard = landing page (Framer YKfX_oJ3a, 2026-11-27)
+  SUPERVISOR_QUEUE: '/supervisor/queue', // the Approval queue (Framer RRXP4iCfd; the landing page until the dashboard came)
+  SUPERVISOR_VOUCHERS: '/supervisor/vouchers', // /supervisor/vouchers/:id = final review of one voucher
+  SUPERVISOR_HISTORY: '/supervisor/history', // Decision history
+  SUPERVISOR_FLAGGED: '/supervisor/flagged', // /supervisor/flagged/:id = investigate one flag (Framer ESBUdF0jl / lFqUUsfzi)
+  SUPERVISOR_NOTIFICATIONS: '/supervisor/notifications',
+  SUPERVISOR_PROFILE: '/supervisor/profile',
+  SUPERVISOR_CHANGE_PASSWORD: '/supervisor/change-password',
   FORBIDDEN: '/403',
   STATUS: '/status',
 })
@@ -121,11 +128,18 @@ export const ACCOUNT_PATHS = Object.freeze({
     notifications: PATHS.CLERK_NOTIFICATIONS,
     approvalGuide: PATHS.CLERK_APPROVAL_GUIDE,
   }),
-  // Accounting Officers (2026-11-26): the same account pages as clerks, plus notifications
+  // Accounting Officers (2026-11-26): the same account pages as clerks, plus notifications and (2026-11-27) Help & guides
   [ROLES.OFFICER]: Object.freeze({
     profile: PATHS.OFFICER_PROFILE,
     changePassword: PATHS.OFFICER_CHANGE_PASSWORD,
     notifications: PATHS.OFFICER_NOTIFICATIONS,
+    help: PATHS.OFFICER_HELP,
+  }),
+  // Supervisors / Managers (2026-11-27): profile, password and notifications
+  [ROLES.SUPERVISOR]: Object.freeze({
+    profile: PATHS.SUPERVISOR_PROFILE,
+    changePassword: PATHS.SUPERVISOR_CHANGE_PASSWORD,
+    notifications: PATHS.SUPERVISOR_NOTIFICATIONS,
   }),
   [ROLES.SUPER_ADMIN]: Object.freeze({
     profile: PATHS.SUPERADMIN_PROFILE,

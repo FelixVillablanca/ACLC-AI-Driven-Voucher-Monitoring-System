@@ -13,6 +13,7 @@ import { useCompanyStore } from '@/stores/useCompanyStore'
 import { downloadVoucherPdf, getReviewOptions, getReviewVoucher } from '../api'
 import { ApproveDialog, RejectDialog, ReturnDialog } from '../components/DecisionDialogs'
 import { announceReviewsChanged, flaggedPath, flagSourceText, reviewPath, supervisorNames, waitedText } from '../utils'
+import { usePageTitle } from '@/hooks/usePageTitle'
 
 const PAY = { cash: 'Cash', bank: 'Bank transfer', cheque: 'Check' }
 
@@ -60,6 +61,7 @@ function ReviewScreen({ id }) {
 
   const status = state.key === key ? state.status : 'loading'
   const v = status === 'success' ? state.v : null
+  usePageTitle(v?.voucher_number ? `Review ${v.voucher_number}` : 'Review voucher')
 
   const [dialog, setDialog] = useState(null) // 'approve' | 'return' | 'reject'
   const [remarks, setRemarks] = useState('')
@@ -325,17 +327,31 @@ function Compare({ label, number, amount, lines, highlight, to }) {
   )
 }
 
-/** A resubmitted voucher: what the last reviewer asked for, so you can check it was fixed. */
+/**
+ * A resubmitted voucher: what the last reviewer asked for, so you can check it was fixed. When the Supervisor sent it
+ * back to Accounting (Level 2 return, 2026-11-27) it's still the same submission: the note says so, highlighted.
+ */
 function PreviousReturn({ history }) {
   const last = [...(history ?? [])].reverse().find((h) => h.action === 'returned')
   if (!last) return null
+  const toUs = last.step === 2 && last.sent_to === 'accounting'
   return (
-    <section className="flex gap-2.5 rounded-xl border bg-card px-[18px] py-3.5" aria-label="Sent back before">
+    <section
+      className={cn('flex gap-2.5 rounded-xl border px-[18px] py-3.5', toUs ? 'border-warning/40 bg-warning-soft' : 'bg-card')}
+      aria-label="Sent back before"
+    >
       <Undo2 className="mt-0.5 size-4 shrink-0 text-warning" aria-hidden="true" />
       <div className="flex min-w-0 flex-col gap-1">
         <p className="text-body-strong">
-          Resubmitted · sent back {last.at ? formatTimeAgo(last.at) : ''} by {last.by ?? 'a reviewer'}
+          {toUs
+            ? `Sent back to Accounting by ${last.by ?? 'the Supervisor'} (Supervisor / Manager) ${last.at ? formatTimeAgo(last.at) : ''}`
+            : `Resubmitted · sent back ${last.at ? formatTimeAgo(last.at) : ''} by ${last.by ?? 'a reviewer'}`}
         </p>
+        {toUs && (
+          <p className="text-caption text-foreground">
+            Sort it out with the clerk, return it to them, or approve it again (it goes back to the Supervisor if it still needs Level 2).
+          </p>
+        )}
         {last.needs_changes?.length > 0 && (
           <div className="flex flex-wrap gap-1.5">
             {last.needs_changes.map((t) => (

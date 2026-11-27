@@ -13,6 +13,7 @@ import { downloadVoucherPdf, getInvestigation, getReviewOptions, getReviewVouche
 import { ApproveDialog, ReturnDialog } from '../components/DecisionDialogs'
 import MarkNormalDialog from '../components/MarkNormalDialog'
 import { announceReviewsChanged, flagSourceText, reviewPath, supervisorNames } from '../utils'
+import { usePageTitle } from '@/hooks/usePageTitle'
 
 const IMPACT = {
   high: { tone: 'danger', text: 'High' },
@@ -44,6 +45,7 @@ function InvestigateScreen({ id }) {
   const companyId = useCompanyStore((s) => s.activeCompanyId)
   const [state, setState] = useState({ status: 'loading', v: null, inv: null, error: null })
   const [attempt, setAttempt] = useState(0)
+  usePageTitle(state.v?.voucher_number ? `Investigate ${state.v.voucher_number}` : 'Investigate flag')
   const [options, setOptions] = useState(null)
 
   useEffect(() => {

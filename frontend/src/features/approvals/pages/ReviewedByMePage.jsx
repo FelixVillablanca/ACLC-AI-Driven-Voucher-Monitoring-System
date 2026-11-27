@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils'
 import { useCompanyStore } from '@/stores/useCompanyStore'
 import { listMyReviews } from '../api'
 import { REVIEWS_CHANGED_EVENT, reviewPath } from '../utils'
+import { usePageTitle } from '@/hooks/usePageTitle'
 
 const TABS = [
   { key: null, label: 'All' },
@@ -30,6 +31,7 @@ const LOOK = {
  * where it is now (e.g. approved by you, now "With Supervisor"). ?action=&page= in the address.
  */
 export default function ReviewedByMePage() {
+  usePageTitle('Reviewed by me')
   const [params, setParams] = useSearchParams()
   const companyId = useCompanyStore((s) => s.activeCompanyId)
   const action = params.get('action')
@@ -65,7 +67,7 @@ export default function ReviewedByMePage() {
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-[1000px] flex-col gap-[18px] px-4 py-6 sm:px-7">
+    <div className="mx-auto flex w-full max-w-[1200px] flex-col gap-[18px] px-4 py-6 sm:px-7">
       <div className="flex flex-col gap-1">
         <h1 className="text-page-title">Reviewed by me</h1>
         <p className="text-body text-muted-foreground">

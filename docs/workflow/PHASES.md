@@ -62,7 +62,7 @@ Phase 8  Deployment ─ put it on the internet (Docker, CI/CD, HTTPS, cloud back
 | 1 | Auth, tenancy & audit | 🟡 In progress: sign-in done; company scoping, policies, audit observer, company switcher left |
 | 2 | Admin & Super Admin module | 🟡 In progress: dashboards + several Super Admin tools done; most admin CRUD screens left |
 | 3 | Voucher core | 🟡 In progress: clerk vouchers + Drafts + Returned to me + Payees + Help & guides done; attachments, idempotency keys, PDF left |
-| 4 | Approvals & budgets | 🟡 In progress: Accounting Officer review (step 1) + budgets done; Supervisor step 2 left |
+| 4 | Approvals & budgets | 🟡 In progress: Officer step 1 + budgets done; Supervisor Level 2 approval done (2026-11-27); budget sign-off screen left |
 | 5 | AI service | ⬜ Not started (some groundwork ready: queue worker, failed-jobs catalog, ML health check) |
 | 6 | Reports & dashboards | ⬜ Not started |
 | 7 | Hardening | ⬜ Not started (tests are already written inside every phase) |
@@ -256,7 +256,22 @@ scheduler (§3.7), row locking for "only one at a time" rules (§3.4).
 ## Phase 4: Approvals & budgets
 
 **Goal:** officers and supervisors review vouchers, and budgets are spent safely.
-**Status:** 🟡 In progress (Accounting Officer step 1 done 2026-11-26; budgets, forecasts, reports and Help & guides 2026-11-27: **every Accounting Officer page is built**; Supervisor step 2 left, incl. signing off budget changes).
+**Status:** 🟡 In progress (Accounting Officer step 1 done 2026-11-26; budgets, forecasts, reports and Help & guides 2026-11-27: **every Accounting Officer page is built**; **Supervisor Level 2 approval, dashboard and Flagged pages done 2026-11-27**; left: the Supervisor's budget sign-off screen and oversight pages).
+
+> **Done 2026-11-27: Supervisor Flagged** (Framer `ESBUdF0jl` list, `lFqUUsfzi` investigate). No migration.
+> `Domain/Approvals/Queries/Level2Flags` (flagged vouchers at Level 2, sorts score / oldest / amount; open flags + money on
+> hold; flagged vouchers the Supervisor decided this month; how flags of the last 90 days ended; past vouchers to the payee).
+> API `GET /supervisor/flagged`, `GET /supervisor/vouchers/{id}/investigation`. Frontend `/supervisor/flagged[/:id]`
+> (`Level2FlaggedPage`, `InvestigateFlagPage`); the sidebar Flagged item and the dashboard card open it. Test in `SupervisorReviewTest`.
+
+> **Done 2026-11-27: Supervisor Level 2** (Framer `RRXP4iCfd` queue, `Nl0dfYkY_` review, `WQL6Ca1ML` approve, `PlbU6CVEj` return,
+> `tW_30cpOE` reject, `WAk4RKdFc` cleared). No migration. `Domain/Approvals/Actions/FinalReview` (one locked transaction per
+> decision, voucher_approvals step 2 + audit; final approval uses the budget via `ConsumeBudget`; flagged needs remarks; return
+> to the clerk or **to Accounting** (new transition `under_review → pending`, `reason` = `to_clerk` / `to_accounting`); reject;
+> bulk approve without flagged; 403 `SELF_REVIEW`, 409 `VOUCHER_ALREADY_REVIEWED`). `ReviewQueue` got a `step: 2` mode.
+> `SupervisorReviewController` + routes `/api/v1/supervisor/*`. Frontend `features/supervisor/` (queue, final review, dialogs,
+> Decision history); `/approval-rules` now says `supervisor_live: true`. The temporary `pages/RoleHomePage.jsx` is gone (every
+> operational role has real pages). Tests `SupervisorReviewTest`.
 
 > **Done 2026-11-26: Accounting Officer review** (Framer `vZeEe5_Hq` queue, `jQfdHPifl` review, `pzSaaMGhY` approve,
 > `XT9f8T3lY` return, `sozCOjfDk` reject, `Ssn7fclsz` cleared). User decisions: the Review queue is the officer's landing
@@ -290,7 +305,7 @@ scheduler (§3.7), row locking for "only one at a time" rules (§3.4).
 - **Segregation of duties:** nobody approves their own voucher.
 - **Step 2 routing:** AI-flagged or high-value vouchers (over the Super Admin's threshold, ₱50,000.00 by default)
   must go to a supervisor.
-- ~~**Budgets:** consumption with `lockForUpdate`, threshold alerts.~~ Done 2026-11-27. Left: the Supervisor's budget sign-off screen, and adding to the budget when the Supervisor gives the final approval (call `ConsumeBudget::consume` there).
+- ~~**Budgets:** consumption with `lockForUpdate`, threshold alerts.~~ Done 2026-11-27. Left: the Supervisor's budget sign-off screen. (The final approval already adds to the budget through `ConsumeBudget`.)
 - **Events → listeners → notifications** (queued): "voucher approved", "voucher pending", "budget alert".
 
 **Concepts:** pessimistic locking and race conditions (§3.4), event-driven design and queues with retries (§3.6).

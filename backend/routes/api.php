@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\V1\Admin\UserController as AdminUserController;
 use App\Http\Controllers\Api\V1\ApprovalRulesController;
 use App\Http\Controllers\Api\V1\Approvals\OfficerDashboardController;
 use App\Http\Controllers\Api\V1\Approvals\OfficerReviewController;
+use App\Http\Controllers\Api\V1\Approvals\SupervisorReviewController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\Budgets\BudgetController;
 use App\Http\Controllers\Api\V1\Clerk\DashboardController as ClerkDashboardController;
@@ -298,6 +299,24 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
                 Route::get('/flagged', 'flagged')->name('flagged');
                 Route::get('/vouchers/{voucher}/investigation', 'investigation')->whereNumber('voucher')->name('vouchers.investigation');
                 Route::post('/vouchers/{voucher}/normal', 'markNormal')->whereNumber('voucher')->middleware('throttle:60,1')->name('vouchers.normal');
+            });
+
+        // SUPERVISOR / MANAGER Level 2 (2026-11-27, Framer RRXP4iCfd … WAk4RKdFc): final approval, the company in X-Company-ID
+        Route::prefix('supervisor')->name('supervisor.')->controller(SupervisorReviewController::class)
+            ->middleware(['role:supervisor_manager', 'company'])->group(function () {
+                Route::get('/summary', 'summary')->name('summary');
+                Route::get('/dashboard', 'dashboard')->name('dashboard'); // landing page (Framer YKfX_oJ3a)
+                Route::get('/review-options', 'options')->name('review-options');
+                Route::get('/queue', 'index')->name('queue');
+                Route::get('/vouchers/{voucher}', 'show')->whereNumber('voucher')->name('vouchers.show');
+                Route::get('/vouchers/{voucher}/pdf', 'pdf')->whereNumber('voucher')->middleware('throttle:30,1')->name('vouchers.pdf');
+                Route::post('/vouchers/{voucher}/approve', 'approve')->whereNumber('voucher')->middleware('throttle:60,1')->name('vouchers.approve');
+                Route::post('/vouchers/{voucher}/return', 'returnVoucher')->whereNumber('voucher')->middleware('throttle:60,1')->name('vouchers.return');
+                Route::post('/vouchers/{voucher}/reject', 'reject')->whereNumber('voucher')->middleware('throttle:60,1')->name('vouchers.reject');
+                Route::post('/vouchers/bulk-approve', 'bulkApprove')->middleware('throttle:10,1')->name('vouchers.bulk-approve');
+                Route::get('/reviews', 'reviews')->name('reviews');
+                Route::get('/flagged', 'flagged')->name('flagged'); // Framer ESBUdF0jl
+                Route::get('/vouchers/{voucher}/investigation', 'investigation')->whereNumber('voucher')->name('vouchers.investigation'); // lFqUUsfzi
             });
 
         // ACCOUNTING OFFICER budgets (2026-11-27, Framer AwnFnuBYJ / kpJmhDxKE / MGf9CXv2s): yearly, per department

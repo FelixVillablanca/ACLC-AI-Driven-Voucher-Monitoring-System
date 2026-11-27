@@ -16,3 +16,9 @@ export async function getOfficerDashboard({ background = false } = {}) {
   const { data } = await apiClient.get('/officer/dashboard', background ? BACKGROUND : undefined)
   return data.data
 }
+
+/** The Supervisor / Manager's dashboard (Framer YKfX_oJ3a): Level 2 queue, released, budget, top 4, pipeline, alert. */
+export async function getSupervisorDashboard({ background = false } = {}) {
+  const { data } = await apiClient.get('/supervisor/dashboard', background ? BACKGROUND : undefined)
+  return data.data
+}

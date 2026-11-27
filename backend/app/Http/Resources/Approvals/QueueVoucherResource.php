@@ -6,6 +6,7 @@ use App\Domain\Approvals\Support\ApprovalRoute;
 use App\Models\Voucher;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Support\Carbon;
 
 /**
  * One row of the review queue (Framer vZeEe5_Hq): voucher · payee, a hint line (category + why it stands
@@ -43,6 +44,13 @@ class QueueVoucherResource extends JsonResource
             'resubmitted' => (bool) $this->was_returned,
             'submitted_at' => $this->submitted_at?->toIso8601String(),
             'sla' => $route->slaState($this->submitted_at),
+            // Level 2 rows (the Supervisor's queue, 2026-11-27): who approved Level 1 and when (= waiting since)
+            'step2_reasons' => $reasons,
+            'level1' => $this->level1_at ? [
+                'by' => $this->level1_by,
+                'at' => Carbon::parse($this->level1_at)->toIso8601String(),
+                'remarks' => $this->level1_remarks,
+            ] : null,
         ];
     }
 }

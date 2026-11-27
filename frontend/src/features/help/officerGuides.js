@@ -140,9 +140,12 @@ export const OFFICER_GUIDES = [
             p: 'The voucher moves to “With the Supervisor” and every Supervisor of the company gets a bell notice. The clerk is told it passed Accounting.',
           },
           {
-            note: 'The Supervisor’s approval screens come in an upcoming update. Until then, vouchers sent to Level 2 wait there.',
-            tone: 'info',
-            title: 'Not fully live yet',
+            list: [
+              'Final approval: the voucher is approved, the department’s budget is used, and you and the clerk are told.',
+              'Returned to the clerk: they fix it and resubmit; it comes back to your queue first.',
+              'Returned to Accounting: it’s back in your queue with the Supervisor’s note (highlighted). Approve it again, or return it to the clerk.',
+              'Rejected: closed for good; you and the clerk are told.',
+            ],
           },
         ],
       },

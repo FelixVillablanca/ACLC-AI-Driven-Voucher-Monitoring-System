@@ -1,7 +1,19 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { AnimatePresence } from 'framer-motion'
-import { ArrowRight, Check, CheckCheck, ChevronDown, LayoutDashboard, ListChecks, Search, SearchX, TriangleAlert, X } from 'lucide-react'
+import {
+  ArrowRight,
+  Check,
+  CheckCheck,
+  ChevronDown,
+  LayoutDashboard,
+  ListChecks,
+  PieChart,
+  Search,
+  SearchX,
+  TriangleAlert,
+  X,
+} from 'lucide-react'
 import toast from 'react-hot-toast'
 import ConfirmDialog from '@/components/common/ConfirmDialog'
 import ErrorState from '@/components/common/ErrorState'
@@ -15,6 +27,7 @@ import { useCompanyStore } from '@/stores/useCompanyStore'
 import { bulkApprove, getReviewOptions, listQueue } from '../api'
 import { useOfficerSummary } from '../hooks/useOfficerSummary'
 import { announceReviewsChanged, QUEUE_SORTS, QUEUE_VIEWS, REVIEWS_CHANGED_EVENT, reviewPath, waitedText } from '../utils'
+import { usePageTitle } from '@/hooks/usePageTitle'
 
 const outlineBtn =
   'text-body-strong flex h-[38px] items-center gap-1.5 rounded-lg border bg-card px-3.5 outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50'
@@ -28,9 +41,10 @@ const selectClass = 'text-body h-[38px] appearance-none rounded-lg border bg-car
  * amount and sort are in the address (?view=&q=&department=&amount=&sort=&page=). Bulk approve = select
  * mode (AI-flagged vouchers can't be picked). Reloads after a decision and every 60 s.
  * Code differs from the frame: the "Check" column is the rule-based automatic check (since 2026-11-27; "Not run"
- * for vouchers submitted before it existed); the cleared state also links to "See what you reviewed"; no "Check budgets" (no Budgets page).
+ * for vouchers submitted before it existed); the cleared state links to "See what you reviewed" and "Check budgets" (Framer Ssn7fclsz).
  */
 export default function ReviewQueuePage() {
+  usePageTitle('Review queue')
   const [params, setParams] = useSearchParams()
   const navigate = useNavigate()
   const companyId = useCompanyStore((s) => s.activeCompanyId)
@@ -564,9 +578,14 @@ function QueueCleared({ firstName, today }) {
           ))}
         </div>
       )}
-      <Link to={PATHS.OFFICER_REVIEWED} className={cn(outlineBtn, 'mt-1')}>
-        <ListChecks className="size-4" aria-hidden="true" /> See what you reviewed
-      </Link>
+      <div className="mt-1 flex flex-wrap justify-center gap-2.5">
+        <Link to={PATHS.OFFICER_REVIEWED} className={outlineBtn}>
+          <ListChecks className="size-4" aria-hidden="true" /> See what you reviewed
+        </Link>
+        <Link to={PATHS.OFFICER_BUDGETS} className={outlineBtn}>
+          <PieChart className="size-4" aria-hidden="true" /> Check budgets
+        </Link>
+      </div>
     </div>
   )
 }
