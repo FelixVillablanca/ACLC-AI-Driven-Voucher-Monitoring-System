@@ -41,6 +41,12 @@ class SystemSettings
 
     public const REQUIRE_TWO_FACTOR_FOR_ADMINS = 'security.require_two_factor_for_admins'; // false
 
+    /** Phase 7 step 1 (2026-11-28): Accounting Officers + Supervisors / Managers (they release money) must use two-step. */
+    public const REQUIRE_TWO_FACTOR_FOR_REVIEWERS = 'security.require_two_factor_for_reviewers'; // false
+
+    /** The roles REQUIRE_TWO_FACTOR_FOR_REVIEWERS covers. */
+    public const REVIEWER_ROLES = ['accounting_officer', 'supervisor_manager'];
+
     /**
      * STARTING VALUES ("platform defaults"), written once by SystemSettingsSeeder.
      * Super Admins change them later on the Global settings page; the seeder never overwrites a saved value.
@@ -114,6 +120,12 @@ class SystemSettings
             'group' => 'security',
             'label' => 'Require two-step for admins',
             'description' => 'Every Admin must set up two-step sign-in (an authenticator app).',
+        ],
+        self::REQUIRE_TWO_FACTOR_FOR_REVIEWERS => [
+            'value' => false,
+            'group' => 'security',
+            'label' => 'Require two-step for Accounting & Supervisors',
+            'description' => 'Every Accounting Officer and Supervisor / Manager must set up two-step sign-in (an authenticator app).',
         ],
     ];
 

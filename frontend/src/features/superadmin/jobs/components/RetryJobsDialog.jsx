@@ -149,11 +149,7 @@ function Window({ onClose }) {
           )}
 
           {list.status === 'success' && list.jobs.length === 0 && (
-            <EmptyState
-              icon={CircleCheck}
-              title="No failed jobs"
-              description="Every background job finished. There’s nothing to retry."
-            />
+            <EmptyState icon={CircleCheck} title="No failed jobs" description="Every background job finished. There’s nothing to retry." />
           )}
 
           {list.status === 'success' &&
@@ -177,7 +173,10 @@ function Window({ onClose }) {
             services.map((s) => (
               <div
                 key={s.title}
-                className={cn('flex flex-col gap-0.5 rounded-[10px] px-3 py-2.5', s.tone === 'danger' ? 'bg-danger-soft' : 'bg-warning-soft')}
+                className={cn(
+                  'flex flex-col gap-0.5 rounded-[10px] px-3 py-2.5',
+                  s.tone === 'danger' ? 'bg-danger-soft' : 'bg-warning-soft',
+                )}
               >
                 <p className={cn('text-badge', s.tone === 'danger' ? 'text-danger' : 'text-warning')}>{s.title}</p>
                 <p className="text-caption">{s.caption}</p>
@@ -243,8 +242,8 @@ function Window({ onClose }) {
             onCancel={() => setConfirmDelete(false)}
           >
             <p>
-              {selected.length === 1 ? 'It' : 'They'} will never run. Anything they were meant to do (for example an AI check)
-              won’t happen unless it’s started again some other way. This can’t be undone.
+              {selected.length === 1 ? 'It' : 'They'} will never run. Anything they were meant to do (for example an AI check) won’t happen
+              unless it’s started again some other way. This can’t be undone.
             </p>
           </ConfirmDialog>
         )}

@@ -49,18 +49,17 @@ export function companySubtitle(company) {
 
 /** "Apex Holdings Inc." → "AH"  ·  "Northfield" → "NO" */
 export function companyInitials(name = '') {
-  const words = name.replace(/[^\p{L}\p{N}\s]/gu, ' ').split(/\s+/).filter(Boolean)
+  const words = name
+    .replace(/[^\p{L}\p{N}\s]/gu, ' ')
+    .split(/\s+/)
+    .filter(Boolean)
   if (words.length === 0) return '?'
   if (words.length === 1) return words[0].slice(0, 2).toUpperCase()
   return (words[0][0] + words[1][0]).toUpperCase()
 }
 
 /** The logo tile colours rotate (indigo, green, amber) so neighbouring cards look different; suspended = grey. */
-const TILE_TONES = [
-  'bg-primary-soft text-primary',
-  'bg-success-soft text-success',
-  'bg-hero-amber-soft text-warning',
-]
+const TILE_TONES = ['bg-primary-soft text-primary', 'bg-success-soft text-success', 'bg-hero-amber-soft text-warning']
 
 export function tileTone(company) {
   if (company.status !== 'active') return 'bg-muted text-muted-foreground'

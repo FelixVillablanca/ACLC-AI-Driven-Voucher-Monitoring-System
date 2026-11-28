@@ -20,7 +20,10 @@ export default function CompanyCard({ company, onAction }) {
       className={cn('flex flex-col gap-3.5 rounded-xl border bg-card px-[18px] py-4', suspended && 'border-warning')}
     >
       <div className="flex items-start gap-3">
-        <div className={cn('text-badge flex size-11 shrink-0 items-center justify-center rounded-[10px]', tileTone(company))} aria-hidden="true">
+        <div
+          className={cn('text-badge flex size-11 shrink-0 items-center justify-center rounded-[10px]', tileTone(company))}
+          aria-hidden="true"
+        >
           {companyInitials(company.name)}
         </div>
         <div className="flex min-w-0 flex-1 flex-col gap-0.5">

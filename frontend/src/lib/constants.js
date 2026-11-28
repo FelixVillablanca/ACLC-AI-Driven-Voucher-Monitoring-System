@@ -86,6 +86,7 @@ export const PATHS = Object.freeze({
   CLERK_HELP: '/clerk/help',
   CLERK_PROFILE: '/clerk/profile',
   CLERK_CHANGE_PASSWORD: '/clerk/change-password',
+  CLERK_SETTINGS: '/clerk/settings', // Account settings: two-step + signed-in browsers (2026-11-28)
   CLERK_APPROVAL_GUIDE: '/clerk/how-vouchers-get-approved',
   OFFICER: '/officer', // the officer's dashboard = landing page (Framer tfDekIe0N, 2026-11-27)
   OFFICER_QUEUE: '/officer/queue', // the Review queue (was the landing page until 2026-11-27)
@@ -99,6 +100,7 @@ export const PATHS = Object.freeze({
   OFFICER_NOTIFICATIONS: '/officer/notifications',
   OFFICER_PROFILE: '/officer/profile',
   OFFICER_CHANGE_PASSWORD: '/officer/change-password',
+  OFFICER_SETTINGS: '/officer/settings', // Account settings (2026-11-28)
   SUPERVISOR: '/supervisor', // the Supervisor's dashboard = landing page (Framer YKfX_oJ3a, 2026-11-27)
   SUPERVISOR_QUEUE: '/supervisor/queue', // the Approval queue (Framer RRXP4iCfd; the landing page until the dashboard came)
   SUPERVISOR_VOUCHERS: '/supervisor/vouchers', // /supervisor/vouchers/:id = final review of one voucher
@@ -112,6 +114,7 @@ export const PATHS = Object.freeze({
   SUPERVISOR_NOTIFICATIONS: '/supervisor/notifications',
   SUPERVISOR_PROFILE: '/supervisor/profile',
   SUPERVISOR_CHANGE_PASSWORD: '/supervisor/change-password',
+  SUPERVISOR_SETTINGS: '/supervisor/settings', // Account settings (2026-11-28)
   FORBIDDEN: '/403',
   STATUS: '/status',
 })
@@ -129,6 +132,7 @@ export const ACCOUNT_PATHS = Object.freeze({
   // Clerks (2026-11-22): the pages that apply to them, plus notifications and the approval guide
   [ROLES.CLERK]: Object.freeze({
     profile: PATHS.CLERK_PROFILE,
+    settings: PATHS.CLERK_SETTINGS, // two-step sign-in + signed-in browsers (Phase 7, 2026-11-28)
     changePassword: PATHS.CLERK_CHANGE_PASSWORD,
     notifications: PATHS.CLERK_NOTIFICATIONS,
     approvalGuide: PATHS.CLERK_APPROVAL_GUIDE,
@@ -136,6 +140,7 @@ export const ACCOUNT_PATHS = Object.freeze({
   // Accounting Officers (2026-11-26): the same account pages as clerks, plus notifications and (2026-11-27) Help & guides
   [ROLES.OFFICER]: Object.freeze({
     profile: PATHS.OFFICER_PROFILE,
+    settings: PATHS.OFFICER_SETTINGS,
     changePassword: PATHS.OFFICER_CHANGE_PASSWORD,
     notifications: PATHS.OFFICER_NOTIFICATIONS,
     help: PATHS.OFFICER_HELP,
@@ -143,6 +148,7 @@ export const ACCOUNT_PATHS = Object.freeze({
   // Supervisors / Managers (2026-11-27): profile, password, notifications and Help & guides
   [ROLES.SUPERVISOR]: Object.freeze({
     profile: PATHS.SUPERVISOR_PROFILE,
+    settings: PATHS.SUPERVISOR_SETTINGS,
     changePassword: PATHS.SUPERVISOR_CHANGE_PASSWORD,
     notifications: PATHS.SUPERVISOR_NOTIFICATIONS,
     help: PATHS.SUPERVISOR_HELP,

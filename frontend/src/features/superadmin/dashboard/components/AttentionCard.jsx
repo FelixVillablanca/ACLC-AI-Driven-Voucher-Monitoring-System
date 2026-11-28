@@ -39,10 +39,7 @@ export default function AttentionCard({ items }) {
       ) : (
         <ul>
           {rows.map((row) => (
-            <li
-              key={row.title}
-              className="flex flex-wrap items-center gap-3 border-b px-[18px] py-3 last:border-b-0 sm:flex-nowrap"
-            >
+            <li key={row.title} className="flex flex-wrap items-center gap-3 border-b px-[18px] py-3 last:border-b-0 sm:flex-nowrap">
               <div className={cn('flex size-8 shrink-0 items-center justify-center rounded-lg', ICON_TILES[row.tone])}>
                 <row.icon className="size-4" aria-hidden="true" />
               </div>

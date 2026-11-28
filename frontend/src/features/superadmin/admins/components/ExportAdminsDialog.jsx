@@ -94,10 +94,7 @@ export default function ExportAdminsDialog({ counts, filters, selectedIds, onCan
                 onChange={() => setFormat(f.key)}
                 className="sr-only"
               />
-              <f.icon
-                className={cn('size-5 shrink-0', format === f.key ? 'text-primary' : 'text-muted-foreground')}
-                aria-hidden="true"
-              />
+              <f.icon className={cn('size-5 shrink-0', format === f.key ? 'text-primary' : 'text-muted-foreground')} aria-hidden="true" />
               <span>
                 <span className="text-body-strong block text-foreground">{f.label}</span>
                 <span className="text-caption">{f.hint}</span>
@@ -120,9 +117,7 @@ export default function ExportAdminsDialog({ counts, filters, selectedIds, onCan
           >
             <option value="all">All {plural(counts.all, 'account', 'accounts')}</option>
             {filtered && <option value="view">This view ({plural(counts.view, 'account', 'accounts')})</option>}
-            {selectedIds.length > 0 && (
-              <option value="selected">Selected ({plural(counts.selected, 'account', 'accounts')})</option>
-            )}
+            {selectedIds.length > 0 && <option value="selected">Selected ({plural(counts.selected, 'account', 'accounts')})</option>}
           </select>
           <ChevronDown
             className="pointer-events-none absolute top-1/2 right-2.5 size-4 -translate-y-1/2 text-muted-foreground"

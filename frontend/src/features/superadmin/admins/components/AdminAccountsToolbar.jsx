@@ -11,11 +11,7 @@ import SortMenu from './SortMenu'
 export default function AdminAccountsToolbar({ view, onView, counts, searchText, onSearchText, sort, order, onSort }) {
   return (
     <div className="flex flex-wrap items-center justify-between gap-2.5">
-      <div
-        role="tablist"
-        aria-label="Views"
-        className="flex max-w-full gap-0.5 overflow-x-auto rounded-lg border bg-card p-[3px]"
-      >
+      <div role="tablist" aria-label="Views" className="flex max-w-full gap-0.5 overflow-x-auto rounded-lg border bg-card p-[3px]">
         {VIEWS.map((v) => {
           const active = (view ?? 'all') === v.key
           const amber = active && v.tone === 'warning'

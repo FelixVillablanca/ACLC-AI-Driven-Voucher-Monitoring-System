@@ -122,9 +122,15 @@ export default function GlobalSettingsPage() {
     settings.replace(result.values, result.lastSaved)
     setDraft({})
     setOverlay(null)
-    toast.success(`${plural(result.changed.length, 'setting', 'settings')} saved. ${result.changed.length === 1 ? 'It applies' : 'They apply'} now.`)
+    toast.success(
+      `${plural(result.changed.length, 'setting', 'settings')} saved. ${result.changed.length === 1 ? 'It applies' : 'They apply'} now.`,
+    )
     if (result.adminsNotified != null) toast.success(`${plural(result.adminsNotified, 'admin was', 'admins were')} notified.`)
     if (result.twoFactorRequired) toast.success(`Two-step is now required for ${plural(result.twoFactorRequired, 'admin', 'admins')}.`)
+    if (result.twoFactorRequiredReviewers)
+      toast.success(
+        `Two-step is now required for ${plural(result.twoFactorRequiredReviewers, 'Accounting Officer or Supervisor', 'Accounting Officers and Supervisors')}.`,
+      )
   }
 
   const onConflict = async () => {
@@ -211,8 +217,8 @@ export default function GlobalSettingsPage() {
           <div className="flex items-start gap-2.5 rounded-xl border border-primary-soft bg-primary-faint px-4 py-3">
             <Info className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden="true" />
             <p className="text-body">
-              These rules apply to {ctx.companies === 1 ? 'the 1 company' : `all ${ctx.companies} companies`}. Admins can’t
-              change them. You’ll be asked for your password before saving.
+              These rules apply to {ctx.companies === 1 ? 'the 1 company' : `all ${ctx.companies} companies`}. Admins can’t change them.
+              You’ll be asked for your password before saving.
             </p>
           </div>
 
@@ -220,7 +226,7 @@ export default function GlobalSettingsPage() {
           <AiSettingsCard field={field} mlService={ctx.ml_service} />
           <div className="grid gap-4 xl:grid-cols-2">
             <OpenAiCard field={field} spent={ctx.openai_spent_this_month_usd} />
-            <SecurityCard field={field} admins={ctx.admins} />
+            <SecurityCard field={field} admins={ctx.admins} reviewers={ctx.reviewers} />
           </div>
           <BackupsCard backups={ctx.backups} />
         </div>

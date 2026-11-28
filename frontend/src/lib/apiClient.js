@@ -34,12 +34,31 @@ apiClient.interceptors.request.use((config) => {
   const companyId = useCompanyStore.getState().activeCompanyId
   if (companyId) config.headers['X-Company-ID'] = companyId
 
-  // Idempotency-Key: a unique ID per POST, so a double-click can't create two records
+  // Idempotency-Key (Phase 7 step 1, 2026-11-28): the SAME key when the same POST (address + company + body) is sent
+  // again within 10 s, e.g. a double-click; the server then answers the second one with the first one's result
+  // (backend EnsureIdempotency) instead of doing the work twice. A different request always gets a new key.
   if (config.method === 'post' && !config.headers['Idempotency-Key']) {
-    config.headers['Idempotency-Key'] = crypto.randomUUID()
+    config.headers['Idempotency-Key'] = idempotencyKeyFor(config, companyId)
   }
   return config
 })
+
+const REPEAT_WINDOW_MS = 10_000
+const recentPosts = new Map() // signature → { key, at }
+
+function idempotencyKeyFor(config, companyId) {
+  const body = config.data
+  // uploads (FormData) can't be compared cheaply: each gets its own key
+  if (typeof FormData !== 'undefined' && body instanceof FormData) return crypto.randomUUID()
+  const signature = `${config.url}|${companyId ?? ''}|${typeof body === 'string' ? body : JSON.stringify(body ?? null)}`
+  const now = Date.now()
+  for (const [sig, entry] of recentPosts) if (now - entry.at > REPEAT_WINDOW_MS) recentPosts.delete(sig)
+  const hit = recentPosts.get(signature)
+  if (hit) return hit.key
+  const key = crypto.randomUUID()
+  recentPosts.set(signature, { key, at: now })
+  return key
+}
 
 // AFTER every response: turn any error into our simple ApiError shape
 apiClient.interceptors.response.use(

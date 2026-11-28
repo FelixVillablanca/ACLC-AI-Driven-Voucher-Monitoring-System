@@ -39,10 +39,7 @@ export function useAuditLogs(filters, page) {
     fetchPage()
     const onChanged = () => fetchPage(true)
     window.addEventListener(AUDIT_CHANGED_EVENT, onChanged)
-    const timer =
-      page === 1
-        ? window.setInterval(() => document.visibilityState === 'visible' && fetchPage(true), LIVE_EVERY_MS)
-        : null
+    const timer = page === 1 ? window.setInterval(() => document.visibilityState === 'visible' && fetchPage(true), LIVE_EVERY_MS) : null
     return () => {
       window.removeEventListener(AUDIT_CHANGED_EVENT, onChanged)
       if (timer) window.clearInterval(timer)

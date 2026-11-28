@@ -34,12 +34,16 @@ class OwnTwoFactor
     /**
      * Why "Turn off" isn't allowed (null = it is):
      *   - an Admin, while the Global setting "Require two-step for admins" is on
+     *   - an Accounting Officer / Supervisor, while "Require two-step for Accounting & Supervisors" is on (2026-11-28)
      *   - a Super Admin required it for this account (the audit log remembers, even after setup)
      */
     public static function whyCantTurnOff(User $user): ?string
     {
         if ($user->role === 'admin' && app(SystemSettings::class)->value(SystemSettings::REQUIRE_TWO_FACTOR_FOR_ADMINS)) {
             return 'Two-step sign-in is required for every Admin (a Global setting).';
+        }
+        if (in_array($user->role, SystemSettings::REVIEWER_ROLES, true) && app(SystemSettings::class)->value(SystemSettings::REQUIRE_TWO_FACTOR_FOR_REVIEWERS)) {
+            return 'Two-step sign-in is required for every Accounting Officer and Supervisor (a Global setting).';
         }
         $required = $user->two_factor_required_at !== null || DB::table('audit_logs')
             ->where('action', 'two_factor_required')->where('table_name', 'users')->where('record_id', $user->id)->exists();

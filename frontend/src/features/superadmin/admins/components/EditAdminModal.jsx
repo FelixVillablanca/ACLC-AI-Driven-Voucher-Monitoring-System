@@ -59,8 +59,8 @@ function Window({ account, onClose }) {
               Edit {account.full_name}
             </h2>
             <p className="text-caption">
-              Admin{detail.account?.employee_id ? ` · ${detail.account.employee_id}` : ''}. Role changes have their own
-              action in the ⋯ menu.
+              Admin{detail.account?.employee_id ? ` · ${detail.account.employee_id}` : ''}. Role changes have their own action in the ⋯
+              menu.
             </p>
           </div>
           <button
@@ -110,14 +110,9 @@ function EditForm({ account, companies, onClose }) {
   const [busy, setBusy] = useState(false)
 
   // Their current company stays in the list even if it's suspended now
-  const options =
-    companies.some((c) => c.id === account.company?.id) || !account.company
-      ? companies
-      : [account.company, ...companies]
+  const options = companies.some((c) => c.id === account.company?.id) || !account.company ? companies : [account.company, ...companies]
 
-  const changed = Object.keys(values).filter(
-    (k) => String(values[k]).trim().toLowerCase() !== String(original[k]).trim().toLowerCase(),
-  )
+  const changed = Object.keys(values).filter((k) => String(values[k]).trim().toLowerCase() !== String(original[k]).trim().toLowerCase())
   const emailChanged = changed.includes('email_username')
   const signsOut = emailChanged || changed.includes('company_id')
 
@@ -249,9 +244,7 @@ function EditForm({ account, companies, onClose }) {
 
       <div className="flex flex-wrap items-center justify-end gap-2.5 border-t bg-muted px-6 py-3.5">
         <span className="text-caption mr-auto">
-          {changed.length === 0
-            ? 'No changes yet'
-            : `${plural(changed.length, 'change', 'changes')} · recorded in the audit log`}
+          {changed.length === 0 ? 'No changes yet' : `${plural(changed.length, 'change', 'changes')} · recorded in the audit log`}
         </span>
         <button
           type="button"

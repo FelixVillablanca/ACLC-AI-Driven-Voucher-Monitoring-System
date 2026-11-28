@@ -37,9 +37,9 @@ export function formatLastBackup(value) {
   return `${format(date, 'MMM d, HH:mm')} (${ago})`
 }
 
-/** "Saved to": the honest answer until Phase 8 moves backups to encrypted cloud storage. */
-export function destinationText(destination) {
-  return destination === 'local' ? 'This server · not encrypted yet' : 'Cloud storage · encrypted'
+/** "Saved to": where the file goes and whether it's encrypted (encrypted by default since 2026-11-28; R2 in Phase 8). */
+export function destinationText(destination, encrypted = true) {
+  return `${destination === 'local' ? 'This server' : 'Cloud storage'} · ${encrypted ? 'encrypted' : 'not encrypted'}`
 }
 
 /** The grey line under the dialog title. */

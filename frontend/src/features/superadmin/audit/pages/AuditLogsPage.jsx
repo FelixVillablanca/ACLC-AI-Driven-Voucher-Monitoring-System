@@ -53,10 +53,7 @@ export default function AuditLogsPage() {
   const [searchText, setSearchText] = useState(filters.search)
   const debounced = useDebounce(searchText.trim(), 300)
 
-  const update = useCallback(
-    (changes) => setParams((p) => writeFilters(p, changes), { replace: true }),
-    [setParams],
-  )
+  const update = useCallback((changes) => setParams((p) => writeFilters(p, changes), { replace: true }), [setParams])
   const setParam = useCallback(
     (name, value) =>
       setParams(
@@ -110,7 +107,14 @@ export default function AuditLogsPage() {
     setSearchText(entry.who.email ?? entry.who.name)
     setParams(
       (p) => {
-        writeFilters(p, { search: entry.who.email ?? entry.who.name, companies: [], actions: [], from: day, to: day === today ? null : day, sensitive: false })
+        writeFilters(p, {
+          search: entry.who.email ?? entry.who.name,
+          companies: [],
+          actions: [],
+          from: day,
+          to: day === today ? null : day,
+          sensitive: false,
+        })
         p.delete('event')
         return p
       },
@@ -123,12 +127,17 @@ export default function AuditLogsPage() {
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div className="flex min-w-0 flex-col gap-1">
           <h1 className="text-page-title">Audit logs</h1>
-          <p className="text-body text-muted-foreground">Every action on the platform, in every company. Entries can’t be edited or deleted.</p>
+          <p className="text-body text-muted-foreground">
+            Every action on the platform, in every company. Entries can’t be edited or deleted.
+          </p>
         </div>
         <div className="flex flex-wrap items-center gap-2.5">
           <span
             role="status"
-            className={cn('text-badge rounded-full px-2.5 py-1', isLive ? 'bg-success-soft text-success' : 'border bg-muted text-muted-foreground')}
+            className={cn(
+              'text-badge rounded-full px-2.5 py-1',
+              isLive ? 'bg-success-soft text-success' : 'border bg-muted text-muted-foreground',
+            )}
           >
             {isLive ? `● Live · updated ${list.updatedAt ? formatTimeAgo(list.updatedAt) : '…'}` : 'Showing past dates'}
           </span>
@@ -143,7 +152,11 @@ export default function AuditLogsPage() {
         </div>
       </div>
 
-      <AuditSummaryCards summary={summary} sensitiveOn={filters.sensitive} onSensitive={() => onFilters({ sensitive: !filters.sensitive })} />
+      <AuditSummaryCards
+        summary={summary}
+        sensitiveOn={filters.sensitive}
+        onSensitive={() => onFilters({ sensitive: !filters.sensitive })}
+      />
 
       <div className="overflow-hidden rounded-xl border bg-card">
         <AuditFilterBar
@@ -163,12 +176,22 @@ export default function AuditLogsPage() {
           onClearAll={clearAll}
         />
         {ip && looksLikeIp(filters.search) && (
-          <IpBanner ip={ip} onBlock={() => setOverlay('block')} onUnblock={(block) => setOverlay({ unblock: block })} unblocking={unblocking} />
+          <IpBanner
+            ip={ip}
+            onBlock={() => setOverlay('block')}
+            onUnblock={(block) => setOverlay({ unblock: block })}
+            unblocking={unblocking}
+          />
         )}
 
         {list.status === 'loading' && <TableSkeleton />}
         {list.status === 'error' && (
-          <ErrorState title="Couldn't load the audit log" message={list.error.message} requestId={list.error.requestId} onRetry={list.reload} />
+          <ErrorState
+            title="Couldn't load the audit log"
+            message={list.error.message}
+            requestId={list.error.requestId}
+            onRetry={list.reload}
+          />
         )}
         {list.status === 'success' && list.entries.length === 0 && (
           <NoResults filters={filters} options={options} onAllCompanies={() => onFilters({ companies: [] })} onClear={clearAll} />

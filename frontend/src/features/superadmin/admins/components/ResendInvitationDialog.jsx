@@ -32,8 +32,8 @@ export default function ResendInvitationDialog({ account, onCancel, onDone }) {
     >
       <ul className="list-disc space-y-1 pl-5">
         <li>
-          We email a new "set your password" link to{' '}
-          <strong className="font-medium text-foreground">{account.personal_email}</strong>. It works for 72 hours.
+          We email a new "set your password" link to <strong className="font-medium text-foreground">{account.personal_email}</strong>. It
+          works for 72 hours.
         </li>
         <li>The link sent earlier stops working.</li>
       </ul>

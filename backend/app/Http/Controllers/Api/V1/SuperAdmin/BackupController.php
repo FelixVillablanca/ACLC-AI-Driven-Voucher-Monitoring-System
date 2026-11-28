@@ -42,6 +42,7 @@ class BackupController extends Controller
             'database_size_bytes' => $databaseSize,
             'estimated_seconds' => $this->estimate($last, $databaseSize),
             'destination' => config('backup.destination'),
+            'encrypted' => (bool) config('backup.encrypt'), // Phase 7 (2026-11-28): BackupCipher
             'nightly_at' => config('backup.nightly_at'),
             'keep' => (int) config('backup.keep'),
             'current' => $current ? BackupResource::make($current) : null,

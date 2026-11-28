@@ -94,9 +94,7 @@ export default function SuspendCompanyDialog({ company, onCancel, onDone }) {
           onChange={(e) => setNotify(e.target.checked)}
           className="size-4 accent-primary"
         />
-        {company.admin
-          ? `Notify the admin in charge (${company.admin.full_name})`
-          : 'This company has no Admin to notify'}
+        {company.admin ? `Notify the admin in charge (${company.admin.full_name})` : 'This company has no Admin to notify'}
       </label>
 
       <FieldShell id="suspend-confirm" label={`Type ${word} to confirm`}>

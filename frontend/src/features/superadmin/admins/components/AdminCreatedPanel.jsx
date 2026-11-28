@@ -53,8 +53,8 @@ export default function AdminCreatedPanel({ result, onCreateAnother, onDone }) {
           <div role="status" className="flex items-start gap-3 rounded-[10px] bg-success-soft px-3.5 py-3">
             <MailCheck className="mt-0.5 size-4 shrink-0 text-success" aria-hidden="true" />
             <p className="text-caption">
-              <span className="font-medium text-success">Invitation sent to {admin.personal_email}.</span> The
-              set-password link works once and expires in 72 hours.
+              <span className="font-medium text-success">Invitation sent to {admin.personal_email}.</span> The set-password link works once
+              and expires in 72 hours.
             </p>
           </div>
         ) : (
@@ -64,10 +64,8 @@ export default function AdminCreatedPanel({ result, onCreateAnother, onDone }) {
           >
             <MailWarning className="size-4 shrink-0 text-warning" aria-hidden="true" />
             <p className="text-caption min-w-0 flex-1">
-              <span className="font-medium text-warning">
-                The account was created, but the email couldn&apos;t be sent
-              </span>{' '}
-              to {admin.personal_email}. Try again in a moment.
+              <span className="font-medium text-warning">The account was created, but the email couldn&apos;t be sent</span> to{' '}
+              {admin.personal_email}. Try again in a moment.
             </p>
             <button
               type="button"

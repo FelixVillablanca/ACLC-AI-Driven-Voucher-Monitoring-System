@@ -81,8 +81,8 @@ export default function MakeSuperAdminDialog({ account, onCancel, onDone, onRequ
         <>
           <p>
             Super Admins own the whole platform. Their email moves to{' '}
-            <strong className="font-medium text-foreground">{promotion.new_email}</strong>, they leave their company,
-            and they’re signed out once.
+            <strong className="font-medium text-foreground">{promotion.new_email}</strong>, they leave their company, and they’re signed out
+            once.
           </p>
 
           <div className="flex items-center justify-between gap-3 rounded-[10px] border bg-muted px-3 py-2.5">

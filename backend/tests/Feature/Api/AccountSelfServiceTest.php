@@ -170,6 +170,26 @@ class AccountSelfServiceTest extends TestCase
         $this->assertDatabaseHas('notifications', ['recipient_id' => $owner->id]);
     }
 
+    /** Phase 7 step 1 (2026-11-28): the same for every role, and Officers / Supervisors can set up two-step themselves. */
+    public function test_every_role_signs_out_other_browsers_and_can_start_two_step(): void
+    {
+        foreach (['accounting_clerk', 'accounting_officer', 'supervisor_manager'] as $i => $role) {
+            $this->flushSession(); // a fresh browser per person (the session remembers the last password)
+            $user = User::factory()->create(['role' => $role]);
+            DB::table('sessions')->insert(['id' => "other-{$i}", 'user_id' => $user->id, 'payload' => '', 'last_activity' => now()->timestamp]);
+
+            $setup = $this->as($user)->getJson('/api/v1/account/two-factor/setup');
+            $this->assertSame(200, $setup->status(), "{$role}: two-step setup");
+
+            $change = $this->as($user)->putJson('/api/v1/account/password', [
+                'current_password' => 'password', 'password' => 'Brand-new-pass-77', 'password_confirmation' => 'Brand-new-pass-77',
+            ]);
+            $this->assertSame(200, $change->status(), "{$role}: password change ".$change->getContent());
+            $this->assertSame(1, $change->json('data.other_sessions_signed_out'));
+            $this->assertDatabaseMissing('sessions', ['id' => "other-{$i}"]);
+        }
+    }
+
     // ---- Two-step ----------------------------------------------------------------------------
 
     public function test_turning_two_step_on_from_settings(): void

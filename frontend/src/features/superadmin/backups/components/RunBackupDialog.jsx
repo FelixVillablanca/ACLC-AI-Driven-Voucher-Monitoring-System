@@ -141,7 +141,8 @@ function ConfirmView({ overview, onStarted, onAlreadyRunning, onClose }) {
       onStarted(await startBackup({ notify }))
     } catch (err) {
       setBusy(false)
-      if (err.code === 'BACKUP_IN_PROGRESS') onAlreadyRunning() // someone else just started one: follow it
+      if (err.code === 'BACKUP_IN_PROGRESS')
+        onAlreadyRunning() // someone else just started one: follow it
       else setError(err)
     }
   }
@@ -150,7 +151,7 @@ function ConfirmView({ overview, onStarted, onAlreadyRunning, onClose }) {
     ['Last good backup', formatLastBackup(overview.last_success?.finished_at)],
     ['Database size', formatBytes(overview.database_size_bytes)],
     ['Estimated time', formatEstimate(overview.estimated_seconds)],
-    ['Saved to', destinationText(overview.destination)],
+    ['Saved to', destinationText(overview.destination, overview.encrypted !== false)],
   ]
 
   return (
@@ -219,4 +220,3 @@ function ConfirmView({ overview, onStarted, onAlreadyRunning, onClose }) {
     </>
   )
 }
-

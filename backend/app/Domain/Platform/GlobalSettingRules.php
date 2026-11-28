@@ -33,7 +33,8 @@ class GlobalSettingRules
             SystemSettings::REVIEW_SLA_HOURS => ['required', 'integer', 'in:'.implode(',', self::REVIEW_SLA_HOURS)],
             SystemSettings::AI_FLAGGED_NEEDS_STEP_2,
             SystemSettings::OPENAI_PAUSE_AT_CAP,
-            SystemSettings::REQUIRE_TWO_FACTOR_FOR_ADMINS => ['required', 'boolean'],
+            SystemSettings::REQUIRE_TWO_FACTOR_FOR_ADMINS,
+            SystemSettings::REQUIRE_TWO_FACTOR_FOR_REVIEWERS => ['required', 'boolean'],
         };
     }
 
@@ -49,7 +50,8 @@ class GlobalSettingRules
             SystemSettings::REVIEW_SLA_HOURS => (int) $value,
             SystemSettings::AI_FLAGGED_NEEDS_STEP_2,
             SystemSettings::OPENAI_PAUSE_AT_CAP,
-            SystemSettings::REQUIRE_TWO_FACTOR_FOR_ADMINS => filter_var($value, FILTER_VALIDATE_BOOLEAN),
+            SystemSettings::REQUIRE_TWO_FACTOR_FOR_ADMINS,
+            SystemSettings::REQUIRE_TWO_FACTOR_FOR_REVIEWERS => filter_var($value, FILTER_VALIDATE_BOOLEAN),
             default => $value,
         };
     }

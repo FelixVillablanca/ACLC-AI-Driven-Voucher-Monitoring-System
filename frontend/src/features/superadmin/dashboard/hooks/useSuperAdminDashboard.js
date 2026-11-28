@@ -25,9 +25,7 @@ export function useSuperAdminDashboard() {
       getSuperAdminDashboard({ background })
         .then((data) => setState({ status: 'success', data, error: null, refreshFailed: false }))
         .catch((error) =>
-          setState((prev) =>
-            prev.data ? { ...prev, refreshFailed: true } : { status: 'error', data: null, error, refreshFailed: false },
-          ),
+          setState((prev) => (prev.data ? { ...prev, refreshFailed: true } : { status: 'error', data: null, error, refreshFailed: false })),
         ),
     [],
   )

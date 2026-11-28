@@ -47,7 +47,10 @@ export default function AuditTable({ entries, expandedId, onToggle, onOpen, high
               <Fragment key={e.id}>
                 <tr
                   onClick={() => onToggle(e.id)}
-                  className={cn('cursor-pointer border-b align-middle hover:bg-muted/60', open && 'bg-primary-faint hover:bg-primary-faint')}
+                  className={cn(
+                    'cursor-pointer border-b align-middle hover:bg-muted/60',
+                    open && 'bg-primary-faint hover:bg-primary-faint',
+                  )}
                 >
                   <td className="py-3 pl-4">
                     <p className="text-body-strong">{formatDate(e.at, 'h:mm a')}</p>
@@ -58,7 +61,9 @@ export default function AuditTable({ entries, expandedId, onToggle, onOpen, high
                   </td>
                   <td className="px-3 py-3">
                     <span className="flex items-center gap-1.5">
-                      <span className={cn('text-badge rounded-full px-2 py-0.5 whitespace-nowrap', TONE_PILL[e.action.tone])}>{e.action.label}</span>
+                      <span className={cn('text-badge rounded-full px-2 py-0.5 whitespace-nowrap', TONE_PILL[e.action.tone])}>
+                        {e.action.label}
+                      </span>
                       {e.action.sensitive && <Flag className="size-3.5 shrink-0 text-warning" aria-label="Sensitive" />}
                     </span>
                   </td>
@@ -73,7 +78,9 @@ export default function AuditTable({ entries, expandedId, onToggle, onOpen, high
                   </td>
                   <td className="px-3 py-3">
                     {e.ip ? (
-                      <span className={e.ip === highlightIp ? 'text-badge rounded-full bg-danger-soft px-2 py-0.5 text-danger' : 'text-caption'}>
+                      <span
+                        className={e.ip === highlightIp ? 'text-badge rounded-full bg-danger-soft px-2 py-0.5 text-danger' : 'text-caption'}
+                      >
                         {e.ip}
                       </span>
                     ) : (
@@ -90,7 +97,11 @@ export default function AuditTable({ entries, expandedId, onToggle, onOpen, high
                       aria-label={`Open details of ${e.action.label}`}
                       className="flex size-7 items-center justify-center rounded-md text-muted-foreground outline-none hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50"
                     >
-                      {open ? <ChevronDown className="size-4 text-primary" aria-hidden="true" /> : <ChevronRight className="size-4" aria-hidden="true" />}
+                      {open ? (
+                        <ChevronDown className="size-4 text-primary" aria-hidden="true" />
+                      ) : (
+                        <ChevronRight className="size-4" aria-hidden="true" />
+                      )}
                     </button>
                   </td>
                 </tr>
@@ -101,7 +112,8 @@ export default function AuditTable({ entries, expandedId, onToggle, onOpen, high
                         <div className="flex flex-wrap items-center justify-between gap-2">
                           <span className="text-table-head text-muted-foreground">What changed</span>
                           <span className="text-caption">
-                            {[e.request_id && `Request ID ${e.request_id}`, e.browser].filter(Boolean).join(' · ') || 'No request details recorded'}
+                            {[e.request_id && `Request ID ${e.request_id}`, e.browser].filter(Boolean).join(' · ') ||
+                              'No request details recorded'}
                           </span>
                         </div>
                         <WhatChanged changes={e.changes} />
@@ -134,7 +146,10 @@ function Who({ who }) {
   if (who.kind === 'unknown') {
     return (
       <span className="flex items-center gap-2.5">
-        <span className="text-badge flex size-8 shrink-0 items-center justify-center rounded-full bg-danger-soft text-danger" aria-hidden="true">
+        <span
+          className="text-badge flex size-8 shrink-0 items-center justify-center rounded-full bg-danger-soft text-danger"
+          aria-hidden="true"
+        >
           ?
         </span>
         <span>
@@ -147,7 +162,10 @@ function Who({ who }) {
   if (who.kind === 'system') {
     return (
       <span className="flex items-center gap-2.5">
-        <span className="flex size-8 shrink-0 items-center justify-center rounded-full border bg-muted text-muted-foreground" aria-hidden="true">
+        <span
+          className="flex size-8 shrink-0 items-center justify-center rounded-full border bg-muted text-muted-foreground"
+          aria-hidden="true"
+        >
           <Settings2 className="size-4" />
         </span>
         <span>

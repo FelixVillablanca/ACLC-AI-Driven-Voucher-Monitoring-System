@@ -4,6 +4,7 @@ namespace App\Domain\Identity\Actions;
 
 use App\Domain\Audit\AuditTrail;
 use App\Domain\Identity\Support\EmployeeIdGenerator;
+use App\Domain\Identity\Support\TwoFactorRules;
 use App\Domain\Tenancy\Support\AdminCompany;
 use App\Models\Company;
 use App\Models\Notification;
@@ -64,6 +65,8 @@ class CreateUser
             'access_status' => 'accepted',
             'last_login_at' => null, // never signed in yet
         ]);
+
+        TwoFactorRules::applyFor($user); // "Require two-step for Accounting & Supervisors" (2026-11-28)
 
         if (! $isAdminRole) {
             $user->accessibleCompanies()->attach(

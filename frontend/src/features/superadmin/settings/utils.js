@@ -13,6 +13,7 @@ export const KEYS = Object.freeze({
   IDLE_TIMEOUT: 'security.super_admin_idle_timeout_minutes',
   FAILED_SIGN_INS: 'security.failed_sign_in_alert_after',
   TWO_FACTOR_ADMINS: 'security.require_two_factor_for_admins',
+  TWO_FACTOR_REVIEWERS: 'security.require_two_factor_for_reviewers', // Phase 7, 2026-11-28
 })
 
 /** The left-hand section list (amber dot = unsaved edits in that section). */
@@ -66,6 +67,7 @@ export const SETTINGS = {
   [KEYS.IDLE_TIMEOUT]: { group: 'security', label: 'Super Admin idle sign-out', show: (v) => `${v} minutes` },
   [KEYS.FAILED_SIGN_INS]: { group: 'security', label: 'Security alert after failed sign-ins', show: (v) => `${v} attempts` },
   [KEYS.TWO_FACTOR_ADMINS]: { group: 'security', label: 'Require two-step for admins', show: onOff },
+  [KEYS.TWO_FACTOR_REVIEWERS]: { group: 'security', label: 'Require two-step for Accounting & Supervisors', show: onOff },
 }
 
 export const showValue = (key, value) => (value == null ? 'Not set' : (SETTINGS[key]?.show(value) ?? String(value)))
@@ -156,6 +158,10 @@ export function impactText({ key, from, to }) {
       return to
         ? 'Every Admin without two-step gets 3 days to set it up (we email them the steps). New Admins set it up at their first sign-in.'
         : 'New Admins won’t have to set up two-step. Admins already asked still have to.'
+    case KEYS.TWO_FACTOR_REVIEWERS:
+      return to
+        ? 'Every Accounting Officer and Supervisor without two-step gets 3 days to set it up (we email the steps when they have a personal email). New ones set it up at their first sign-in.'
+        : 'New Accounting Officers and Supervisors won’t have to set up two-step. People already asked still have to.'
     default:
       return null
   }
@@ -167,6 +173,7 @@ export function lowersChecks({ key, from, to }) {
   if (key === KEYS.AI_FLAGGED_STEP2) return from === true && to === false
   if (key === KEYS.SENSITIVITY) return rank(to) < rank(from)
   if (key === KEYS.TWO_FACTOR_ADMINS) return from === true && to === false
+  if (key === KEYS.TWO_FACTOR_REVIEWERS) return from === true && to === false
   if (key === KEYS.OPENAI_PAUSE) return from === true && to === false
   return false
 }

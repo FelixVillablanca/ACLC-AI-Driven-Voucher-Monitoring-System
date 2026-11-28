@@ -5,11 +5,7 @@ import toast from 'react-hot-toast'
 import EmptyState from '@/components/common/EmptyState'
 import ErrorState from '@/components/common/ErrorState'
 import Pill from '@/components/common/Pill'
-import {
-  DeactivateAccountDialog,
-  ReactivateAccountDialog,
-  ResetAdminPasswordDialog,
-} from '@/features/superadmin/admins'
+import { DeactivateAccountDialog, ReactivateAccountDialog, ResetAdminPasswordDialog } from '@/features/superadmin/admins'
 import { ROLE_SHORT_LABELS } from '@/lib/constants'
 import { formatInitials, plural } from '@/lib/formatters'
 import { reviewSecurityAlert } from '../api'
@@ -117,11 +113,7 @@ export default function AlertDetailView({ alertId, onBack, onClose }) {
           />
         )}
         {detail.alert && dialog === 'reactivate' && (
-          <ReactivateAccountDialog
-            account={detail.alert.account}
-            onCancel={() => setDialog(null)}
-            onDone={onDialogDone}
-          />
+          <ReactivateAccountDialog account={detail.alert.account} onCancel={() => setDialog(null)} onDone={onDialogDone} />
         )}
         {detail.alert && dialog === 'reset' && (
           <ResetAdminPasswordDialog
@@ -175,9 +167,7 @@ function Loaded({ alert, reviewing, onMarkReviewed, onOpenDialog }) {
       </div>
 
       <footer className="flex flex-col gap-2 border-t bg-muted px-5 py-3.5">
-        {(actions.account_note || actions.reset_note) && (
-          <p className="text-caption">{actions.account_note ?? actions.reset_note}</p>
-        )}
+        {(actions.account_note || actions.reset_note) && <p className="text-caption">{actions.account_note ?? actions.reset_note}</p>}
         <div className="flex flex-wrap items-center gap-2">
           {actions.review && (
             <FooterButton onClick={onMarkReviewed} busy={reviewing}>
@@ -185,9 +175,7 @@ function Loaded({ alert, reviewing, onMarkReviewed, onOpenDialog }) {
             </FooterButton>
           )}
           {actions.reset_password && <FooterButton onClick={() => onOpenDialog('reset')}>Reset password</FooterButton>}
-          {actions.reactivate && (
-            <FooterButton onClick={() => onOpenDialog('reactivate')}>Reactivate account</FooterButton>
-          )}
+          {actions.reactivate && <FooterButton onClick={() => onOpenDialog('reactivate')}>Reactivate account</FooterButton>}
           {actions.deactivate && (
             <button
               type="button"
@@ -262,9 +250,7 @@ function WhatHappened({ alert }) {
         </button>
       )}
       {showAll && notKept > 0 && (
-        <p className="text-caption">
-          {plural(notKept, 'older attempt isn’t', 'older attempts aren’t')} listed (the last 50 are kept).
-        </p>
+        <p className="text-caption">{plural(notKept, 'older attempt isn’t', 'older attempts aren’t')} listed (the last 50 are kept).</p>
       )}
     </section>
   )

@@ -26,10 +26,7 @@ export default function AdminSummaryCards({ summary }) {
             <div
               key={card.label}
               title={card.hint}
-              className={cn(
-                'flex flex-col gap-0.5 rounded-xl border px-4 py-3',
-                card.warn ? 'bg-warning-soft' : 'bg-card',
-              )}
+              className={cn('flex flex-col gap-0.5 rounded-xl border px-4 py-3', card.warn ? 'bg-warning-soft' : 'bg-card')}
             >
               <p className={card.warn ? 'text-badge text-warning' : 'text-caption'}>{card.label}</p>
               <p className="text-stat-value">{card.value}</p>

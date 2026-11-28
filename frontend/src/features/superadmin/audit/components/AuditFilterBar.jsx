@@ -56,10 +56,7 @@ export default function AuditFilterBar({ searchText, onSearchText, filters, opti
       <CheckBox
         checked={filters.sensitive}
         onChange={(sensitive) => onChange({ sensitive })}
-        className={cn(
-          'h-[38px] rounded-lg border px-3',
-          filters.sensitive ? 'border-primary bg-primary-soft' : 'bg-card hover:bg-muted',
-        )}
+        className={cn('h-[38px] rounded-lg border px-3', filters.sensitive ? 'border-primary bg-primary-soft' : 'bg-card hover:bg-muted')}
       >
         <span className={filters.sensitive ? 'text-badge text-primary' : 'text-body'}>Sensitive only</span>
       </CheckBox>

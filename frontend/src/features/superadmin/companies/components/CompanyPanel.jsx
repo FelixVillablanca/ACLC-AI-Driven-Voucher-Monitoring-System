@@ -24,9 +24,7 @@ import { StatusPill } from './CompanyCard'
  */
 export default function CompanyPanel({ companyId, onClose, onAction }) {
   return (
-    <AnimatePresence>
-      {companyId && <Panel key={companyId} companyId={companyId} onClose={onClose} onAction={onAction} />}
-    </AnimatePresence>
+    <AnimatePresence>{companyId && <Panel key={companyId} companyId={companyId} onClose={onClose} onAction={onAction} />}</AnimatePresence>
   )
 }
 
@@ -81,7 +79,9 @@ function Panel({ companyId, onClose, onAction }) {
             </div>
             <ErrorState
               title={detail.error.status === 404 ? 'This company no longer exists' : "Couldn't load this company"}
-              message={detail.error.status === 404 ? 'It may have been removed. Close this panel to go back to the list.' : detail.error.message}
+              message={
+                detail.error.status === 404 ? 'It may have been removed. Close this panel to go back to the list.' : detail.error.message
+              }
               requestId={detail.error.requestId}
               onRetry={detail.error.status === 404 ? undefined : detail.reload}
             />
@@ -205,9 +205,7 @@ function Overview({ company, onSeeDepartments }) {
         {company.contact_email && <Fact label="Contact email">{company.contact_email}</Fact>}
         {company.contact_phone && <Fact label="Contact phone">{company.contact_phone}</Fact>}
         <Fact label="Users with two-step on">
-          {company.users_count === 0
-            ? 'No users yet'
-            : `${formatNumber(company.two_factor_on)} of ${formatNumber(company.users_count)}`}
+          {company.users_count === 0 ? 'No users yet' : `${formatNumber(company.two_factor_on)} of ${formatNumber(company.users_count)}`}
         </Fact>
         <Fact label="On the platform since">{company.created_at ? formatDate(company.created_at, 'MMM d, yyyy') : '—'}</Fact>
         <Fact label="Last activity">{company.last_activity_at ? formatTimeAgo(company.last_activity_at) : 'None yet'}</Fact>
@@ -279,12 +277,7 @@ function DepartmentsTab({ companyId }) {
   if (state.status === 'loading') return <TabLoading text="Loading departments…" />
   if (state.status === 'error')
     return (
-      <ErrorState
-        title="Couldn't load the departments"
-        message={state.error.message}
-        requestId={state.error.requestId}
-        onRetry={load}
-      />
+      <ErrorState title="Couldn't load the departments" message={state.error.message} requestId={state.error.requestId} onRetry={load} />
     )
   if (state.items.length === 0)
     return <EmptyState icon={Building2} title="No departments yet" description="The company’s Admin adds departments." />
@@ -330,7 +323,9 @@ function usePagedList(fetchPage) {
         )
         .catch((error) =>
           // a failed "Load more" keeps what's shown and offers to try again
-          setState((prev) => (page === 1 ? { status: 'error', items: [], meta: null, error, more: false } : { ...prev, error, more: false })),
+          setState((prev) =>
+            page === 1 ? { status: 'error', items: [], meta: null, error, more: false } : { ...prev, error, more: false },
+          ),
         ),
     [fetchPage],
   )
@@ -359,9 +354,10 @@ function UsersTab({ companyId }) {
 
   if (list.status === 'loading') return <TabLoading text="Loading users…" />
   if (list.status === 'error')
-    return <ErrorState title="Couldn't load the users" message={list.error.message} requestId={list.error.requestId} onRetry={list.reload} />
-  if (list.items.length === 0)
-    return <EmptyState icon={Users} title="No users yet" description="The company’s Admin creates its users." />
+    return (
+      <ErrorState title="Couldn't load the users" message={list.error.message} requestId={list.error.requestId} onRetry={list.reload} />
+    )
+  if (list.items.length === 0) return <EmptyState icon={Users} title="No users yet" description="The company’s Admin creates its users." />
 
   return (
     <>
@@ -397,8 +393,18 @@ function UserStatusPill({ status }) {
 /** What each history row says. Anything new and unknown still shows, with its raw action name. */
 const HISTORY = {
   company_created: { icon: Building2, tone: 'bg-primary-soft text-primary', text: 'Added to the platform', detail: () => null },
-  company_suspended: { icon: Ban, tone: 'bg-warning-soft text-warning', text: 'Suspended', detail: (e) => e.new?.reason && `“${e.new.reason}”` },
-  company_reactivated: { icon: RotateCcw, tone: 'bg-success-soft text-success', text: 'Reactivated', detail: (e) => e.new?.note && `Note: “${e.new.note}”` },
+  company_suspended: {
+    icon: Ban,
+    tone: 'bg-warning-soft text-warning',
+    text: 'Suspended',
+    detail: (e) => e.new?.reason && `“${e.new.reason}”`,
+  },
+  company_reactivated: {
+    icon: RotateCcw,
+    tone: 'bg-success-soft text-success',
+    text: 'Reactivated',
+    detail: (e) => e.new?.note && `Note: “${e.new.note}”`,
+  },
 }
 
 function HistoryTab({ companyId }) {
@@ -407,7 +413,9 @@ function HistoryTab({ companyId }) {
 
   if (list.status === 'loading') return <TabLoading text="Loading history…" />
   if (list.status === 'error')
-    return <ErrorState title="Couldn't load the history" message={list.error.message} requestId={list.error.requestId} onRetry={list.reload} />
+    return (
+      <ErrorState title="Couldn't load the history" message={list.error.message} requestId={list.error.requestId} onRetry={list.reload} />
+    )
 
   const createdAt = list.meta?.created_at
   const atTheEnd = !list.hasMore
@@ -419,7 +427,12 @@ function HistoryTab({ companyId }) {
     <>
       <ol className="flex flex-col">
         {list.items.map((e) => {
-          const kind = HISTORY[e.action] ?? { icon: Building2, tone: 'bg-muted text-muted-foreground', text: e.action.replaceAll('_', ' '), detail: () => null }
+          const kind = HISTORY[e.action] ?? {
+            icon: Building2,
+            tone: 'bg-muted text-muted-foreground',
+            text: e.action.replaceAll('_', ' '),
+            detail: () => null,
+          }
           const detail = kind.detail(e)
           return (
             <li key={e.id} className="flex gap-3 border-b py-3 last:border-b-0">
@@ -455,9 +468,7 @@ function HistoryTab({ companyId }) {
           </li>
         )}
       </ol>
-      {changes === 0 && (
-        <p className="text-caption">Never suspended. Suspensions and reactivations will show up here.</p>
-      )}
+      {changes === 0 && <p className="text-caption">Never suspended. Suspensions and reactivations will show up here.</p>}
       <LoadMore list={list} shown={list.items.length} noun={['change', 'changes']} />
     </>
   )
@@ -466,7 +477,11 @@ function HistoryTab({ companyId }) {
 function LoadMore({ list, shown, noun }) {
   return (
     <div className="flex flex-col items-center gap-1.5">
-      {list.error && <p role="alert" className="text-caption text-danger">Couldn’t load more: {list.error.message}</p>}
+      {list.error && (
+        <p role="alert" className="text-caption text-danger">
+          Couldn’t load more: {list.error.message}
+        </p>
+      )}
       {list.hasMore && (
         <button
           type="button"

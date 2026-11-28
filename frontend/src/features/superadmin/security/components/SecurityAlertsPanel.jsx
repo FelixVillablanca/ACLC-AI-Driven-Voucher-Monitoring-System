@@ -42,9 +42,7 @@ export default function SecurityAlertsPanel() {
   )
 
   return (
-    <AnimatePresence>
-      {open && <Drawer key="security-drawer" alertId={alertId} onClose={close} onShowAlert={showAlert} />}
-    </AnimatePresence>
+    <AnimatePresence>{open && <Drawer key="security-drawer" alertId={alertId} onClose={close} onShowAlert={showAlert} />}</AnimatePresence>
   )
 }
 

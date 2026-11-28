@@ -14,13 +14,27 @@ export default function CompaniesTable({ companies, onAction }) {
         <table className="w-full min-w-[960px] border-collapse text-left">
           <thead className="border-b bg-muted">
             <tr className="text-table-head text-muted-foreground">
-              <th scope="col" className="w-[310px] px-[18px] py-2.5 font-semibold">Company</th>
-              <th scope="col" className="w-[120px] py-2.5 font-semibold">Status</th>
-              <th scope="col" className="w-[110px] py-2.5 font-semibold">Departments</th>
-              <th scope="col" className="w-[100px] py-2.5 font-semibold">Users</th>
-              <th scope="col" className="w-[130px] py-2.5 font-semibold">Last activity</th>
-              <th scope="col" className="py-2.5 font-semibold">Admin</th>
-              <th scope="col" className="w-[170px] py-2.5 pr-[18px] font-semibold">Actions</th>
+              <th scope="col" className="w-[310px] px-[18px] py-2.5 font-semibold">
+                Company
+              </th>
+              <th scope="col" className="w-[120px] py-2.5 font-semibold">
+                Status
+              </th>
+              <th scope="col" className="w-[110px] py-2.5 font-semibold">
+                Departments
+              </th>
+              <th scope="col" className="w-[100px] py-2.5 font-semibold">
+                Users
+              </th>
+              <th scope="col" className="w-[130px] py-2.5 font-semibold">
+                Last activity
+              </th>
+              <th scope="col" className="py-2.5 font-semibold">
+                Admin
+              </th>
+              <th scope="col" className="w-[170px] py-2.5 pr-[18px] font-semibold">
+                Actions
+              </th>
             </tr>
           </thead>
           <tbody>

@@ -14,9 +14,7 @@ export function useAdminDetail(id) {
     (quiet = false) =>
       getAdmin(id)
         .then((account) => setState({ status: 'success', account, error: null }))
-        .catch((error) =>
-          setState((prev) => (quiet && prev.account ? prev : { status: 'error', account: null, error })),
-        ),
+        .catch((error) => setState((prev) => (quiet && prev.account ? prev : { status: 'error', account: null, error }))),
     [id],
   )
 

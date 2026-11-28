@@ -75,9 +75,7 @@ export default function SortMenu({ sort, order, onChange }) {
                 onClick={() => pick({ order: o.key })}
                 className={cn(
                   'flex h-8 flex-1 items-center justify-center gap-1 rounded-lg border outline-none focus-visible:ring-2 focus-visible:ring-ring/50',
-                  order === o.key
-                    ? 'text-badge border-primary bg-primary-soft text-primary'
-                    : 'text-caption hover:bg-muted',
+                  order === o.key ? 'text-badge border-primary bg-primary-soft text-primary' : 'text-caption hover:bg-muted',
                 )}
               >
                 <o.icon className="size-3.5" aria-hidden="true" />

@@ -14,9 +14,7 @@ export function useCompanyDetail(id) {
     (quiet = false) =>
       getCompany(id)
         .then((company) => setState({ status: 'success', company, error: null }))
-        .catch((error) =>
-          setState((prev) => (quiet && prev.company ? prev : { status: 'error', company: null, error })),
-        ),
+        .catch((error) => setState((prev) => (quiet && prev.company ? prev : { status: 'error', company: null, error }))),
     [id],
   )
 

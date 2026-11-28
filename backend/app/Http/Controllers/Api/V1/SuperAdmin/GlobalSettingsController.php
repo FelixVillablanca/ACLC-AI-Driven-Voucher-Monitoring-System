@@ -41,6 +41,12 @@ class GlobalSettingsController extends Controller
                     'without_two_factor' => User::where('role', 'admin')->where('is_active', true)
                         ->where(fn ($q) => $q->whereNull('two_factor_confirmed_at')->orWhereNull('two_factor_secret'))->count(),
                 ],
+                // Accounting Officers + Supervisors without two-step (the 2026-11-28 rule)
+                'reviewers' => [
+                    'active' => User::whereIn('role', SystemSettings::REVIEWER_ROLES)->where('is_active', true)->count(),
+                    'without_two_factor' => User::whereIn('role', SystemSettings::REVIEWER_ROLES)->where('is_active', true)
+                        ->where(fn ($q) => $q->whereNull('two_factor_confirmed_at')->orWhereNull('two_factor_secret'))->count(),
+                ],
                 // Data & backups: set in the server's configuration (config/backup.php), shown read-only
                 'backups' => ['nightly_at' => config('backup.nightly_at'), 'keep' => (int) config('backup.keep')],
                 'last_saved' => $this->settings->lastChange(),

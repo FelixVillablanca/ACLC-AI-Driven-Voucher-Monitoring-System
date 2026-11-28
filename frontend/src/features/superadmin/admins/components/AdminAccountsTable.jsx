@@ -95,9 +95,7 @@ export default function AdminAccountsTable({
         <EmptyState
           icon={search || view ? SearchX : Users}
           title={search ? `No account matches “${search}”` : view ? 'Nobody in this view' : 'No accounts yet'}
-          description={
-            search || view ? 'Try another name or email, or show everyone.' : 'Add the first Admin with “+ Add admin”.'
-          }
+          description={search || view ? 'Try another name or email, or show everyone.' : 'Add the first Admin with “+ Add admin”.'}
           action={
             (search || view) && (
               <button
@@ -148,10 +146,7 @@ export default function AdminAccountsTable({
                   Page {meta.current_page} of {meta.last_page}
                 </span>
                 <span aria-hidden="true">·</span>
-                <PagerButton
-                  disabled={meta.current_page >= meta.last_page}
-                  onClick={() => onPage(meta.current_page + 1)}
-                >
+                <PagerButton disabled={meta.current_page >= meta.last_page} onClick={() => onPage(meta.current_page + 1)}>
                   Next ›
                 </PagerButton>
               </nav>
@@ -170,10 +165,7 @@ function AccountRow({ account, checked, onToggle, onAction, seatsLeft }) {
   const twoStep = twoFactorLook(account.two_factor)
 
   return (
-    <div
-      role="row"
-      className={cn(GRID, 'border-b py-[9px] last:border-b-0', checked ? 'bg-primary-faint' : inactive && 'bg-muted')}
-    >
+    <div role="row" className={cn(GRID, 'border-b py-[9px] last:border-b-0', checked ? 'bg-primary-faint' : inactive && 'bg-muted')}>
       <span role="cell">
         <TickBox checked={checked} onChange={onToggle} label={`Select ${account.full_name}`} />
       </span>
@@ -211,11 +203,7 @@ function AccountRow({ account, checked, onToggle, onAction, seatsLeft }) {
         </Pill>
       </span>
       <span role="cell">
-        {twoStep.pill ? (
-          <Pill tone={twoStep.pill}>{twoStep.text}</Pill>
-        ) : (
-          <span className="text-caption">{twoStep.text}</span>
-        )}
+        {twoStep.pill ? <Pill tone={twoStep.pill}>{twoStep.text}</Pill> : <span className="text-caption">{twoStep.text}</span>}
       </span>
       <span role="cell">
         <Pill tone={status.tone}>{status.text}</Pill>
@@ -306,14 +294,7 @@ function SelectionBar({ count, onBulk, onClear }) {
 function TickBox({ checked, mixed = false, onChange, label, disabled = false }) {
   return (
     <label className={cn('flex size-5 items-center', disabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer')}>
-      <input
-        type="checkbox"
-        checked={checked}
-        disabled={disabled}
-        onChange={onChange}
-        aria-label={label}
-        className="peer sr-only"
-      />
+      <input type="checkbox" checked={checked} disabled={disabled} onChange={onChange} aria-label={label} className="peer sr-only" />
       <span
         aria-hidden="true"
         className={cn(
@@ -321,11 +302,7 @@ function TickBox({ checked, mixed = false, onChange, label, disabled = false }) 
           checked || mixed ? 'border-primary bg-primary text-primary-foreground' : 'bg-card',
         )}
       >
-        {checked ? (
-          <Check className="size-3" strokeWidth={3} />
-        ) : mixed ? (
-          <Minus className="size-3" strokeWidth={3} />
-        ) : null}
+        {checked ? <Check className="size-3" strokeWidth={3} /> : mixed ? <Minus className="size-3" strokeWidth={3} /> : null}
       </span>
     </label>
   )

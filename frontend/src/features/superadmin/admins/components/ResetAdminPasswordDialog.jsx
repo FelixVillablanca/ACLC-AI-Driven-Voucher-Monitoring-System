@@ -39,16 +39,11 @@ export default function ResetAdminPasswordDialog({ account, alertId = null, onCa
       onCancel={onCancel}
     >
       <p>
-        We’ll email a reset link to <strong className="font-medium text-foreground">{account.personal_email}</strong>.
-        It works once and expires in 60 minutes.
+        We’ll email a reset link to <strong className="font-medium text-foreground">{account.personal_email}</strong>. It works once and
+        expires in 60 minutes.
       </p>
       <label className="flex cursor-pointer items-start gap-2.5 rounded-[10px] border bg-muted px-3 py-2.5">
-        <input
-          type="checkbox"
-          checked={signOut}
-          onChange={(e) => setSignOut(e.target.checked)}
-          className="peer sr-only"
-        />
+        <input type="checkbox" checked={signOut} onChange={(e) => setSignOut(e.target.checked)} className="peer sr-only" />
         <span
           aria-hidden="true"
           className={cn(
@@ -65,9 +60,7 @@ export default function ResetAdminPasswordDialog({ account, alertId = null, onCa
           </span>
         </span>
       </label>
-      <p className="text-caption">
-        You never see or choose their new password. The reset is recorded in the audit log.
-      </p>
+      <p className="text-caption">You never see or choose their new password. The reset is recorded in the audit log.</p>
     </ConfirmDialog>
   )
 }

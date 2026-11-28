@@ -12,11 +12,13 @@ import SettingsCard from './SettingsCard'
  *   idle sign-out for Super Admins (EnforceIdleTimeout), the failed sign-in alert (WatchSignIns),
  *   and "Require two-step for admins" (asks every Admin without it to set it up).
  */
-export default function SecurityCard({ field, admins }) {
+export default function SecurityCard({ field, admins, reviewers }) {
   const idle = field(KEYS.IDLE_TIMEOUT)
   const failed = field(KEYS.FAILED_SIGN_INS)
   const twoStep = field(KEYS.TWO_FACTOR_ADMINS)
   const missing = admins?.without_two_factor ?? 0
+  const twoStepReviewers = field(KEYS.TWO_FACTOR_REVIEWERS)
+  const missingReviewers = reviewers?.without_two_factor ?? 0
 
   return (
     <SettingsCard id="security" icon={Lock} tone="danger" title="Security & sessions" caption="Sign-in rules for the platform.">
@@ -52,6 +54,22 @@ export default function SecurityCard({ field, admins }) {
         wasText={twoStep.wasText}
       >
         <Switch id={twoStep.id} checked={twoStep.value} onChange={twoStep.onChange} />
+      </SettingRow>
+
+      <SettingRow
+        id={twoStepReviewers.id}
+        title="Require two-step for Accounting & Supervisors"
+        caption={
+          !reviewers?.active
+            ? 'No active Accounting Officer or Supervisor yet.'
+            : missingReviewers === 0
+              ? 'Every active Accounting Officer and Supervisor already uses two-step.'
+              : `${missingReviewers} of ${reviewers.active} Accounting Officers and Supervisors haven’t set it up yet. They approve money.`
+        }
+        edited={twoStepReviewers.edited}
+        wasText={twoStepReviewers.wasText}
+      >
+        <Switch id={twoStepReviewers.id} checked={twoStepReviewers.value} onChange={twoStepReviewers.onChange} />
       </SettingRow>
     </SettingsCard>
   )

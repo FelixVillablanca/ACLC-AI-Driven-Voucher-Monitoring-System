@@ -16,8 +16,8 @@ export default function IpBanner({ ip, onBlock, onUnblock, unblocking }) {
             {ip.ip} is blocked {ip.blocked.until ? `until ${formatDate(ip.blocked.until, 'MMM d, h:mm a')}` : 'until someone unblocks it'}
           </p>
           <p className="text-caption">
-            “{ip.blocked.reason}”{ip.blocked.by && ` · by ${ip.blocked.by}`} ·{' '}
-            {plural(ip.blocked.refused_since, 'sign-in', 'sign-ins')} refused since
+            “{ip.blocked.reason}”{ip.blocked.by && ` · by ${ip.blocked.by}`} · {plural(ip.blocked.refused_since, 'sign-in', 'sign-ins')}{' '}
+            refused since
           </p>
         </div>
         <button

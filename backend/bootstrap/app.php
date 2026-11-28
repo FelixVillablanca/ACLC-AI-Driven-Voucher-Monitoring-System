@@ -4,6 +4,7 @@ use App\Exceptions\ApiErrorRenderer;
 use App\Http\Middleware\AssignRequestId;
 use App\Http\Middleware\EnforceIdleTimeout;
 use App\Http\Middleware\EnsureAccountInGoodStanding;
+use App\Http\Middleware\EnsureIdempotency;
 use App\Http\Middleware\EnsureUserHasRole;
 use App\Http\Middleware\ForceJsonResponse;
 use App\Http\Middleware\ResolveCompany;
@@ -39,6 +40,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'company' => ResolveCompany::class, // X-Company-ID must be a company the user has accepted access to
             'account.standing' => EnsureAccountInGoodStanding::class, // deactivated / company suspended -> signed out now
             'idle.timeout' => EnforceIdleTimeout::class,              // Super Admins: signed out after 15 idle minutes
+            'idempotent' => EnsureIdempotency::class,                 // same Idempotency-Key = same answer, the work done once
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

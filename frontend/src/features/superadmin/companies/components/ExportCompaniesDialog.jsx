@@ -108,9 +108,7 @@ export default function ExportCompaniesDialog({ summary, search, searchCount, so
                 >
                   {on && <span className="size-2 rounded-full bg-primary" />}
                 </span>
-                <span className={cn('truncate', on ? 'text-body-strong text-foreground' : 'text-body text-foreground')}>
-                  {f.label}
-                </span>
+                <span className={cn('truncate', on ? 'text-body-strong text-foreground' : 'text-body text-foreground')}>{f.label}</span>
               </label>
             )
           })}

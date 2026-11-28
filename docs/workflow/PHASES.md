@@ -258,6 +258,16 @@ scheduler (§3.7), row locking for "only one at a time" rules (§3.4).
 **Goal:** officers and supervisors review vouchers, and budgets are spent safely.
 **Status:** 🟡 In progress (Accounting Officer step 1 done 2026-11-26; budgets, forecasts, reports and Help & guides 2026-11-27: **every Accounting Officer page is built**; **Supervisor Level 2 approval, dashboard, Flagged, Decision history, Budgets + budget sign-off, Forecasts, Audit trail, Financial reports + sign-off, Help & guides done 2026-11-27**: every Supervisor page is built).
 
+> **Phase 7 started 2026-11-28 (security, step 1 of the readiness checklist doc):** security headers on every answer
+> (`SetSecurityHeaders`), library updates (`composer audit` clean, npm runtime clean, `xlsx` removed), idempotency keys
+> (migration `2026_11_28_000001`, **testing DB only**; `EnsureIdempotency` + apiClient key reuse), production session
+> cookie defaults. Tests `SecurityHeadersTest`, `IdempotencyTest`. Left: two-step for Officers / Supervisors, sign-out
+> everywhere on password change, encrypted backups, OWASP review write-up, Sentry.
+> Same day: two-step on Account settings for Clerks / Officers / Supervisors + Global setting "Require two-step for Accounting
+> & Supervisors"; password change signs out other browsers for every role; encrypted backups (`BackupCipher`, `backup:key`,
+> `backup:decrypt`); CORS origins from the environment; OWASP Top 10 review written in the checklist doc. Sentry moves to
+> Phase 8 (user decision 2026-11-28). **Next: Step 2 — Performance** (caching the polled numbers, indexes, N+1, audit search).
+
 > **Polish 2026-11-27 (all Supervisor pages):** dashboard Reports button, budget card + alert open Budgets, new "Waiting for
 > your sign-off" card (`SupervisorDashboardSummary::signoffs()`); queue cleared state "Check budgets" / "Back to dashboard"
 > (frame `WAk4RKdFc`); Budgets → Forecasts button; stale "no page yet" notes removed. Live smoke test on the testing DB:

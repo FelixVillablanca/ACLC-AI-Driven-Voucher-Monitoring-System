@@ -25,9 +25,7 @@ const TABS = [
  */
 export default function AdminProfilePanel({ accountId, onClose, onAction }) {
   return (
-    <AnimatePresence>
-      {accountId && <Panel key={accountId} accountId={accountId} onClose={onClose} onAction={onAction} />}
-    </AnimatePresence>
+    <AnimatePresence>{accountId && <Panel key={accountId} accountId={accountId} onClose={onClose} onAction={onAction} />}</AnimatePresence>
   )
 }
 
@@ -106,9 +104,7 @@ function Panel({ accountId, onClose, onAction }) {
             </div>
 
             <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto px-5 py-4">
-              {tab === 'overview' && (
-                <Overview account={account} onAction={onAction} onShowActivity={() => setTab('activity')} />
-              )}
+              {tab === 'overview' && <Overview account={account} onAction={onAction} onShowActivity={() => setTab('activity')} />}
               {tab === 'company' && <CompanyTab account={account} />}
               {tab === 'activity' && <ActivityTab accountId={account.id} />}
             </div>
@@ -202,10 +198,8 @@ function Overview({ account, onAction, onShowActivity }) {
       <TwoStepBox account={account} onAction={onAction} />
 
       <p className="text-caption">
-        {account.password_changed_at
-          ? `Password changed ${daysAgoText(account.password_changed_at)}`
-          : 'Password never changed'}{' '}
-        · {plural(account.failed_sign_ins_30d, 'failed sign-in', 'failed sign-ins')} in 30 days
+        {account.password_changed_at ? `Password changed ${daysAgoText(account.password_changed_at)}` : 'Password never changed'} ·{' '}
+        {plural(account.failed_sign_ins_30d, 'failed sign-in', 'failed sign-ins')} in 30 days
       </p>
 
       <Section title="Recent activity">
@@ -284,15 +278,9 @@ function TwoStepBox({ account, onAction }) {
 
 function CompanyTab({ account }) {
   if (account.role === 'super_admin') {
-    return (
-      <EmptyState
-        title="All companies"
-        description="Super Admins work outside every company: they run the whole platform."
-      />
-    )
+    return <EmptyState title="All companies" description="Super Admins work outside every company: they run the whole platform." />
   }
-  if (!account.company)
-    return <EmptyState title="No company" description="Edit their details to give them a company." />
+  if (!account.company) return <EmptyState title="No company" description="Edit their details to give them a company." />
   return (
     <Section title="Manages 1 company">
       <div className="flex items-center gap-3 rounded-[10px] border px-3.5 py-3">

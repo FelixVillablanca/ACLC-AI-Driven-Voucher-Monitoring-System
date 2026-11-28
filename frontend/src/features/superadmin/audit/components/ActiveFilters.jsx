@@ -44,9 +44,16 @@ export default function ActiveFilters({ filters, options, total, eventsToday, on
         </span>
       ))}
       <span className="text-caption ml-auto">
-        {total != null && (presetOf(filters) === 'today' ? `${formatNumber(total)} of ${formatNumber(eventsToday)} events today` : plural(total, 'event', 'events'))}
+        {total != null &&
+          (presetOf(filters) === 'today'
+            ? `${formatNumber(total)} of ${formatNumber(eventsToday)} events today`
+            : plural(total, 'event', 'events'))}
       </span>
-      <button type="button" onClick={onClearAll} className="text-auth-link rounded text-primary outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring/50">
+      <button
+        type="button"
+        onClick={onClearAll}
+        className="text-auth-link rounded text-primary outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring/50"
+      >
         Clear all
       </button>
     </div>

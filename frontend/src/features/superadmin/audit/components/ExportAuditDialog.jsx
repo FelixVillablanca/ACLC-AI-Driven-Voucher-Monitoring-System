@@ -89,7 +89,11 @@ export default function ExportAuditDialog({ filters, counts, onCancel, onDone })
         {[
           { key: 'all', label: 'All events', hint: range === 'page' ? formatNumber(counts.all) : null },
           { key: 'sensitive', label: '⚑ Sensitive actions only', hint: range === 'page' ? formatNumber(counts.sensitive) : null },
-          { key: 'filters', label: 'Match the filters on the page', hint: range === 'page' ? formatNumber(counts.filters) : 'Search, company and action filters' },
+          {
+            key: 'filters',
+            label: 'Match the filters on the page',
+            hint: range === 'page' ? formatNumber(counts.filters) : 'Search, company and action filters',
+          },
         ].map((o) => (
           <label
             key={o.key}
@@ -118,8 +122,8 @@ export default function ExportAuditDialog({ filters, counts, onCancel, onDone })
       <div className="flex items-start gap-2 rounded-[10px] bg-warning-soft px-3.5 py-2.5">
         <AlertTriangle className="mt-0.5 size-4 shrink-0 text-warning" aria-hidden="true" />
         <p className="text-caption text-foreground">
-          The file holds names, emails and IP addresses. Keep it somewhere safe. Amounts are never included. This export is also
-          recorded in the audit log.
+          The file holds names, emails and IP addresses. Keep it somewhere safe. Amounts are never included. This export is also recorded in
+          the audit log.
         </p>
       </div>
 

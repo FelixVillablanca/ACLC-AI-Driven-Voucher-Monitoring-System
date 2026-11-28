@@ -73,7 +73,12 @@ export default function DateRangeMenu({ value, onChange }) {
                   </button>
                 )
               })}
-              <span className={cn('flex h-8 items-center rounded-md px-2.5', !preset ? 'text-badge bg-primary-soft text-primary' : 'text-body text-muted-foreground')}>
+              <span
+                className={cn(
+                  'flex h-8 items-center rounded-md px-2.5',
+                  !preset ? 'text-badge bg-primary-soft text-primary' : 'text-body text-muted-foreground',
+                )}
+              >
                 Custom range
               </span>
             </div>

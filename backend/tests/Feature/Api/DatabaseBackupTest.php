@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Api;
 
+use App\Domain\Platform\Backups\BackupCipher;
 use App\Domain\Platform\Backups\DumpDatabase;
 use App\Jobs\RunDatabaseBackup;
 use App\Models\Backup;
@@ -157,14 +158,23 @@ class DatabaseBackupTest extends TestCase
         $this->assertCount(7, Storage::disk('local')->files('backups'));
     }
 
-    public function test_the_real_mysqldump_makes_a_gzip_file(): void
+    public function test_the_real_mysqldump_makes_an_encrypted_gzip_file(): void
     {
         $dump = app(DumpDatabase::class)->handle('real-check');
 
-        $sql = gzdecode(Storage::disk('local')->get($dump['path']));
+        // Phase 7 (2026-11-28): only the encrypted copy stays; it decrypts back to the gzip mysqldump made
+        $this->assertSame('backups/real-check.sql.gz.enc', $dump['path']);
+        $this->assertFileDoesNotExist(Storage::disk('local')->path('backups/real-check.sql.gz'));
+        $plain = Storage::disk('local')->path('backups/real-check.check.gz');
+        BackupCipher::decryptFile(Storage::disk('local')->path($dump['path']), $plain);
+        $sql = gzdecode((string) file_get_contents($plain));
+        unlink($plain);
         $this->assertStringContainsString('CREATE TABLE `backups`', $sql);
         $this->assertGreaterThan(0, $dump['size_bytes']);
         $this->assertFileDoesNotExist(Storage::disk('local')->path('backups/real-check.sql.tmp'));
+
+        $this->artisan('backup:decrypt', ['file' => Storage::disk('local')->path($dump['path'])])->assertSuccessful();
+        $this->assertFileExists(Storage::disk('local')->path('backups/real-check.sql.gz'));
     }
 
     public function test_the_password_never_goes_on_the_command_line(): void

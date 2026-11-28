@@ -263,13 +263,19 @@ export default function CompaniesPage() {
           </p>
           {meta.last_page > 1 && (
             <nav aria-label="Pages" className="flex items-center gap-2">
-              <PagerButton disabled={meta.current_page <= 1} onClick={() => update({ page: meta.current_page - 1 > 1 ? meta.current_page - 1 : null }, { keepPage: true })}>
+              <PagerButton
+                disabled={meta.current_page <= 1}
+                onClick={() => update({ page: meta.current_page - 1 > 1 ? meta.current_page - 1 : null }, { keepPage: true })}
+              >
                 ‹ Previous
               </PagerButton>
               <span aria-current="page">
                 Page {meta.current_page} of {meta.last_page}
               </span>
-              <PagerButton disabled={meta.current_page >= meta.last_page} onClick={() => update({ page: meta.current_page + 1 }, { keepPage: true })}>
+              <PagerButton
+                disabled={meta.current_page >= meta.last_page}
+                onClick={() => update({ page: meta.current_page + 1 }, { keepPage: true })}
+              >
                 Next ›
               </PagerButton>
             </nav>

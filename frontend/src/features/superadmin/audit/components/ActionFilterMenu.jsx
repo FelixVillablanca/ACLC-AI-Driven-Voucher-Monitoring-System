@@ -66,7 +66,12 @@ export default function ActionFilterMenu({ groups, counts, value, onChange }) {
                     <CheckBox checked={all} onChange={(v) => setGroup(g, v)} label={g.label} className="min-w-0 flex-1">
                       <span className={cn('min-w-0 flex-1 truncate', ticked ? 'text-badge text-primary' : 'text-body-strong')}>
                         {g.label}
-                        {ticked > 0 && !all && <span className="text-caption"> · {ticked} of {keys.length}</span>}
+                        {ticked > 0 && !all && (
+                          <span className="text-caption">
+                            {' '}
+                            · {ticked} of {keys.length}
+                          </span>
+                        )}
                       </span>
                     </CheckBox>
                     <button
@@ -77,7 +82,11 @@ export default function ActionFilterMenu({ groups, counts, value, onChange }) {
                       className="text-caption flex items-center gap-1 rounded px-1 outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50"
                     >
                       {formatNumber(counts?.groups?.[g.key] ?? 0)}
-                      {expanded ? <ChevronDown className="size-3.5" aria-hidden="true" /> : <ChevronRight className="size-3.5" aria-hidden="true" />}
+                      {expanded ? (
+                        <ChevronDown className="size-3.5" aria-hidden="true" />
+                      ) : (
+                        <ChevronRight className="size-3.5" aria-hidden="true" />
+                      )}
                     </button>
                   </div>
                   {expanded && (

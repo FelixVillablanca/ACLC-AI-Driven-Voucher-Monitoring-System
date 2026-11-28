@@ -4,7 +4,7 @@
 | Database backups (Framer TKziMjHUe "Run a database backup now?").
 | A backup = mysqldump of the whole database, gzip-compressed, saved under
 | storage/app/private/backups (never reachable from the web).
-| Phase 8 moves the files to Cloudflare R2 and encrypts them.
+| Encrypted since 2026-11-28 (BackupCipher); Phase 8 moves the files to Cloudflare R2.
 */
 
 return [
@@ -16,8 +16,14 @@ return [
     // Folder inside storage/app/private
     'directory' => 'backups',
 
-    // Where the dialog says the file goes ("This server · not encrypted yet")
+    // Where the dialog says the file goes ("This server · encrypted")
     'destination' => env('BACKUP_DESTINATION', 'local'),
+
+    // Phase 7 step 1 (2026-11-28): every backup file is encrypted (BackupCipher). BACKUP_ENCRYPTION_KEY = base64 of
+    // 32 random bytes (`php artisan backup:key`); empty = a key derived from APP_KEY. Keep a copy of the key OUTSIDE
+    // the server: without it no backup can be restored.
+    'encrypt' => (bool) env('BACKUP_ENCRYPT', true),
+    'encryption_key' => env('BACKUP_ENCRYPTION_KEY', ''),
 
     // Nightly backup time (24 h clock, APP_TIMEZONE)
     'nightly_at' => env('BACKUP_NIGHTLY_AT', '02:00'),

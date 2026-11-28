@@ -65,11 +65,13 @@ export default function CompanyFilterMenu({ options, counts = {}, value, onChang
               />
             </div>
             <div className="text-caption flex items-center justify-between">
-              <span>
-                {draft.length === 0 ? 'All shown' : `${draft.length} of ${rows.length} selected`}
-              </span>
+              <span>{draft.length === 0 ? 'All shown' : `${draft.length} of ${rows.length} selected`}</span>
               <span className="flex gap-3">
-                <button type="button" onClick={() => setDraft(rows.map((r) => r.key))} className="text-auth-link rounded text-primary hover:underline">
+                <button
+                  type="button"
+                  onClick={() => setDraft(rows.map((r) => r.key))}
+                  className="text-auth-link rounded text-primary hover:underline"
+                >
                   Select all
                 </button>
                 <button type="button" onClick={() => setDraft([])} className="text-auth-link rounded text-primary hover:underline">
@@ -85,7 +87,11 @@ export default function CompanyFilterMenu({ options, counts = {}, value, onChang
               return (
                 <CheckBox key={r.key} checked={on} onChange={(v) => toggle(r.key, v)} className="rounded-lg px-2 py-2 hover:bg-muted">
                   <span className={on ? 'text-body-strong min-w-0 flex-1 truncate' : 'text-body min-w-0 flex-1 truncate'}>{r.name}</span>
-                  {r.suspended ? <Pill tone="warning">Suspended</Pill> : <span className="text-caption">{formatNumber(counts[r.key] ?? 0)}</span>}
+                  {r.suspended ? (
+                    <Pill tone="warning">Suspended</Pill>
+                  ) : (
+                    <span className="text-caption">{formatNumber(counts[r.key] ?? 0)}</span>
+                  )}
                 </CheckBox>
               )
             })}

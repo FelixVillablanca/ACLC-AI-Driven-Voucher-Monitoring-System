@@ -11,9 +11,22 @@ import { createCn } from 'cn/config'
  * Add a name here whenever a new text style is added to main.css.
  */
 const TEXT_STYLES = [
-  'auth-heading', 'page-title', 'stat-value', 'card-title', 'body', 'body-strong', 'label',
-  'caption', 'table-head', 'nav-section', 'badge', 'display',
-  'auth-link', 'auth-button', 'brand-logo', 'brand-small',
+  'auth-heading',
+  'page-title',
+  'stat-value',
+  'card-title',
+  'body',
+  'body-strong',
+  'label',
+  'caption',
+  'table-head',
+  'nav-section',
+  'badge',
+  'display',
+  'auth-link',
+  'auth-button',
+  'brand-logo',
+  'brand-small',
 ]
 
 export const cn = createCn({

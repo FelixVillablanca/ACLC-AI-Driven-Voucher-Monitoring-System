@@ -34,8 +34,8 @@ export default function CancelInviteDialog({ account, onCancel, onDone }) {
       <ul className="list-disc space-y-1 pl-5">
         <li>The account is deleted and their “set your password” link stops working.</li>
         <li>
-          <strong className="font-medium text-foreground">{account.email}</strong> becomes free, so you can invite them
-          again (for example after a typo).
+          <strong className="font-medium text-foreground">{account.email}</strong> becomes free, so you can invite them again (for example
+          after a typo).
         </li>
         <li>A record stays in the audit log, and the other Super Admins are told.</li>
       </ul>

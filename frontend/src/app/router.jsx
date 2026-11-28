@@ -297,6 +297,7 @@ export const router = createBrowserRouter([
                       { path: PATHS.CLERK_APPROVAL_GUIDE, lazy: page(() => import('@/features/vouchers/pages/ApprovalGuidePage')) },
                       // ⋮ menu: the account pages that apply to a clerk
                       { path: PATHS.CLERK_PROFILE, lazy: page(() => import('@/features/account/pages/MyProfilePage')) },
+                      { path: PATHS.CLERK_SETTINGS, lazy: page(() => import('@/features/account/pages/AccountSettingsPage')) },
                       { path: PATHS.CLERK_CHANGE_PASSWORD, lazy: page(() => import('@/features/account/pages/ChangePasswordPage')) },
                     ],
                   },
@@ -360,6 +361,7 @@ export const router = createBrowserRouter([
                       },
                       notificationsPage(PATHS.OFFICER_NOTIFICATIONS, OFFICER_NOTIFICATION_LINKS),
                       { path: PATHS.OFFICER_PROFILE, lazy: page(() => import('@/features/account/pages/MyProfilePage')) },
+                      { path: PATHS.OFFICER_SETTINGS, lazy: page(() => import('@/features/account/pages/AccountSettingsPage')) },
                       { path: PATHS.OFFICER_CHANGE_PASSWORD, lazy: page(() => import('@/features/account/pages/ChangePasswordPage')) },
                     ],
                   },
@@ -422,6 +424,7 @@ export const router = createBrowserRouter([
                       },
                       notificationsPage(PATHS.SUPERVISOR_NOTIFICATIONS, SUPERVISOR_NOTIFICATION_LINKS),
                       { path: PATHS.SUPERVISOR_PROFILE, lazy: page(() => import('@/features/account/pages/MyProfilePage')) },
+                      { path: PATHS.SUPERVISOR_SETTINGS, lazy: page(() => import('@/features/account/pages/AccountSettingsPage')) },
                       { path: PATHS.SUPERVISOR_CHANGE_PASSWORD, lazy: page(() => import('@/features/account/pages/ChangePasswordPage')) },
                     ],
                   },

@@ -4,6 +4,7 @@ namespace App\Domain\Identity\CompanyUsers;
 
 use App\Domain\Audit\AuditTrail;
 use App\Domain\Identity\Support\RoleEmailDomains;
+use App\Domain\Identity\Support\TwoFactorRules;
 use App\Domain\Security\Support\OwnerActivity;
 use App\Domain\Tenancy\Support\AdminCompany;
 use App\Exceptions\ApiException;
@@ -66,6 +67,7 @@ class UpdateCompanyUser
 
             if ($roleChanged) {
                 OwnerActivity::signOutEverywhere($target);
+                TwoFactorRules::applyFor($target); // moved into Accounting / Supervisor while two-step is required
             }
 
             AuditTrail::record([

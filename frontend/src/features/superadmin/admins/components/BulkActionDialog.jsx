@@ -91,12 +91,7 @@ export default function BulkActionDialog({ action, accounts, onCancel, onDone })
         <>
           <p>Each gets a one-time link (60 minutes) at their personal email. Accounts without one are skipped.</p>
           <label className="flex cursor-pointer items-center gap-2.5">
-            <input
-              type="checkbox"
-              checked={signOut}
-              onChange={(e) => setSignOut(e.target.checked)}
-              className="peer sr-only"
-            />
+            <input type="checkbox" checked={signOut} onChange={(e) => setSignOut(e.target.checked)} className="peer sr-only" />
             <span
               aria-hidden="true"
               className={cn(
@@ -113,9 +108,7 @@ export default function BulkActionDialog({ action, accounts, onCancel, onDone })
 
       {action === 'require_two_factor' && (
         <>
-          <p>
-            At their next sign-in they must set it up. The setup steps are emailed to everyone with a personal email.
-          </p>
+          <p>At their next sign-in they must set it up. The setup steps are emailed to everyone with a personal email.</p>
           <div className="flex items-center justify-between gap-3">
             <label htmlFor="bulk-days" className="text-body-strong text-foreground">
               Time to set it up
@@ -142,10 +135,7 @@ export default function BulkActionDialog({ action, accounts, onCancel, onDone })
 
       {action === 'deactivate' && (
         <>
-          <p>
-            They’re signed out everywhere and can’t sign in until reactivated. You and the last Super Admin are always
-            skipped.
-          </p>
+          <p>They’re signed out everywhere and can’t sign in until reactivated. You and the last Super Admin are always skipped.</p>
           <FieldShell id="bulk-password" label="Your password" required error={fieldError}>
             <input
               id="bulk-password"

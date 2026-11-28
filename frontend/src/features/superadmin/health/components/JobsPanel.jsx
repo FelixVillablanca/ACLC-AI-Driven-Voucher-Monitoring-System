@@ -68,7 +68,9 @@ export default function JobsPanel({ onClose }) {
             <h2 className="text-page-title">Background jobs</h2>
             {q && <Pill tone={statusPill('queue', q.status).tone}>{statusPill('queue', q.status).text}</Pill>}
           </div>
-          <p className="text-caption">Does the slow work behind the scenes: emails and backups today, AI checks and report summaries once they’re built.</p>
+          <p className="text-caption">
+            Does the slow work behind the scenes: emails and backups today, AI checks and report summaries once they’re built.
+          </p>
         </div>
         <PanelClose onClick={onClose} />
       </header>

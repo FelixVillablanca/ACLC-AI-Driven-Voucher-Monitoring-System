@@ -78,7 +78,8 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
     // Logged-in users only. auth:sanctum = "must have a valid session cookie (or token)"
     // account.standing: a deactivated user, or one whose companies were all suspended, is signed out on the next request.
     // idle.timeout: Super Admins are signed out after 15 idle minutes (a Global setting).
-    Route::middleware(['auth:sanctum', 'throttle:api', 'account.standing', 'idle.timeout'])->group(function () {
+    // idempotent (Phase 7 step 1, 2026-11-28): a repeated POST with the same Idempotency-Key gets the first answer back
+    Route::middleware(['auth:sanctum', 'throttle:api', 'account.standing', 'idle.timeout', 'idempotent'])->group(function () {
         Route::get('/auth/me', [AuthController::class, 'me'])->name('auth.me');
         Route::post('/auth/logout', [AuthController::class, 'logout'])->name('auth.logout');
 

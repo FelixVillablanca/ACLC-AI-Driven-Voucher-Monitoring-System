@@ -13,9 +13,7 @@ export default function GlobalRulesCard({ rules }) {
   const { last_change: lastChange, openai } = rules
   const sensitivity = SENSITIVITY[rules.anomaly_sensitivity]
 
-  const changed = lastChange
-    ? `last changed ${formatTimeAgo(lastChange.at)} by ${lastChange.by ?? 'the system'}`
-    : 'not changed yet'
+  const changed = lastChange ? `last changed ${formatTimeAgo(lastChange.at)} by ${lastChange.by ?? 'the system'}` : 'not changed yet'
 
   return (
     <section aria-labelledby="rules-title" className="flex flex-col gap-3 rounded-xl border bg-card px-[18px] pt-4 pb-[18px]">
@@ -37,11 +35,7 @@ export default function GlobalRulesCard({ rules }) {
           value={rules.high_value_threshold ? formatMoney(rules.high_value_threshold) : null}
           caption={rules.high_value_threshold ? 'Supervisor approval above this' : SET_IT}
         />
-        <Rule
-          label="AI anomaly sensitivity"
-          value={sensitivity?.label}
-          caption={sensitivity ? sensitivity.caption : SET_IT}
-        />
+        <Rule label="AI anomaly sensitivity" value={sensitivity?.label} caption={sensitivity ? sensitivity.caption : SET_IT} />
         <OpenAiRule cap={openai.monthly_cap_usd} spent={openai.spent_this_month_usd} />
         <Rule
           label="Session timeout"
@@ -83,7 +77,10 @@ function OpenAiRule({ cap, spent }) {
         aria-valuemax={100}
         className="mt-0.5 h-1.5 w-full overflow-hidden rounded-full bg-primary-soft"
       >
-        <div className={percent >= 80 ? 'h-full rounded-full bg-warning' : 'h-full rounded-full bg-primary'} style={{ width: `${percent}%` }} />
+        <div
+          className={percent >= 80 ? 'h-full rounded-full bg-warning' : 'h-full rounded-full bg-primary'}
+          style={{ width: `${percent}%` }}
+        />
       </div>
     </Rule>
   )

@@ -27,9 +27,25 @@ class RequireTwoFactor
 
     public function handle(User $target, User $by, int $setupDays, bool $emailSteps, ?string $ip): ?bool
     {
-        DB::transaction(function () use ($target, $by, $setupDays, $ip) {
+        return $this->apply($target, $by, $setupDays, $emailSteps, $ip, checkAction: true);
+    }
+
+    /**
+     * The same, because a platform RULE asks for it (Global setting "Require two-step for Accounting & Supervisors",
+     * 2026-11-28): no per-account permission check (the Super Admin who turned the rule on is `$by`).
+     */
+    public function byRule(User $target, User $by, int $setupDays, bool $emailSteps, ?string $ip): ?bool
+    {
+        return $this->apply($target, $by, $setupDays, $emailSteps, $ip, checkAction: false);
+    }
+
+    private function apply(User $target, User $by, int $setupDays, bool $emailSteps, ?string $ip, bool $checkAction): ?bool
+    {
+        DB::transaction(function () use ($target, $by, $setupDays, $ip, $checkAction) {
             $target = User::whereKey($target->id)->lockForUpdate()->firstOrFail();
-            AccountActions::authorize($by, $target, 'require_two_factor');
+            if ($checkAction) {
+                AccountActions::authorize($by, $target, 'require_two_factor');
+            }
 
             $target->forceFill([
                 'two_factor_required_at' => now(),

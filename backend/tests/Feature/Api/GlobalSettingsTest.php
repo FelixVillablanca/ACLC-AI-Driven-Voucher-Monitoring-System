@@ -2,6 +2,8 @@
 
 namespace Tests\Feature\Api;
 
+use App\Domain\Identity\Account\OwnTwoFactor;
+use App\Domain\Identity\Support\TwoFactorRules;
 use App\Domain\Platform\SystemSettings;
 use App\Models\Company;
 use App\Models\User;
@@ -158,5 +160,32 @@ class GlobalSettingsTest extends TestCase
         $this->actingAs($admin)->getJson(self::URL)->assertStatus(403);
         $this->save([['key' => SystemSettings::ANOMALY_SENSITIVITY, 'value' => 'strict', 'was' => 'balanced']], [], $admin)->assertStatus(403);
         $this->actingAs($this->owner)->getJson(self::URL.'/history?group=money')->assertStatus(422);
+    }
+
+    /** Phase 7 step 1 (2026-11-28): "Require two-step for Accounting & Supervisors". */
+    public function test_require_two_factor_for_accounting_and_supervisors(): void
+    {
+        $company = Company::factory()->create();
+        $officer = User::factory()->officer()->create(['company_id' => $company->id]);
+        $supervisor = User::factory()->supervisor()->create(['company_id' => $company->id]);
+        $clerk = User::factory()->create(['company_id' => $company->id]);
+
+        $this->actingAs($officer)->getJson(self::URL)->assertStatus(403); // Global settings stay the Super Admin's
+
+        $this->save([['key' => SystemSettings::REQUIRE_TWO_FACTOR_FOR_REVIEWERS, 'value' => true, 'was' => false]])
+            ->assertOk()->assertJsonPath('meta.two_factor_required_reviewers', 2);
+        $this->assertNotNull($officer->fresh()->two_factor_required_at);
+        $this->assertNotNull($supervisor->fresh()->two_factor_required_at);
+        $this->assertNull($clerk->fresh()->two_factor_required_at); // clerks aren't covered
+        $this->assertSame('Two-step sign-in is required for every Accounting Officer and Supervisor (a Global setting).',
+            OwnTwoFactor::whyCantTurnOff($officer->fresh()));
+
+        $this->actingAs($this->owner)->getJson(self::URL)->assertOk()->assertJsonPath('data.context.reviewers.without_two_factor', 2);
+
+        // someone moved into Accounting while the rule is on must set it up too
+        $moved = User::factory()->create(['company_id' => $company->id]);
+        $moved->forceFill(['role' => 'accounting_officer'])->save();
+        TwoFactorRules::applyFor($moved);
+        $this->assertNotNull($moved->fresh()->two_factor_required_at);
     }
 }

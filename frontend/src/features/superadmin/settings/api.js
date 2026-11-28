@@ -27,6 +27,7 @@ export async function saveGlobalSettings({ changes, reason, notifyAdmins, passwo
     changed: data.meta.changed,
     adminsNotified: data.meta.admins_notified,
     twoFactorRequired: data.meta.two_factor_required,
+    twoFactorRequiredReviewers: data.meta.two_factor_required_reviewers,
   }
 }
 

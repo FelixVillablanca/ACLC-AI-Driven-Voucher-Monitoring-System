@@ -5,6 +5,7 @@ use App\Domain\Platform\SystemHealth;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schedule;
 
 Artisan::command('inspire', function () {
@@ -79,3 +80,9 @@ Schedule::command('reports:monthly')
     ->monthlyOn(1, '03:00')
     ->name('monthly-reports')
     ->withoutOverlapping(60);
+
+// Idempotency keys (Phase 7 step 1, 2026-11-28): forget answers older than 24 h
+Schedule::call(fn () => DB::table('idempotency_keys')->where('expires_at', '<=', now())->delete())
+    ->dailyAt('03:40')
+    ->name('prune-idempotency-keys')
+    ->withoutOverlapping();

@@ -31,9 +31,7 @@ export function useSecurityAlerts(statusFilter) {
         })
         .catch((error) => {
           if (id !== requestRef.current) return
-          setState((prev) =>
-            quiet && prev.status === 'success' ? prev : { ...prev, forFilter: statusFilter, status: 'error', error },
-          )
+          setState((prev) => (quiet && prev.status === 'success' ? prev : { ...prev, forFilter: statusFilter, status: 'error', error }))
         })
     },
     [statusFilter],

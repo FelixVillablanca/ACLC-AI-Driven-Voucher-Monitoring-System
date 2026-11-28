@@ -13,12 +13,14 @@ use RuntimeException;
  *      --single-transaction = a consistent snapshot WITHOUT locking tables,
  *      so people can keep working while it runs (InnoDB tables)
  *   2. the .sql file is gzip-compressed into storage/app/private/backups/…sql.gz
- *   3. the temporary file is deleted
+ *   3. (Phase 7, 2026-11-28) the .gz is ENCRYPTED into …sql.gz.enc (BackupCipher, config backup.encrypt, on by default)
+ *      and the unencrypted copies are deleted; `php artisan backup:decrypt <file>` gives the .sql.gz back
+ *   4. the temporary file is deleted
  *
  * The database password goes to mysqldump through the MYSQL_PWD environment variable,
  * never on the command line (other programs on the computer can read command lines).
  *
- * Returns ['path' => 'backups/advms-2026-11-21-020000.sql.gz', 'size_bytes' => 1234].
+ * Returns ['path' => 'backups/advms-2026-11-21-020000.sql.gz.enc', 'size_bytes' => 1234].
  */
 class DumpDatabase
 {
@@ -31,6 +33,8 @@ class DumpDatabase
 
         $sqlFile = $disk->path($directory.'/'.$fileName.'.sql.tmp');
         $gzPath = $directory.'/'.$fileName.'.sql.gz';
+        $encrypt = (bool) config('backup.encrypt');
+        $finalPath = $encrypt ? $gzPath.'.enc' : $gzPath;
 
         try {
             $result = Process::timeout((int) config('backup.timeout_seconds'))
@@ -54,13 +58,19 @@ class DumpDatabase
             }
 
             $this->gzip($sqlFile, $disk->path($gzPath));
+            if ($encrypt) {
+                BackupCipher::encryptFile($disk->path($gzPath), $disk->path($finalPath));
+            }
         } finally {
             if (is_file($sqlFile)) {
                 unlink($sqlFile);
             }
+            if ($encrypt && is_file($disk->path($gzPath))) {
+                unlink($disk->path($gzPath)); // only the encrypted copy stays
+            }
         }
 
-        return ['path' => $gzPath, 'size_bytes' => $disk->size($gzPath)];
+        return ['path' => $finalPath, 'size_bytes' => $disk->size($finalPath)];
     }
 
     /** How big the database is right now (data + indexes), for "Database size" and the time estimate. */

@@ -99,6 +99,9 @@ class UpdateGlobalSettings
             'two_factor_required' => $this->turnedOn($changed, SystemSettings::REQUIRE_TWO_FACTOR_FOR_ADMINS)
                 ? $this->requireTwoFactorForAdmins($by, $ip)
                 : null,
+            'two_factor_required_reviewers' => $this->turnedOn($changed, SystemSettings::REQUIRE_TWO_FACTOR_FOR_REVIEWERS)
+                ? $this->requireTwoFactorForReviewers($by, $ip)
+                : null,
         ];
     }
 
@@ -149,6 +152,29 @@ class UpdateGlobalSettings
             } catch (Throwable $e) {
                 // one account that can't be changed doesn't stop the others; the setting itself is saved
                 Log::warning('Could not require two-step for an Admin', ['user_id' => $admin->id, 'error' => $e->getMessage()]);
+            }
+        }
+
+        return $count;
+    }
+
+    /**
+     * "Require two-step for Accounting & Supervisors" was just turned on (Phase 7 step 1, 2026-11-28): every active
+     * Accounting Officer and Supervisor / Manager without two-step gets the same 3-day setup window (+ the setup email).
+     * New ones get it when they're created (CreateUser) or moved into one of those roles (UpdateCompanyUser).
+     */
+    private function requireTwoFactorForReviewers(User $by, ?string $ip): int
+    {
+        $count = 0;
+        $people = User::whereIn('role', SystemSettings::REVIEWER_ROLES)->where('is_active', true)
+            ->whereNull('two_factor_confirmed_at')->whereNull('two_factor_required_at')->get();
+
+        foreach ($people as $person) {
+            try {
+                $this->requireTwoFactor->byRule($person, $by, self::TWO_FACTOR_SETUP_DAYS, true, $ip);
+                $count++;
+            } catch (Throwable $e) {
+                Log::warning('Could not require two-step for a reviewer', ['user_id' => $person->id, 'error' => $e->getMessage()]);
             }
         }
 

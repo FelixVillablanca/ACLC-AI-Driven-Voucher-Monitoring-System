@@ -68,9 +68,7 @@ export default function AlertsListView({ onOpenAlert, onClose }) {
           <div className="flex min-w-0 flex-1 flex-col gap-0.5">
             <h2 className="text-page-title">Security alerts</h2>
             <p className="text-caption">
-              {counts
-                ? `${plural(counts.last_24h, 'alert', 'alerts')} in the last 24 hours · ${counts.open} not reviewed`
-                : 'Loading…'}
+              {counts ? `${plural(counts.last_24h, 'alert', 'alerts')} in the last 24 hours · ${counts.open} not reviewed` : 'Loading…'}
             </p>
           </div>
           <PanelCloseButton onClick={onClose} />
@@ -167,4 +165,3 @@ export default function AlertsListView({ onOpenAlert, onClose }) {
     </>
   )
 }
-

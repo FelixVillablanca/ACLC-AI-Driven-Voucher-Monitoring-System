@@ -30,10 +30,7 @@ export default function ReactivateAccountDialog({ account, onCancel, onDone }) {
       onConfirm={confirm}
       onCancel={onCancel}
     >
-      <p>
-        They can sign in again with their current password. If their password was reset, they need the emailed link
-        first.
-      </p>
+      <p>They can sign in again with their current password. If their password was reset, they need the emailed link first.</p>
     </ConfirmDialog>
   )
 }

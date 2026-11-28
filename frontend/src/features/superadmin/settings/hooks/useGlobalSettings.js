@@ -31,8 +31,7 @@ export function useGlobalSettings() {
   const refresh = useCallback(() => fetchSettings(true), [fetchSettings])
 
   const replace = useCallback(
-    (values, lastSaved) =>
-      setState((prev) => ({ ...prev, values, context: { ...prev.context, last_saved: lastSaved } })),
+    (values, lastSaved) => setState((prev) => ({ ...prev, values, context: { ...prev.context, last_saved: lastSaved } })),
     [],
   )
 

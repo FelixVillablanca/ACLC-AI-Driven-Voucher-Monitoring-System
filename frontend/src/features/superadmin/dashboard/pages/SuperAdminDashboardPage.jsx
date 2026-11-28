@@ -24,12 +24,7 @@ export default function SuperAdminDashboardPage() {
 
       {status === 'error' && (
         <div className="rounded-xl border bg-card">
-          <ErrorState
-            title="Couldn't load the overview"
-            message={error.message}
-            requestId={error.requestId}
-            onRetry={retry}
-          />
+          <ErrorState title="Couldn't load the overview" message={error.message} requestId={error.requestId} onRetry={retry} />
         </div>
       )}
 

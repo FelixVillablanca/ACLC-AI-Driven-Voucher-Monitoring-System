@@ -105,11 +105,7 @@ export default function AddAdminForm({ defaults, forCompany = null, onCancel, on
             }
           >
             <div className="relative">
-              <select
-                {...fieldProps('company_id')}
-                {...register('company_id')}
-                className={`${inputClass} appearance-none pr-9`}
-              >
+              <select {...fieldProps('company_id')} {...register('company_id')} className={`${inputClass} appearance-none pr-9`}>
                 <option value="">Choose a company</option>
                 {defaults.companies.map((c) => (
                   <option key={c.id} value={c.id}>
@@ -147,24 +143,18 @@ export default function AddAdminForm({ defaults, forCompany = null, onCancel, on
           </span>
           <p className="text-caption">
             After you create the account, we email{' '}
-            <span className="font-medium text-foreground">{personalEmail?.trim() || 'their personal email'}</span> their
-            sign-in email and a one-time link to choose their own password. The link expires in 72 hours. No password is
-            ever sent.
+            <span className="font-medium text-foreground">{personalEmail?.trim() || 'their personal email'}</span> their sign-in email and a
+            one-time link to choose their own password. The link expires in 72 hours. No password is ever sent.
           </p>
         </div>
 
         <div className="flex flex-col gap-0.5 rounded-[10px] bg-warning-soft px-3.5 py-3">
-          <p className="text-badge text-warning">
-            This gives full setup access to {company ? company.name : 'the company you choose'}
-          </p>
+          <p className="text-badge text-warning">This gives full setup access to {company ? company.name : 'the company you choose'}</p>
           <p className="text-caption">The action is saved in the audit log, and the other Super Admins are notified.</p>
         </div>
 
         {formError && (
-          <div
-            role="alert"
-            className="flex items-start gap-2.5 rounded-[10px] border border-danger/20 bg-danger-soft p-3"
-          >
+          <div role="alert" className="flex items-start gap-2.5 rounded-[10px] border border-danger/20 bg-danger-soft p-3">
             <TriangleAlert className="mt-0.5 size-4 shrink-0 text-danger" aria-hidden="true" />
             <div>
               <p className="text-body-strong text-danger">{formError.message}</p>
