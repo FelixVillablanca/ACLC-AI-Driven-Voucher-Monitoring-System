@@ -1,3 +1,4 @@
+import { PaymentActions } from '@/features/vouchers'
 import { cn } from '@/lib/utils'
 import { CATEGORIES, TONE_CLASSES, notificationLook, notificationTime } from '../utils'
 
@@ -6,6 +7,8 @@ import { CATEGORIES, TONE_CLASSES, notificationLook, notificationTime } from '..
  * Unread: light indigo background, coloured icon, bold title, blue dot.
  * Read:   white background, grey icon, normal title.
  * Clicking marks it as read and opens the related page.
+ * `item.actions` (2026-11-28): the clerk's final-approval notice gets "Payment PDF" / "Email the payee" buttons on a
+ * row under it (buttons can't sit inside the row's own button).
  */
 export default function NotificationItem({ item, onOpen }) {
   const { tone, icon: Icon } = notificationLook(item)
@@ -38,6 +41,11 @@ export default function NotificationItem({ item, onOpen }) {
           </span>
         )}
       </button>
+      {item.actions?.includes('payment_pdf') && item.voucher_id && (
+        <div className={cn('flex px-4 pb-3 pl-[62px]', item.is_read ? 'bg-card' : 'bg-primary-faint')}>
+          <PaymentActions voucherId={item.voucher_id} canEmail={item.actions.includes('email_payee')} size="sm" />
+        </div>
+      )}
     </li>
   )
 }

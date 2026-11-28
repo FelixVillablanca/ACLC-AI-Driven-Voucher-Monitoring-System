@@ -2,16 +2,30 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { AnimatePresence, motion } from 'framer-motion'
-import { CheckCircle2, Loader2, TriangleAlert, UserPlus, X } from 'lucide-react'
+import { CheckCircle2, Loader2, TriangleAlert, UserCheck, UserPlus, X } from 'lucide-react'
 import toast from 'react-hot-toast'
 import FieldShell, { inputClass } from '@/components/common/FieldShell'
 import { applyFieldErrors } from '@/lib/apiError'
 import { cn } from '@/lib/utils'
 import { createCompany } from '../api'
 import { COMPANY_TYPES, createCompanySchema } from '../schemas'
+import AdminInChargeField from './AdminInChargeField'
+import LocationPicker from './LocationPicker'
 import { announceCompaniesChanged, companyInitials, companySubtitle, TYPE_LABELS } from '../utils'
 
-const EMPTY = { name: '', type: 'corporate', address: '', contact_email: '', contact_phone: '', tin_number: '', fiscal_year_start: '' }
+const EMPTY = {
+  name: '',
+  type: 'corporate',
+  address: '',
+  latitude: null,
+  longitude: null,
+  place_id: null,
+  contact_email: '',
+  contact_phone: '',
+  tin_number: '',
+  fiscal_year_start: '',
+  admin_id: '', // optional: an Admin with no company yet
+}
 
 /**
  * "+ Add company" (code-first 2026-11-22, no frame). Opens on the Companies tab with ?create=company.
@@ -109,6 +123,7 @@ function ModalWindow({ onClose, onAddAdmin }) {
 
 function AddCompanyForm({ onCancel, onCreated, onDirtyChange }) {
   const [formError, setFormError] = useState(null)
+  const [adminsReload, setAdminsReload] = useState(0)
   const {
     register,
     control,
@@ -123,6 +138,25 @@ function AddCompanyForm({ onCancel, onCreated, onDirtyChange }) {
   }, [isDirty, onDirtyChange])
 
   const type = useWatch({ control, name: 'type' })
+  const adminId = useWatch({ control, name: 'admin_id' })
+  const setAdminId = useCallback((id) => setValue('admin_id', id, { shouldDirty: true }), [setValue])
+  const [address, latitude, longitude, placeId] = useWatch({ control, name: ['address', 'latitude', 'longitude', 'place_id'] })
+  const pin = latitude != null && longitude != null ? { lat: latitude, lng: longitude, placeId } : null
+
+  const setPin = useCallback(
+    (next) => {
+      const options = { shouldDirty: true }
+      setValue('latitude', next?.lat ?? null, options)
+      setValue('longitude', next?.lng ?? null, options)
+      setValue('place_id', next?.placeId ?? null, options)
+    },
+    [setValue],
+  )
+  const setAddressFromMap = useCallback(
+    (text) => setValue('address', text.slice(0, 500), { shouldDirty: true, shouldValidate: true }),
+    [setValue],
+  )
+  const pinError = errors.latitude?.message ?? errors.longitude?.message ?? errors.place_id?.message
 
   const onSubmit = async (values) => {
     setFormError(null)
@@ -131,6 +165,8 @@ function AddCompanyForm({ onCancel, onCreated, onDirtyChange }) {
       const body = Object.fromEntries(Object.entries(values).map(([k, v]) => [k, typeof v === 'string' && v.trim() === '' ? null : v]))
       onCreated(await createCompany(body))
     } catch (error) {
+      // the picked Admin was given a company a moment ago: show why and load the list again
+      if (error.code === 'ADMIN_ALREADY_ASSIGNED' || error.errors?.admin_id) setAdminsReload((n) => n + 1)
       if (!applyFieldErrors(error, setError)) setFormError(error)
     }
   }
@@ -185,9 +221,24 @@ function AddCompanyForm({ onCancel, onCreated, onDirtyChange }) {
           {errors.type && <p className="text-caption text-danger">{errors.type.message}</p>}
         </fieldset>
 
-        <FieldShell id="company-address" label="Address" error={errors.address?.message} hint="Shown on the company card (e.g. the city).">
-          <input {...fieldProps('address')} {...register('address')} maxLength={500} placeholder="e.g. Ortigas Center, Pasig City" />
+        <FieldShell
+          id="company-address"
+          label="Address"
+          error={errors.address?.message}
+          hint="Shown on the company card. Type the full address and the map pin moves there."
+        >
+          <input
+            {...fieldProps('address')}
+            {...register('address')}
+            maxLength={500}
+            placeholder="e.g. 123 Ortigas Ave, Ortigas Center, Pasig City"
+          />
         </FieldShell>
+
+        <div className="-mt-1 flex flex-col gap-1.5">
+          <LocationPicker address={address} pin={pin} disabled={isSubmitting} onPinChange={setPin} onAddressFromMap={setAddressFromMap} />
+          {pinError && <p className="text-caption text-danger">{pinError}</p>}
+        </div>
 
         <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2">
           <FieldShell id="company-contact_email" label="Contact email" error={errors.contact_email?.message}>
@@ -222,10 +273,19 @@ function AddCompanyForm({ onCancel, onCreated, onDirtyChange }) {
           </FieldShell>
         </div>
 
+        <AdminInChargeField
+          value={adminId ?? ''}
+          onChange={setAdminId}
+          error={errors.admin_id?.message}
+          disabled={isSubmitting}
+          reloadKey={adminsReload}
+        />
+
         <div className="flex flex-col gap-0.5 rounded-[10px] bg-muted px-3.5 py-3">
           <p className="text-badge">The company is active right away</p>
           <p className="text-caption">
-            Nobody can use it until you give it an Admin. Adding it is saved in the audit log, and the other Super Admins are notified.
+            {adminId ? 'Its Admin gets a notice and can start setting it up.' : 'Nobody can use it until you give it an Admin.'} Adding it
+            is saved in the audit log, and the other Super Admins are notified.
           </p>
         </div>
 
@@ -277,13 +337,23 @@ function CreatedView({ company, onAddAdmin, onAnother, onDone }) {
           <CheckCircle2 className="size-5 shrink-0 text-success" aria-hidden="true" />
         </div>
 
-        <div className="flex items-start gap-3 rounded-[10px] bg-warning-soft px-3.5 py-3">
-          <UserPlus className="mt-0.5 size-4 shrink-0 text-warning" aria-hidden="true" />
-          <p className="text-caption text-foreground">
-            <span className="font-medium">No Admin yet.</span> {company.name} is now in the Company list of Add admin. Add its Admin now, or
-            later from the Admins tab.
-          </p>
-        </div>
+        {company.admin ? (
+          <div className="flex items-start gap-3 rounded-[10px] bg-success-soft px-3.5 py-3">
+            <UserCheck className="mt-0.5 size-4 shrink-0 text-success" aria-hidden="true" />
+            <p className="text-caption text-foreground">
+              <span className="font-medium">{company.admin.full_name} runs it now.</span> They got a notice and can set up its departments
+              and users from their Admin console.
+            </p>
+          </div>
+        ) : (
+          <div className="flex items-start gap-3 rounded-[10px] bg-warning-soft px-3.5 py-3">
+            <UserPlus className="mt-0.5 size-4 shrink-0 text-warning" aria-hidden="true" />
+            <p className="text-caption text-foreground">
+              <span className="font-medium">No Admin yet.</span> {company.name} is now in the Company list of Add admin. Add its Admin now,
+              or later from the Admins tab.
+            </p>
+          </div>
+        )}
       </div>
 
       <div className="flex flex-wrap items-center justify-end gap-2.5 border-t bg-muted px-6 py-3.5">
@@ -294,21 +364,34 @@ function CreatedView({ company, onAddAdmin, onAnother, onDone }) {
         >
           Add another company
         </button>
-        <button
-          type="button"
-          onClick={onDone}
-          className="text-body-strong h-10 rounded-lg border bg-card px-4 outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring/50"
-        >
-          Done
-        </button>
-        <button
-          type="button"
-          onClick={onAddAdmin}
-          autoFocus
-          className="text-auth-button flex h-10 items-center gap-2 rounded-lg bg-primary px-4 text-primary-foreground outline-none hover:bg-primary/90 focus-visible:ring-3 focus-visible:ring-ring/50"
-        >
-          <UserPlus className="size-4" aria-hidden="true" /> Add its admin
-        </button>
+        {company.admin ? (
+          <button
+            type="button"
+            onClick={onDone}
+            autoFocus
+            className="text-auth-button flex h-10 items-center gap-2 rounded-lg bg-primary px-4 text-primary-foreground outline-none hover:bg-primary/90 focus-visible:ring-3 focus-visible:ring-ring/50"
+          >
+            Done
+          </button>
+        ) : (
+          <>
+            <button
+              type="button"
+              onClick={onDone}
+              className="text-body-strong h-10 rounded-lg border bg-card px-4 outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring/50"
+            >
+              Done
+            </button>
+            <button
+              type="button"
+              onClick={onAddAdmin}
+              autoFocus
+              className="text-auth-button flex h-10 items-center gap-2 rounded-lg bg-primary px-4 text-primary-foreground outline-none hover:bg-primary/90 focus-visible:ring-3 focus-visible:ring-ring/50"
+            >
+              <UserPlus className="size-4" aria-hidden="true" /> Add its admin
+            </button>
+          </>
+        )}
       </div>
     </>
   )

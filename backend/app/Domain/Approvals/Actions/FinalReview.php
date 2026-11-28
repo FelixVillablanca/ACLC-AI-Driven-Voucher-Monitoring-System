@@ -199,7 +199,8 @@ class FinalReview
     {
         foreach ($vouchers as $v) {
             $this->notify($v->created_by, 'voucher_approved', "{$v->voucher_number} was approved",
-                "{$by->full_name} (Supervisor / Manager) gave the final approval in {$company->name}.", $v);
+                "{$by->full_name} (Supervisor / Manager) gave the final approval in {$company->name}. Download the payment PDF"
+                .($v->payee_email ? ' or email the payee.' : '.'), $v);
             foreach ($this->level1Approvers($v) as $id) {
                 $this->notify($id, 'voucher_approved', "{$v->voucher_number} got its final approval",
                     "{$by->full_name} (Supervisor / Manager) approved it at Level 2.", $v);

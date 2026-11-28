@@ -31,6 +31,9 @@ class CreateDepartment
                 'is_active' => true,
             ]);
 
+            // the head is always one of its members (2026-11-28): they join it (moved from their old department)
+            app(ManageDepartmentPeople::class)->placeHeadInto($department, $department->head_user_id, $admin, $ip);
+
             AuditTrail::record([
                 'user_id' => $admin->id,
                 'company_id' => $company->id,

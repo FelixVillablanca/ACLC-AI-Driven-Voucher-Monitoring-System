@@ -11,6 +11,11 @@ export const voucherSchema = z.object({
   category_id: z.coerce.number({ error: 'Choose a category.' }).int().positive('Choose a category.'),
   payment_method: z.enum(['cash', 'bank', 'cheque'], { error: 'Choose how it will be paid.' }),
   payee_name: z.string().trim().max(255),
+  // optional (2026-11-28): where "Email the payee" sends the payment PDF after the final approval
+  payee_email: z.union([
+    z.literal(''),
+    z.string().trim().max(255).pipe(z.email('Enter a valid email address, like accounts@supplier.ph.')),
+  ]),
   payee_type_id: z.union([z.literal(''), z.coerce.number().int().positive()]),
   voucher_type_id: z.union([z.literal(''), z.coerce.number().int().positive()]),
   department_id: z.union([z.literal(''), z.coerce.number().int().positive()]),
@@ -51,6 +56,7 @@ export function formValues(voucher, myDepartmentId) {
     category_id: voucher?.category?.id ?? '',
     payment_method: voucher?.payment_method ?? 'cash',
     payee_name: s(voucher?.payee_name),
+    payee_email: s(voucher?.payee_email),
     payee_type_id: voucher?.payee_type_id ?? '',
     voucher_type_id: voucher?.voucher_type_id ?? '',
     department_id: voucher ? (voucher.department_id ?? '') : (myDepartmentId ?? ''),
@@ -79,6 +85,7 @@ export function toPayload(values) {
   return {
     ...values,
     payee_name: n(values.payee_name),
+    payee_email: n(values.payee_email),
     payee_type_id: n(values.payee_type_id),
     voucher_type_id: n(values.voucher_type_id),
     department_id: n(values.department_id),

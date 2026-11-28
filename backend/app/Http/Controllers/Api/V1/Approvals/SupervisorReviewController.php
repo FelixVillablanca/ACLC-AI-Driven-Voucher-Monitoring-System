@@ -25,6 +25,7 @@ use App\Models\BudgetChangeRequest;
 use App\Models\FinancialReport;
 use App\Models\Voucher;
 use App\Support\Exports\TabularExport;
+use App\Support\LiveCounts;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -53,42 +54,51 @@ class SupervisorReviewController extends Controller
 {
     public function __construct(private ApprovalRoute $route) {}
 
+    /** Sidebar counts, asked by every supervisor tab once a minute: cached 30 s, cleared on any change (LiveCounts). */
     public function summary(Request $request): JsonResponse
     {
-        $queue = $this->queue($request);
+        $company = $request->attributes->get('company');
 
-        return response()->json(['data' => [
-            'queue' => [
-                'total' => $queue->base()->count(),
-                'ai_flagged' => $queue->base()->where('ai_anomaly_flag', true)->count(),
-                'total_amount' => (string) $queue->base()->toBase()->selectRaw('COALESCE(SUM(amount), 0) as t')->value('t'),
-            ],
-            'today' => $this->mine($request)->today(),
-            'threshold' => $this->route->threshold(),
-            // Budgets sidebar item (Framer adI8wBXHd): Accounting's budget changes waiting for a Supervisor's sign-off
-            'budget_requests' => BudgetChangeRequest::query()->where('company_id', $request->attributes->get('company')->id)
-                ->where('status', 'pending')->count(),
-            // Financial reports sidebar item (Framer AaD8UZ08p): reports waiting for a Supervisor's sign-off
-            'reports_to_sign' => FinancialReport::query()->where('company_id', $request->attributes->get('company')->id)
-                ->where('signoff_status', 'pending')->count(),
-        ]]);
+        return response()->json(['data' => LiveCounts::forCompany('supervisor-summary', $company->id, $request->user()->id, function () use ($request, $company) {
+            $queue = $this->queue($request);
+
+            return [
+                'queue' => [
+                    'total' => $queue->base()->count(),
+                    'ai_flagged' => $queue->base()->where('ai_anomaly_flag', true)->count(),
+                    'total_amount' => (string) $queue->base()->toBase()->selectRaw('COALESCE(SUM(amount), 0) as t')->value('t'),
+                ],
+                'today' => $this->mine($request)->today(),
+                'threshold' => $this->route->threshold(),
+                // Budgets sidebar item (Framer adI8wBXHd): Accounting's budget changes waiting for a Supervisor's sign-off
+                'budget_requests' => BudgetChangeRequest::query()->where('company_id', $company->id)
+                    ->where('status', 'pending')->count(),
+                // Financial reports sidebar item (Framer AaD8UZ08p): reports waiting for a Supervisor's sign-off
+                'reports_to_sign' => FinancialReport::query()->where('company_id', $company->id)
+                    ->where('signoff_status', 'pending')->count(),
+            ];
+        })]);
     }
 
-    /** GET /supervisor/dashboard: the landing page (Framer YKfX_oJ3a), one request for the whole page. */
+    /** GET /supervisor/dashboard: the landing page (Framer YKfX_oJ3a), one request for the whole page (cached like summary). */
     public function dashboard(Request $request): JsonResponse
     {
-        $s = new SupervisorDashboardSummary($request->user(), $request->attributes->get('company'), $this->route);
+        $company = $request->attributes->get('company');
 
-        return response()->json(['data' => [
-            'company' => $request->attributes->get('company')->name,
-            'queue' => $s->queue(),
-            'released' => $s->released(),
-            'budget' => $s->budget(),
-            'top' => QueueVoucherResource::collection($s->top())->resolve($request),
-            'pipeline' => $s->pipeline(),
-            'alert' => $s->alert(),
-            'signoffs' => $s->signoffs(),
-        ]]);
+        return response()->json(['data' => LiveCounts::forCompany('supervisor-dashboard', $company->id, $request->user()->id, function () use ($request, $company) {
+            $s = new SupervisorDashboardSummary($request->user(), $company, $this->route);
+
+            return [
+                'company' => $company->name,
+                'queue' => $s->queue(),
+                'released' => $s->released(),
+                'budget' => $s->budget(),
+                'top' => QueueVoucherResource::collection($s->top())->resolve($request),
+                'pipeline' => $s->pipeline(),
+                'alert' => $s->alert(),
+                'signoffs' => $s->signoffs(),
+            ];
+        })]);
     }
 
     public function options(Request $request): JsonResponse

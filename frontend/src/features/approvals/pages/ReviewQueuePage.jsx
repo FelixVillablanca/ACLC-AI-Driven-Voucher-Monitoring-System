@@ -447,7 +447,7 @@ export default function ReviewQueuePage() {
               ))}
             </ul>
             <p className="text-caption mt-2">
-              Each is approved at Level 1 with no remarks. High-value ones go on to the Supervisor for final approval. All or nothing.
+              Each is approved at Level 1 with no remarks and goes on to the Supervisor for the final approval. All or nothing.
             </p>
           </ConfirmDialog>
         )}

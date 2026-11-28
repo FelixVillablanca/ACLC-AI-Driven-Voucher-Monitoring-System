@@ -32,7 +32,7 @@ class CrossCompanyDirectory
                 ->whereColumn('user_company_access.user_id', 'users.id')
                 ->where('user_company_access.company_id', $this->companyId)
                 ->whereIn('user_company_access.granted_status', ['accepted', 'pending']))
-            ->with('company:id,name')
+            ->with(['company:id,name', 'department:id,name'])
             ->addSelect(['users.*', 'previous' => DB::table('user_company_access')->select('kind')
                 ->whereColumn('user_company_access.user_id', 'users.id')
                 ->where('user_company_access.company_id', $this->companyId)
@@ -40,16 +40,21 @@ class CrossCompanyDirectory
 
         if ($search) {
             $like = '%'.addcslashes($search, '\\%_').'%';
-            // names only: an Admin can't search other companies' people by email or employee ID
+            // name, company or DEPARTMENT (user decision 2026-11-28); never email or employee ID
             $query->where(fn (Builder $q) => $q
                 ->where('users.first_name', 'like', $like)
                 ->orWhere('users.last_name', 'like', $like)
                 ->orWhereRaw("CONCAT(users.first_name, ' ', users.last_name) LIKE ?", [$like])
-                ->orWhereHas('company', fn (Builder $c) => $c->where('name', 'like', $like)));
+                ->orWhereHas('company', fn (Builder $c) => $c->where('name', 'like', $like))
+                ->orWhereHas('department', fn (Builder $d) => $d->where('name', 'like', $like)->orWhere('code', 'like', $like)));
         }
 
         $page = $query->orderBy('users.first_name')->orderBy('users.last_name')->paginate($perPage);
-        $page->getCollection()->transform(fn (User $u) => self::card($u) + ['previously_declined' => $u->previous !== null]);
+        // the department is shown in the invite results too (user decision 2026-11-28)
+        $page->getCollection()->transform(fn (User $u) => self::card($u) + [
+            'department' => $u->department?->name,
+            'previously_declined' => $u->previous !== null,
+        ]);
 
         return $page;
     }

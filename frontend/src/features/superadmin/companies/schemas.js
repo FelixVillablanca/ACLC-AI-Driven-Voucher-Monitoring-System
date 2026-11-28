@@ -13,6 +13,10 @@ export const createCompanySchema = z.object({
   name: z.string().trim().min(2, 'Enter the company name.').max(150, 'Use at most 150 characters.'),
   type: z.enum(COMPANY_TYPES, { error: 'Choose what kind of organisation it is.' }),
   address: z.string().trim().max(500, 'Use at most 500 characters.').optional(),
+  // the map pin (LocationPicker): set together, or all null
+  latitude: z.number().min(-90).max(90).nullable().optional(),
+  longitude: z.number().min(-180).max(180).nullable().optional(),
+  place_id: z.string().max(255).nullable().optional(),
   contact_email: optional(z.string().trim().max(255).pipe(z.email('Enter a valid email address.'))),
   contact_phone: optional(
     z
@@ -29,4 +33,6 @@ export const createCompanySchema = z.object({
       .regex(/^[0-9\-\s]+$/, 'Use numbers and dashes only (e.g. 123-456-789-000).'),
   ),
   fiscal_year_start: z.string().optional(),
+  // optional Admin in charge (an Admin with no company yet): '' = none
+  admin_id: z.preprocess((v) => (v === '' || v == null ? null : Number(v)), z.number().int().positive().nullable()),
 })

@@ -45,7 +45,8 @@ export function step2Text(reasons = [], threshold) {
   const parts = []
   if (reasons.includes('ai_flagged')) parts.push('flagged by the automatic check')
   if (reasons.includes('high_value')) parts.push(`at or over ${threshold ?? 'the high-value amount'}`)
-  return parts.length ? parts.join(' and ') : 'forwarded by Accounting'
+  // since 2026-11-28 every voucher needs the final approval; the labels only say what to look at
+  return parts.length ? `final approval · ${parts.join(' and ')}` : 'final approval (every voucher needs it)'
 }
 
 /** Shared by the Level 2 pages (Final review, Investigate flag). */

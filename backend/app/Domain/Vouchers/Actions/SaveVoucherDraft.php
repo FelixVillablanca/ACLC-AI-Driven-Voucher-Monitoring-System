@@ -22,7 +22,7 @@ use Illuminate\Support\Facades\DB;
 class SaveVoucherDraft
 {
     private const FIELDS = [
-        'category_id', 'payment_method', 'voucher_type_id', 'payee_type_id', 'department_id', 'payee_name', 'description',
+        'category_id', 'payment_method', 'voucher_type_id', 'payee_type_id', 'department_id', 'payee_name', 'payee_email', 'description',
         'purpose', 'reference_number', 'due_date', 'priority', 'bank_name', 'bank_account_number', 'bank_account_name',
     ];
 

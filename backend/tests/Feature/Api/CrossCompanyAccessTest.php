@@ -3,6 +3,7 @@
 namespace Tests\Feature\Api;
 
 use App\Models\Company;
+use App\Models\Department;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -60,7 +61,7 @@ class CrossCompanyAccessTest extends TestCase
             ->assertExactJson([
                 'data' => [[
                     'id' => $this->gus->id, 'first_name' => 'Gus', 'last_name' => 'Tan', 'full_name' => 'Gus Tan',
-                    'role' => 'accounting_clerk', 'home_company' => 'Northfield', 'previously_declined' => false,
+                    'role' => 'accounting_clerk', 'home_company' => 'Northfield', 'department' => null, 'previously_declined' => false,
                 ]],
                 'meta' => ['current_page' => 1, 'last_page' => 1, 'total' => 1],
             ]);
@@ -68,6 +69,20 @@ class CrossCompanyAccessTest extends TestCase
         // names and company names can be searched; emails can't
         $this->actingAs($this->apexAdmin)->getJson('/api/v1/admin/company-access/directory?search=north')->assertJsonCount(1, 'data');
         $this->actingAs($this->apexAdmin)->getJson('/api/v1/admin/company-access/directory?search='.urlencode($this->gus->email))->assertJsonCount(0, 'data');
+    }
+
+    public function test_directory_can_be_searched_by_department_and_shows_it(): void
+    {
+        // user decision 2026-11-28: other companies' people can be found by their department, which is shown
+        $payables = Department::factory()->for($this->north)->create(['name' => 'Payables', 'code' => 'PAY']);
+        $this->gus->forceFill(['department_id' => $payables->id])->save();
+
+        $this->actingAs($this->apexAdmin)->getJson('/api/v1/admin/company-access/directory?search=payab')
+            ->assertOk()->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.full_name', 'Gus Tan')
+            ->assertJsonPath('data.0.department', 'Payables');
+        $this->actingAs($this->apexAdmin)->getJson('/api/v1/admin/company-access/directory?search=PAY')->assertJsonCount(1, 'data');
+        $this->actingAs($this->apexAdmin)->getJson('/api/v1/admin/company-access/directory?search=zzz')->assertJsonCount(0, 'data');
     }
 
     public function test_invite_accept_flow(): void

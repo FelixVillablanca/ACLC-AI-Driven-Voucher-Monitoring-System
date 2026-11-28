@@ -59,6 +59,11 @@ class UpdateDepartment
                 throw new ApiException('Another department already uses this name or code.', 'DEPARTMENT_CONFLICT', 409);
             }
 
+            // a new head joins the department (2026-11-28: the head is always one of its members)
+            if (array_key_exists('head_user_id', $new)) {
+                app(ManageDepartmentPeople::class)->placeHeadInto($department, $new['head_user_id'], $admin, $ip);
+            }
+
             AuditTrail::record([
                 'user_id' => $admin->id,
                 'company_id' => $department->company_id,

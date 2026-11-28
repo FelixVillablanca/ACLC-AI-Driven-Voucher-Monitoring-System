@@ -7,8 +7,14 @@
       <div style="display:inline-block;width:32px;height:32px;line-height:32px;text-align:center;border-radius:8px;background:#1E1B4B;color:#FFFFFF;font-size:12px;font-weight:600;">VM</div>
       <h1 style="font-size:22px;line-height:1.3;margin:16px 0 4px;">Hi {{ $user->first_name }}, your Admin account is ready</h1>
       <p style="font-size:14px;line-height:1.5;color:#64748B;margin:0;">
+        @if ($companyName)
         You were made the System Administrator for <strong style="color:#0F172A;">{{ $companyName }}</strong>
         in the AI-Driven Voucher Monitoring System.
+        @else
+        You were given a System Administrator account in the AI-Driven Voucher Monitoring System.
+        You don’t have a company yet: a Super Admin will assign you one, and you’ll get a notice when they do.
+        If no company is given within 24 hours, this account is removed automatically.
+        @endif
       </p>
     </td></tr>
     <tr><td style="padding:16px 28px;">

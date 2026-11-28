@@ -1,4 +1,4 @@
-import { ArrowLeftRight, FilePen, Plus, Sparkles, Undo2, Users } from 'lucide-react'
+import { ArrowLeftRight, FilePen, NotebookTabs, Plus, Sparkles, Undo2, Users } from 'lucide-react'
 import { PATHS } from '@/lib/constants'
 import { formatMoney } from '@/lib/formatters'
 
@@ -47,7 +47,7 @@ export const GUIDES = [
             list: [
               'Payee: who gets paid and their payee type. Start typing a saved payee and pick it: its type, payment method and bank details fill in for you.',
               'Details: the category, and what the voucher is for (description or purpose). Voucher type, department, due date, priority and a reference number are optional.',
-              'Payment: cash, bank transfer or check. A bank transfer needs the bank, account number and account name.',
+              'Payment: cash, bank transfer or cheque. A bank transfer needs the bank, account number and account name.',
               'Lines: each item with a quantity, unit and unit price. The total is added up for you (the server adds it again, to the centavo). Up to 50 lines.',
             ],
             ordered: true,
@@ -122,24 +122,17 @@ export const GUIDES = [
         id: 'what-happens-next',
         title: 'What happens next',
         blocks: [
-          (rules) => ({
+          () => ({
             flow: [
               { label: 'You submit', tone: 'neutral' },
               { label: 'Accounting review', tone: 'primary' },
-              ...(rules?.ai_flagged_needs_step2 === false ? [] : [{ label: 'Supervisor final approval', tone: 'warning' }]),
+              { label: 'Supervisor final approval', tone: 'warning' },
               { label: 'Approved', tone: 'success' },
             ],
           }),
-          (rules) => ({
-            p:
-              rules?.ai_flagged_needs_step2 === false
-                ? 'Right now a flag does not add a Supervisor step: Accounting decides, unless the total is ' +
-                  threshold(rules) +
-                  ' or more.'
-                : 'A flagged voucher also needs a Supervisor / Manager’s final approval after Accounting, even below ' +
-                  threshold(rules) +
-                  '.',
-          }),
+          {
+            p: 'Every voucher, flagged or not, needs the Supervisor / Manager’s final approval after Accounting. A flag only marks it so they look closer.',
+          },
           { p: 'The check runs in the background, so Submit never waits for it. A fixed and resubmitted voucher is checked again.' },
         ],
       },
@@ -278,6 +271,69 @@ export const GUIDES = [
     ],
     related: ['create-a-voucher'],
   },
+  {
+    slug: 'paying-by-cheque',
+    title: 'Paying by cheque',
+    summary: 'Record the cheque after the final approval, release it, and mark it cleared.',
+    category: 'Vouchers',
+    icon: NotebookTabs,
+    tone: 'primary',
+    updated: 'Nov 2026',
+    popular: false,
+    sections: [
+      {
+        id: 'how',
+        title: 'How a cheque payment works',
+        blocks: [
+          {
+            p: 'ADVMS doesn’t print cheques: they come from your company’s bank cheque book and are signed by the company’s signatories. ADVMS keeps the record of each cheque.',
+          },
+          {
+            flow: [
+              { label: 'Final approval', tone: 'success' },
+              { label: 'Issued', tone: 'primary' },
+              { label: 'Released', tone: 'warning' },
+              { label: 'Cleared', tone: 'success' },
+            ],
+          },
+        ],
+      },
+      {
+        id: 'steps',
+        title: 'The steps',
+        blocks: [
+          {
+            list: [
+              'Record cheque: once the voucher has its final approval and the cheque is written, open the voucher and type the cheque number, cheque date and bank. A post-dated cheque is fine (up to 180 days ahead).',
+              'Payment PDF: after recording, the cheque payment slip shows the cheque number, date and bank instead of blank lines. The payee signs “Received by” when they pick it up.',
+              'Mark released: when the payee picks up the cheque, type the name of the person who received it.',
+              'Mark cleared: when the amount leaves the company’s bank account (check the bank statement), choose that date.',
+            ],
+            ordered: true,
+          },
+          { p: 'You can do these steps on the voucher page or in Cheques in the menu, which lists every cheque of your vouchers.' },
+        ],
+      },
+      {
+        id: 'problems',
+        title: 'Spoiled, lost and stale cheques',
+        blocks: [
+          {
+            list: [
+              'Cancel cheque (with a reason) if it was spoiled, lost or written wrong. Write “CANCELLED” across the paper cheque and keep it. Then record the replacement cheque on the same voucher.',
+              'A cheque goes stale 180 days after its date, because the bank won’t pay it any more. You get a reminder in the bell 30 days before. If it still isn’t cleared, ADVMS marks it stale, and you can record a replacement.',
+              'A cheque number can be used only once per bank in your company, so a typing mistake is caught.',
+            ],
+          },
+          {
+            note: 'Accounting Officers and Supervisors can see the company’s cheques too, but only you, the clerk who made the voucher, can record or change them.',
+            tone: 'info',
+          },
+        ],
+      },
+    ],
+    related: ['create-a-voucher', 'using-payees'],
+  },
 ]
 
 /** The approval route has its own live page (rules from Global settings). */
@@ -321,7 +377,7 @@ export const FAQS = [
   {
     q: 'Who approves my voucher?',
     a: (rules) =>
-      `Accounting reviews every voucher first. Vouchers of ${threshold(rules)} or more${rules?.ai_flagged_needs_step2 === false ? '' : ' or flagged by the automatic check'} also need a Supervisor / Manager’s final approval.`,
+      `Accounting reviews every voucher first, then a Supervisor / Manager gives the final approval. Vouchers of ${threshold(rules)} or more, or flagged by the automatic check, are marked for them to look at closely.`,
   },
   {
     q: 'Can I edit a voucher after submitting?',

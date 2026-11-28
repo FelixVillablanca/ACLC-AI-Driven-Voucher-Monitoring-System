@@ -1,5 +1,7 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Crown, Layers, Loader2, Pencil, Power, RotateCcw, UserPlus, Users } from 'lucide-react'
+import { AnimatePresence } from 'framer-motion'
+import { Crown, Layers, Loader2, Pencil, Power, RotateCcw, UserMinus, UserPlus, Users } from 'lucide-react'
 import EmptyState from '@/components/common/EmptyState'
 import ErrorState from '@/components/common/ErrorState'
 import Pill from '@/components/common/Pill'
@@ -7,6 +9,8 @@ import SidePanel, { PanelClose } from '@/components/common/SidePanel'
 import { ROLE_SHORT_LABELS } from '@/lib/constants'
 import { formatDate, formatInitials, plural } from '@/lib/formatters'
 import { useDepartmentDetail } from '../hooks/useDepartmentDetail'
+import AddDepartmentPeopleModal from './AddDepartmentPeopleModal'
+import DepartmentMemberDialog from './DepartmentMemberDialog'
 
 const STATUS = {
   active: null,
@@ -16,11 +20,15 @@ const STATUS = {
 
 /**
  * The department side panel (opens with ?department={id}): details, head, and the people in it.
+ * Since 2026-11-28 the People list can be changed here: "Add people" (as members, one of them as head), and per
+ * person Make head / Remove as head / Remove from department (rules: ManageDepartmentPeople on the server).
  * Render it inside <AnimatePresence> while open. `onAction('edit' | 'status', department)`.
  */
 export default function DepartmentPanel({ id, onClose, onAction }) {
   const detail = useDepartmentDetail(id)
   const d = detail.department
+  const [adding, setAdding] = useState(false)
+  const [change, setChange] = useState(null) // { type: 'make_head' | 'remove_head' | 'remove', person }
 
   const footer = d && (
     <>
@@ -123,9 +131,19 @@ export default function DepartmentPanel({ id, onClose, onAction }) {
             </p>
           )}
 
-          <Members members={detail.members} />
+          <Members
+            department={d}
+            members={detail.members}
+            onAdd={() => setAdding(true)}
+            onChange={(type, person) => setChange({ type, person })}
+          />
         </div>
       )}
+
+      <AnimatePresence>{adding && d && <AddDepartmentPeopleModal department={d} onClose={() => setAdding(false)} />}</AnimatePresence>
+      <AnimatePresence>
+        {change && d && <DepartmentMemberDialog type={change.type} department={d} person={change.person} onClose={() => setChange(null)} />}
+      </AnimatePresence>
     </SidePanel>
   )
 }
@@ -139,12 +157,23 @@ function Fact({ label, value }) {
   )
 }
 
-function Members({ members }) {
+function Members({ department, members, onAdd, onChange }) {
   return (
     <section aria-labelledby="dept-members" className="flex flex-col gap-2">
-      <h3 id="dept-members" className="text-table-head text-muted-foreground">
-        People {members.status === 'success' && `· ${members.total}`}
-      </h3>
+      <div className="flex items-center justify-between gap-3">
+        <h3 id="dept-members" className="text-table-head text-muted-foreground">
+          People {members.status === 'success' && `· ${members.total}`}
+        </h3>
+        {department.is_active && (
+          <button
+            type="button"
+            onClick={onAdd}
+            className="text-body-strong flex h-[32px] items-center gap-1.5 rounded-lg border bg-card px-3 outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring/50"
+          >
+            <UserPlus className="size-4" aria-hidden="true" /> Add people
+          </button>
+        )}
+      </div>
 
       {members.status === 'loading' && (
         <div role="status" className="text-caption flex items-center gap-2 py-3">
@@ -160,7 +189,11 @@ function Members({ members }) {
         <EmptyState
           icon={Users}
           title="Nobody in this department yet"
-          description="Choose this department when you create a user."
+          description={
+            department.is_active
+              ? 'Add people from your company, or choose this department when you create a user.'
+              : 'Reactivate the department to add people.'
+          }
           className="p-6"
           action={
             <Link
@@ -192,6 +225,12 @@ function Members({ members }) {
                   </span>
                 </span>
                 {pill && <Pill tone={pill.tone}>{pill.text}</Pill>}
+                <MemberActions
+                  person={p}
+                  isHead={p.id === members.headId}
+                  canHead={department.is_active && p.status !== 'inactive'}
+                  onChange={onChange}
+                />
               </li>
             )
           })}
@@ -208,5 +247,47 @@ function Members({ members }) {
         </button>
       )}
     </section>
+  )
+}
+
+/** Per person: Make head / Remove as head (a crown button) and Remove from department. */
+function MemberActions({ person, isHead, canHead, onChange }) {
+  const button =
+    'flex size-8 shrink-0 items-center justify-center rounded-lg text-muted-foreground outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring/50'
+  return (
+    <span className="flex shrink-0 items-center">
+      {isHead ? (
+        <button
+          type="button"
+          onClick={() => onChange('remove_head', person)}
+          title="Remove as head"
+          aria-label={`Remove ${person.full_name} as head`}
+          className={`${button} text-warning hover:text-warning`}
+        >
+          <Crown className="size-4" aria-hidden="true" />
+        </button>
+      ) : (
+        canHead && (
+          <button
+            type="button"
+            onClick={() => onChange('make_head', person)}
+            title="Make head"
+            aria-label={`Make ${person.full_name} the head`}
+            className={`${button} hover:text-warning`}
+          >
+            <Crown className="size-4" aria-hidden="true" />
+          </button>
+        )
+      )}
+      <button
+        type="button"
+        onClick={() => onChange('remove', person)}
+        title="Remove from department"
+        aria-label={`Remove ${person.full_name} from the department`}
+        className={`${button} hover:text-danger`}
+      >
+        <UserMinus className="size-4" aria-hidden="true" />
+      </button>
+    </span>
   )
 }

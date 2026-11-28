@@ -13,6 +13,8 @@ use Illuminate\Validation\Validator;
  * Only the email NAME is sent (the server adds @Administrator.com) and the server assigns the
  * Employee ID. Since 2026-11-20: ONE company per Admin (active, not suspended), and a PERSONAL
  * email where the "set your password" link goes. No password is typed or sent.
+ * Since 2026-11-28 the company is OPTIONAL (user decision): an Admin with no company yet waits until a Super
+ * Admin gives them one (in "+ Add company" or Edit details); meanwhile the Admin console shows a waiting page.
  */
 class StoreAdminRequest extends FormRequest
 {
@@ -28,6 +30,7 @@ class StoreAdminRequest extends FormRequest
             'last_name' => trim((string) $this->input('last_name')),
             'email_username' => strtolower(trim((string) $this->input('email_username'))),
             'personal_email' => strtolower(trim((string) $this->input('personal_email'))),
+            'company_id' => $this->input('company_id') === '' ? null : $this->input('company_id'), // "No company yet"
         ]);
     }
 
@@ -45,7 +48,7 @@ class StoreAdminRequest extends FormRequest
             'last_name' => ['required', 'string', 'max:100'],
             'email_username' => ['required', 'string', 'max:64', 'regex:'.RoleEmailDomains::USERNAME_PATTERN],
             'company_id' => [
-                'required', 'integer',
+                'nullable', 'integer',
                 Rule::exists('companies', 'id')->where('is_active', true)->whereNull('suspended_at'),
             ],
             'personal_email' => ['required', 'string', 'max:255', 'email:rfc'],

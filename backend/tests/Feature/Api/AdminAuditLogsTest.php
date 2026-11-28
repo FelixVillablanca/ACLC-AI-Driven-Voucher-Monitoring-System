@@ -107,12 +107,13 @@ class AdminAuditLogsTest extends TestCase
         $this->actingAs($this->admin)->getJson(self::URL."/{$voucher}")->assertNotFound();
     }
 
-    public function test_admin_without_a_company_sees_nothing(): void
+    public function test_admin_without_a_company_gets_the_waiting_answer(): void
     {
         $this->log(['action' => 'role_changed']);
         $loose = User::factory()->admin()->create(['company_id' => null]);
 
-        $this->actingAs($loose)->getJson(self::URL)->assertOk()->assertJsonCount(0, 'data');
+        // since 2026-11-28: "No company yet" -> the console waits (the React app shows a waiting page)
+        $this->actingAs($loose)->getJson(self::URL)->assertForbidden()->assertJsonPath('code', 'NO_COMPANY_YET');
     }
 
     public function test_guests_are_401_and_other_roles_403(): void

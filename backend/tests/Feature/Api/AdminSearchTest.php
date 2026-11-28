@@ -84,16 +84,14 @@ class AdminSearchTest extends TestCase
         $this->actingAs($this->admin)->getJson('/api/v1/admin/search?q=%25%25')->assertJsonPath('data.users', []);
     }
 
-    public function test_admin_without_a_company_gets_empty_results(): void
+    public function test_admin_without_a_company_gets_the_waiting_answer(): void
     {
         $loose = User::factory()->admin()->create(['company_id' => null]);
         User::factory()->create(['first_name' => 'Liza', 'company_id' => $this->apex->id]);
 
         $this->actingAs($loose)
             ->getJson('/api/v1/admin/search?q=liza')
-            ->assertOk()
-            ->assertJsonPath('data.users', [])
-            ->assertJsonPath('meta.company', null);
+            ->assertForbidden()->assertJsonPath('code', 'NO_COMPANY_YET');
     }
 
     public function test_too_short_query_is_422(): void

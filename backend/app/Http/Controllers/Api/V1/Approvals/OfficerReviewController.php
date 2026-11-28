@@ -19,6 +19,7 @@ use App\Http\Requests\Approvals\ReviewDecisionRequest;
 use App\Http\Resources\Approvals\QueueVoucherResource;
 use App\Http\Resources\Vouchers\VoucherResource;
 use App\Models\Voucher;
+use App\Support\LiveCounts;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -43,21 +44,26 @@ class OfficerReviewController extends Controller
 {
     public function __construct(private ApprovalRoute $route) {}
 
+    /** Sidebar counts, asked by every officer tab once a minute: cached 30 s, cleared on any change (LiveCounts). */
     public function summary(Request $request): JsonResponse
     {
-        $queue = $this->queue($request);
+        $company = $request->attributes->get('company');
 
-        return response()->json(['data' => [
-            'queue' => [
-                'total' => $queue->base()->count(),
-                'ai_flagged' => $queue->base()->where('ai_anomaly_flag', true)->count(),
-                'near_sla' => $queue->base()->where('submitted_at', '<=', $this->route->nearSlaSince())->count(),
-                'total_amount' => (string) $queue->base()->toBase()->selectRaw('COALESCE(SUM(amount), 0) as t')->value('t'),
-            ],
-            'today' => $this->mine($request)->today(),
-            'sla_hours' => $this->route->slaHours(),
-            'budget_alerts' => (new BudgetBoard($request->attributes->get('company'), $request->user()))->alertCount(),
-        ]]);
+        return response()->json(['data' => LiveCounts::forCompany('officer-summary', $company->id, $request->user()->id, function () use ($request, $company) {
+            $queue = $this->queue($request);
+
+            return [
+                'queue' => [
+                    'total' => $queue->base()->count(),
+                    'ai_flagged' => $queue->base()->where('ai_anomaly_flag', true)->count(),
+                    'near_sla' => $queue->base()->where('submitted_at', '<=', $this->route->nearSlaSince())->count(),
+                    'total_amount' => (string) $queue->base()->toBase()->selectRaw('COALESCE(SUM(amount), 0) as t')->value('t'),
+                ],
+                'today' => $this->mine($request)->today(),
+                'sla_hours' => $this->route->slaHours(),
+                'budget_alerts' => (new BudgetBoard($company, $request->user()))->alertCount(),
+            ];
+        })]);
     }
 
     public function options(Request $request): JsonResponse

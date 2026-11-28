@@ -17,9 +17,12 @@ use App\Domain\Identity\Support\AccountActions;
 use App\Domain\Identity\Support\AdminExport;
 use App\Domain\Identity\Support\EmployeeIdGenerator;
 use App\Domain\Security\Support\OwnerActivity;
+use App\Domain\Tenancy\Actions\AssignCompanyAdmin;
+use App\Domain\Tenancy\Queries\CompaniesWithoutAdmin;
 use App\Exceptions\ApiException;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\SuperAdmin\AdminAccountActionRequest;
+use App\Http\Requests\SuperAdmin\AssignAdminCompanyRequest;
 use App\Http\Requests\SuperAdmin\BulkAdminActionRequest;
 use App\Http\Requests\SuperAdmin\DeactivateAccountRequest;
 use App\Http\Requests\SuperAdmin\ExportAdminsRequest;
@@ -197,6 +200,25 @@ class AdminController extends Controller
         $this->managed($user);
 
         return AdminAccountResource::make($reactivate->handle($user, $request->user(), $request->ip()));
+    }
+
+    /** GET /api/v1/superadmin/admins/company-options  Companies with no active Admin (the "Assign to a company" picker). */
+    public function companyOptions(CompaniesWithoutAdmin $companies): JsonResponse
+    {
+        return response()->json(['data' => $companies->list()->map(fn (Company $c) => [
+            'id' => $c->id, 'name' => $c->name, 'type' => $c->type, 'address' => $c->address, 'users_count' => (int) $c->users_count,
+        ])->values()]);
+    }
+
+    /** POST /api/v1/superadmin/admins/{user}/company  { company_id }  An Admin with no company yet runs that company now. */
+    public function assignCompany(AssignAdminCompanyRequest $request, User $user, AssignCompanyAdmin $assign): AdminAccountResource
+    {
+        $this->managed($user);
+        AccountActions::authorize($request->user(), $user, 'assign_company');
+
+        $assign->handle(Company::findOrFail((int) $request->validated('company_id')), $user->id, $request->user(), $request->ip());
+
+        return AdminAccountResource::make($user->fresh());
     }
 
     /** POST /api/v1/superadmin/admins/{user}/promote  { password }  (Make Super Admin A12) */

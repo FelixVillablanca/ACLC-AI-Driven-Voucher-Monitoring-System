@@ -20,7 +20,7 @@ class Company extends Model
     use HasFactory;
 
     protected $fillable = [
-        'name', 'type', 'address', 'contact_email', 'contact_phone',
+        'name', 'type', 'address', 'latitude', 'longitude', 'place_id', 'contact_email', 'contact_phone',
         'logo', 'fiscal_year_start', 'tin_number', 'is_active',
     ];
 
@@ -28,6 +28,8 @@ class Company extends Model
     {
         return [
             'is_active' => 'boolean',
+            'latitude' => 'decimal:7', // map pin (strings, so no float rounding)
+            'longitude' => 'decimal:7',
             'fiscal_year_start' => 'date',
             'suspended_at' => 'datetime', // set when a Super Admin suspends the company
         ];

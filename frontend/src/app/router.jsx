@@ -1,11 +1,13 @@
 import { createBrowserRouter } from 'react-router-dom'
 import HomeRedirect from '@/app/HomeRedirect'
+import RequireAdminCompany from '@/app/guards/RequireAdminCompany'
 import RequireAuth from '@/app/guards/RequireAuth'
 import RequireCompany from '@/app/guards/RequireCompany'
 import RequireRole from '@/app/guards/RequireRole'
 import { signOut } from '@/features/auth'
 import { ACCOUNT_PATHS, PATHS, ROLES } from '@/lib/constants'
 import RouteErrorPage from '@/pages/RouteErrorPage'
+import { useAuthStore } from '@/stores/useAuthStore'
 
 /**
  * THE MAP OF THE APP: which web address shows which page, and which guards protect it.
@@ -141,30 +143,41 @@ export const router = createBrowserRouter([
                     import('@/features/admin/access'),
                   ])
                   return {
-                    Component: () => (
-                      <AdminLayout
-                        onSignOut={signOut}
-                        search={<AdminSearchBox />}
-                        notifications={<NotificationBell links={ADMIN_NOTIFICATION_LINKS} />}
-                        overlays={
-                          <>
-                            <CreateUserModal />
-                            <AddDepartmentModal />
-                            <GrantAccessModal />
-                          </>
-                        }
-                      />
-                    ),
+                    Component: function AdminShell() {
+                      // no company yet: nothing to search or create (the pages show the waiting page)
+                      const hasCompany = useAuthStore((s) => !!s.user?.company)
+                      return (
+                        <AdminLayout
+                          onSignOut={signOut}
+                          search={hasCompany ? <AdminSearchBox /> : null}
+                          notifications={<NotificationBell links={ADMIN_NOTIFICATION_LINKS} />}
+                          overlays={
+                            hasCompany && (
+                              <>
+                                <CreateUserModal />
+                                <AddDepartmentModal />
+                                <GrantAccessModal />
+                              </>
+                            )
+                          }
+                        />
+                      )
+                    },
                   }
                 },
                 children: [
-                  { path: PATHS.ADMIN, lazy: page(() => import('@/features/admin/dashboard/pages/AdminDashboardPage')) },
-                  // Not built yet: each gets its own Framer frame
-                  { path: PATHS.ADMIN_DEPARTMENTS, lazy: page(() => import('@/features/admin/departments/pages/DepartmentsPage')) },
-                  { path: PATHS.ADMIN_USERS, lazy: page(() => import('@/features/admin/users/pages/UsersPage')) },
-                  { path: PATHS.ADMIN_COMPANY_ACCESS, lazy: page(() => import('@/features/admin/access/pages/CompanyAccessPage')) },
-                  { path: PATHS.ADMIN_CATEGORIES, lazy: page(() => import('@/features/admin/catalog/pages/CategoriesPage')) },
-                  { path: PATHS.ADMIN_AUDIT_LOGS, lazy: page(() => import('@/features/admin/audit/pages/AuditLogsPage')) },
+                  {
+                    // An Admin with "No company yet" (2026-11-28) sees a waiting page here instead
+                    element: <RequireAdminCompany />,
+                    children: [
+                      { path: PATHS.ADMIN, lazy: page(() => import('@/features/admin/dashboard/pages/AdminDashboardPage')) },
+                      { path: PATHS.ADMIN_DEPARTMENTS, lazy: page(() => import('@/features/admin/departments/pages/DepartmentsPage')) },
+                      { path: PATHS.ADMIN_USERS, lazy: page(() => import('@/features/admin/users/pages/UsersPage')) },
+                      { path: PATHS.ADMIN_COMPANY_ACCESS, lazy: page(() => import('@/features/admin/access/pages/CompanyAccessPage')) },
+                      { path: PATHS.ADMIN_CATEGORIES, lazy: page(() => import('@/features/admin/catalog/pages/CategoriesPage')) },
+                      { path: PATHS.ADMIN_AUDIT_LOGS, lazy: page(() => import('@/features/admin/audit/pages/AuditLogsPage')) },
+                    ],
+                  },
                   // Account menu (⋮ under the user name, Framer nj06iziQJ)
                   ...accountPages(ACCOUNT_PATHS[ROLES.ADMIN]),
                   notificationsPage(PATHS.ADMIN_NOTIFICATIONS, ADMIN_NOTIFICATION_LINKS),
@@ -290,6 +303,7 @@ export const router = createBrowserRouter([
                       { path: PATHS.CLERK_DRAFTS, lazy: page(() => import('@/features/vouchers/pages/DraftsPage')) },
                       { path: PATHS.CLERK_RETURNED, lazy: page(() => import('@/features/vouchers/pages/ReturnedPage')) },
                       { path: PATHS.CLERK_PAYEES, lazy: page(() => import('@/features/payees/pages/PayeesPage')) },
+                      { path: PATHS.CLERK_CHEQUES, lazy: page(() => import('@/features/cheques/pages/ChequeRegisterPage')) },
                       { path: PATHS.CLERK_HELP, lazy: page(() => import('@/features/help/pages/HelpCenterPage')) },
                       { path: `${PATHS.CLERK_HELP}/:slug`, lazy: page(() => import('@/features/help/pages/GuidePage')) },
                       { path: `${PATHS.CLERK_VOUCHERS}/:id`, lazy: page(() => import('@/features/vouchers/pages/VoucherDetailPage')) },
@@ -355,6 +369,7 @@ export const router = createBrowserRouter([
                         lazy: page(() => import('@/features/forecasts/pages/DepartmentForecastPage')),
                       },
                       { path: PATHS.OFFICER_BUDGETS, lazy: page(() => import('@/features/budgets/pages/BudgetsPage')) },
+                      { path: PATHS.OFFICER_CHEQUES, lazy: page(() => import('@/features/cheques/pages/ChequeRegisterPage')) },
                       {
                         path: `${PATHS.OFFICER_BUDGETS}/:departmentId`,
                         lazy: page(() => import('@/features/budgets/pages/DepartmentBudgetPage')),
@@ -409,6 +424,7 @@ export const router = createBrowserRouter([
                       { path: PATHS.SUPERVISOR_HISTORY, lazy: page(() => import('@/features/supervisor/pages/DecisionHistoryPage')) },
                       { path: PATHS.SUPERVISOR_BUDGETS, lazy: page(() => import('@/features/supervisor/pages/SupervisorBudgetsPage')) },
                       { path: PATHS.SUPERVISOR_FORECASTS, lazy: page(() => import('@/features/supervisor/pages/SupervisorForecastsPage')) },
+                      { path: PATHS.SUPERVISOR_CHEQUES, lazy: page(() => import('@/features/cheques/pages/ChequeRegisterPage')) },
                       { path: PATHS.SUPERVISOR_AUDIT, lazy: page(() => import('@/features/supervisor/pages/SupervisorAuditPage')) },
                       { path: PATHS.SUPERVISOR_REPORTS, lazy: page(() => import('@/features/supervisor/pages/SupervisorReportsPage')) },
                       {

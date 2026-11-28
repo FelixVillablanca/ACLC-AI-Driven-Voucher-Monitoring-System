@@ -522,8 +522,8 @@ function DecisionPanel({ v, remarks, setRemarks, onOpen }) {
         <p className="text-caption flex gap-2 rounded-lg bg-warning-soft px-3 py-2.5 text-foreground">
           <span className="text-warning">→</span>
           <span>
-            {reasons.includes('ai_flagged') ? 'Flagged' : 'High value'}: after you approve, it goes to {supervisorNames(sups)} (Supervisor)
-            for final approval.
+            {reasons.includes('ai_flagged') ? 'Flagged · ' : reasons.includes('high_value') ? 'High value · ' : ''}After you approve, it
+            goes to {supervisorNames(sups)} (Supervisor) for the final approval: every voucher needs it.
             {sups.length === 0 && ' Nobody is a Supervisor in this company yet, so it will wait until one is added.'}
           </span>
         </p>

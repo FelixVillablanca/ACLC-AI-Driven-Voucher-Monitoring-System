@@ -220,5 +220,5 @@ export default function DepartmentForm({
 function headHint(people) {
   if (people.status === 'error') return people.error?.message ?? 'Optional. You can choose a head later.'
   if (people.status === 'success' && people.people.length === 0) return 'Create users first, then choose a head.'
-  return 'Optional. You can choose one later.'
+  return 'Optional. The head joins this department (moved from their current one, if any). One head per department.'
 }

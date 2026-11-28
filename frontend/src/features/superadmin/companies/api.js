@@ -88,3 +88,37 @@ export async function createCompany(values) {
   const { data } = await apiClient.post('/superadmin/companies', values)
   return data.data
 }
+
+/**
+ * Map pin search (OpenStreetMap through our server, which keeps its 1-a-second rule and caches answers).
+ * searchPlaces → up to 5 places, best first: [{ label, latitude, longitude, place_id, kind }] ([] = nothing found).
+ * reversePlace → the nearest address to a spot, or null. 503 GEOCODER_UNAVAILABLE = the search isn't answering.
+ */
+export async function searchPlaces(query) {
+  const { data } = await apiClient.get('/superadmin/places/search', { params: { q: query } })
+  return data.data
+}
+
+export async function reversePlace({ lat, lng }) {
+  const { data } = await apiClient.get('/superadmin/places/reverse', { params: { lat, lng } })
+  return data.data
+}
+
+/**
+ * Admins with no company yet, A–Z (the optional "Admin in charge" of + Add company).
+ * Returns [{ id, full_name, email, status: 'pending' | 'active', created_at }].
+ */
+export async function listUnassignedAdmins() {
+  const { data } = await apiClient.get('/superadmin/companies/unassigned-admins')
+  return data.data
+}
+
+/**
+ * Company panel (C8 Overview, "Admin in charge"): makes an Admin with no company yet this company's Admin.
+ * Returns the panel's company data again. 409 COMPANY_HAS_ADMIN / COMPANY_NOT_ACTIVE / ADMIN_ALREADY_ASSIGNED,
+ * 422 when the pick is no longer valid.
+ */
+export async function assignCompanyAdmin(companyId, adminId) {
+  const { data } = await apiClient.post(`/superadmin/companies/${companyId}/admin`, { admin_id: Number(adminId) })
+  return data.data
+}

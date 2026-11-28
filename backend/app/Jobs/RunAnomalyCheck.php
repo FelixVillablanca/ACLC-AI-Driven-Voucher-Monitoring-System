@@ -8,6 +8,7 @@ use App\Domain\Vouchers\VoucherStatus as S;
 use App\Models\Notification;
 use App\Models\User;
 use App\Models\Voucher;
+use App\Support\LiveCounts;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -50,6 +51,7 @@ class RunAnomalyCheck implements ShouldQueue
             'ai_check_source' => 'rules',
             'ai_checked_at' => now(),
         ]);
+        LiveCounts::companyChanged($voucher->company_id); // a direct update: the "flagged" counts moved
 
         if ($result['flagged']) {
             // Audit trail (2026-11-27, Framer xqItzoFYK "System flagged …"): who = the system, no IP

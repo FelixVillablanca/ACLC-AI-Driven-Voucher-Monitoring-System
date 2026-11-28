@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { COMPANIES_CHANGED_EVENT } from '@/features/superadmin/companies'
 import { listAdmins } from '../api'
 import { ADMINS_CHANGED_EVENT } from '../utils'
 
@@ -34,7 +35,12 @@ export function useAdminAccounts({ view, search, sort, order, page }) {
     fetchPage()
     const onChanged = () => fetchPage(true)
     window.addEventListener(ADMINS_CHANGED_EVENT, onChanged)
-    return () => window.removeEventListener(ADMINS_CHANGED_EVENT, onChanged)
+    // + Add company may have given an Admin with no company their company
+    window.addEventListener(COMPANIES_CHANGED_EVENT, onChanged)
+    return () => {
+      window.removeEventListener(ADMINS_CHANGED_EVENT, onChanged)
+      window.removeEventListener(COMPANIES_CHANGED_EVENT, onChanged)
+    }
   }, [fetchPage])
 
   const reload = useCallback(() => {

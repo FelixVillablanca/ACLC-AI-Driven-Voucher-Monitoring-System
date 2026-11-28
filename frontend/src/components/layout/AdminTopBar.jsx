@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import { Menu, Plus } from 'lucide-react'
+import { useAuthStore } from '@/stores/useAuthStore'
 
 /**
  * 64px white top bar (Framer Nhw7N27tM): search, notifications bell, "+ Add user".
@@ -9,6 +10,8 @@ import { Menu, Plus } from 'lucide-react'
  */
 export default function AdminTopBar({ onOpenMenu, search, notifications, addUserSearch = '?create=user' }) {
   const navigate = useNavigate()
+  // an Admin with no company yet (2026-11-28) has nobody to add
+  const hasCompany = useAuthStore((st) => !!st.user?.company)
 
   return (
     <header className="flex h-16 shrink-0 items-center justify-between gap-3 border-b bg-card px-4 sm:px-7">
@@ -27,14 +30,16 @@ export default function AdminTopBar({ onOpenMenu, search, notifications, addUser
 
       <div className="flex items-center gap-3">
         {notifications}
-        <button
-          type="button"
-          onClick={() => navigate({ search: addUserSearch })}
-          className="text-auth-button flex h-[38px] items-center gap-1.5 rounded-lg bg-primary px-3.5 text-primary-foreground outline-none hover:bg-primary/90 focus-visible:ring-3 focus-visible:ring-ring/50"
-        >
-          <Plus className="size-4" aria-hidden="true" />
-          Add user
-        </button>
+        {hasCompany && (
+          <button
+            type="button"
+            onClick={() => navigate({ search: addUserSearch })}
+            className="text-auth-button flex h-[38px] items-center gap-1.5 rounded-lg bg-primary px-3.5 text-primary-foreground outline-none hover:bg-primary/90 focus-visible:ring-3 focus-visible:ring-ring/50"
+          >
+            <Plus className="size-4" aria-hidden="true" />
+            Add user
+          </button>
+        )}
       </div>
     </header>
   )

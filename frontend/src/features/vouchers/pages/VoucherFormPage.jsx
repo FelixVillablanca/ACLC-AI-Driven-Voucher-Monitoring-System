@@ -358,6 +358,24 @@ function VoucherForm({ options, voucher, prefillPayeeId, onReload }) {
                   ))}
                 </Select>
               </FieldShell>
+              <div className="sm:col-span-2">
+                <FieldShell
+                  id="v-payee_email"
+                  label="Payee’s email"
+                  error={errors.payee_email?.message}
+                  hint="Optional. After the final approval you can email them the approval and the payment PDF."
+                >
+                  <input
+                    {...fieldProps('payee_email')}
+                    {...register('payee_email')}
+                    type="email"
+                    inputMode="email"
+                    spellCheck={false}
+                    maxLength={255}
+                    placeholder="e.g. accounts@supplier.ph"
+                  />
+                </FieldShell>
+              </div>
             </div>
           </Card>
 
@@ -710,6 +728,7 @@ function findPayee(payees, name) {
 /** What picking a saved payee fills in: its name, and its type / bank details where the form is empty. */
 function payeeFill(payee, values) {
   const fill = { payee_name: payee.name }
+  if (!values.payee_email && payee.email) fill.payee_email = payee.email
   if (!values.payee_type_id && payee.payee_type_id) fill.payee_type_id = payee.payee_type_id
   if (payee.default_payment_method) fill.payment_method = payee.default_payment_method
   if (payee.default_payment_method === 'bank') {

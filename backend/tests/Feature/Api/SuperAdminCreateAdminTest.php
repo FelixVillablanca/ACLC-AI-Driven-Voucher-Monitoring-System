@@ -203,7 +203,8 @@ class SuperAdminCreateAdminTest extends TestCase
 
         $this->actingAs($this->owner)->postJson('/api/v1/superadmin/admins', [])
             ->assertUnprocessable()
-            ->assertJsonValidationErrors(['first_name', 'last_name', 'email_username', 'company_id', 'personal_email']);
+            ->assertJsonValidationErrors(['first_name', 'last_name', 'email_username', 'personal_email'])
+            ->assertJsonMissingValidationErrors(['company_id']); // optional since 2026-11-28: "No company yet"
 
         $this->create(['company_id' => $suspended->id])->assertUnprocessable()
             ->assertJsonPath('errors.company_id.0', 'Choose an active company.');
@@ -217,6 +218,16 @@ class SuperAdminCreateAdminTest extends TestCase
         $this->assertSame(0, User::where('role', 'admin')->count());
         $this->assertSame(0, DB::table('audit_logs')->count());
         Mail::assertNothingSent();
+    }
+
+    public function test_add_admin_allows_20_saves_a_minute(): void
+    {
+        // 20 tries (all 422: nothing to save) pass the limit; the 21st is refused before it reaches the form check
+        for ($i = 0; $i < 20; $i++) {
+            $this->actingAs($this->owner)->postJson('/api/v1/superadmin/admins', [])->assertUnprocessable();
+        }
+
+        $this->actingAs($this->owner)->postJson('/api/v1/superadmin/admins', [])->assertStatus(429);
     }
 
     public function test_a_duplicate_work_email_returns_422(): void

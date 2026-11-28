@@ -46,6 +46,7 @@ class VoucherResource extends JsonResource
             'voucher_number' => VoucherNumber::isDraft($this->voucher_number) ? null : $this->voucher_number,
             'status' => $this->status,
             'payee_name' => $this->payee_name,
+            'payee_email' => $this->payee_email,
             'category' => $this->category ? ['id' => $this->category->id, 'name' => $this->category->name] : null,
             'amount' => (string) $this->amount,
             'currency' => $this->currency,

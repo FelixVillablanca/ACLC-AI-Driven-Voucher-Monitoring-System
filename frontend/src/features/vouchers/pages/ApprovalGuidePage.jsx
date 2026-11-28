@@ -89,26 +89,23 @@ export default function ApprovalGuidePage() {
             <Step n={3} icon={UserCheck} title="Step 1: an Accounting Officer reviews it" tone="primary">
               They approve it, send it back to you with a note, or reject it.
             </Step>
-            <Step n={4} icon={Users} title="Step 2: the Supervisor / Manager, when needed" tone="warning">
+            <Step n={4} icon={Users} title="Step 2: the Supervisor / Manager gives the final approval" tone="warning">
               <span className="flex flex-col gap-1.5">
-                <span>A voucher also needs the Supervisor when:</span>
+                <span>Every voucher needs the Supervisor’s final approval. They see it marked when:</span>
                 <span className="flex items-center gap-1.5">
                   <CheckCircle2 className="size-4 shrink-0 text-warning" aria-hidden="true" /> its total is <b>{threshold}</b> or more
                 </span>
-                {rules.ai_flagged_needs_step2 && (
-                  <span className="flex items-center gap-1.5">
-                    <Flag className="size-4 shrink-0 text-warning" aria-hidden="true" /> the AI check flags it as unusual, whatever the
-                    amount
-                  </span>
-                )}
+                <span className="flex items-center gap-1.5">
+                  <Flag className="size-4 shrink-0 text-warning" aria-hidden="true" /> the automatic check flags it as unusual
+                </span>
                 <span className="text-caption">
                   These rules are set by the Super Admin and can change; this page always shows the current ones.
                 </span>
               </span>
             </Step>
             <Step n={5} icon={ShieldCheck} title="Approved" tone="success" last>
-              When step 2 isn't needed, the Accounting Officer's approval is the final one. Either way, you'll see it as Approved in My
-              vouchers.
+              After the Supervisor’s final approval you get a notice, can download the payment PDF and email the payee. You’ll see it as
+              Approved in My vouchers.
             </Step>
           </ol>
 

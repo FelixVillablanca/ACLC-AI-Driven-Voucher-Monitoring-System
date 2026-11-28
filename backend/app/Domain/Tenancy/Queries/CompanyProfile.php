@@ -22,6 +22,12 @@ class CompanyProfile
         return [
             'contact_email' => $company->contact_email,
             'contact_phone' => $company->contact_phone,
+            // the map pin chosen in "+ Add company" (null when none was placed); numbers stay strings (DECIMAL)
+            'location' => $company->latitude === null ? null : [
+                'latitude' => $company->latitude,
+                'longitude' => $company->longitude,
+                'place_id' => $company->place_id,
+            ],
             'two_factor_on' => (clone $users)->whereNotNull('two_factor_confirmed_at')->whereNotNull('two_factor_secret')->count(),
             'largest_departments' => $this->departments($company)->take(3)
                 ->map(fn (Department $d) => ['id' => $d->id, 'name' => $d->name, 'users_count' => (int) $d->users_count])

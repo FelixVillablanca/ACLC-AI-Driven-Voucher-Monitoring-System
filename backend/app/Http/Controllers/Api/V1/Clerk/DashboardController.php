@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1\Clerk;
 
 use App\Domain\Vouchers\Queries\ClerkDashboardSummary;
 use App\Http\Controllers\Controller;
+use App\Support\LiveCounts;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -16,8 +17,11 @@ class DashboardController extends Controller
 {
     public function __invoke(Request $request, ClerkDashboardSummary $summary): JsonResponse
     {
-        $clerk = $request->user()->loadMissing('department:id,name');
+        $clerk = $request->user();
+        $company = $request->attributes->get('company');
 
-        return response()->json(['data' => $summary->get($clerk, $request->attributes->get('company'))]);
+        // Sidebar + landing page in one: cached 30 s, cleared when a voucher of the company changes (LiveCounts)
+        return response()->json(['data' => LiveCounts::forCompany('clerk-dashboard', $company->id, $clerk->id,
+            fn () => $summary->get($clerk->loadMissing('department:id,name'), $company))]);
     }
 }

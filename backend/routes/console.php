@@ -56,9 +56,25 @@ Schedule::command('backup:run')
 | OLD DRAFTS (Drafts page, Framer Xfr2PEq2q; user decision 2026-11-25): every night at 01:30, before the
 | backup, drafts untouched for 30 days are deleted and clerks are reminded 3 days before.
 */
+Schedule::command('admins:expire-unassigned')
+    ->everyFiveMinutes()
+    ->name('expire-unassigned-admins')
+    ->withoutOverlapping(10);
+
+/*
+| (above) ADMINS WITH NO COMPANY (user decision 2026-11-28): an Admin created with "No company yet" is removed after
+| 24 hours without one (deleted if never used, otherwise deactivated); the Super Admins are warned 3 hours before.
+*/
+
 Schedule::command('vouchers:prune-drafts')
     ->dailyAt('01:30')
     ->name('prune-old-drafts')
+    ->withoutOverlapping(30);
+
+// Cheque register (2026-11-29): remind 30 days before, then mark uncleared cheques stale 180 days after their date
+Schedule::command('cheques:mark-stale')
+    ->dailyAt('01:45')
+    ->name('mark-stale-cheques')
     ->withoutOverlapping(30);
 
 /*

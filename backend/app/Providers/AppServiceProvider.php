@@ -77,6 +77,9 @@ class AppServiceProvider extends ServiceProvider
         // A stolen Super Admin session can't be used to scrape or hammer the platform quickly.
         // Admin top-bar search (asks while the Admin types, debounced): 60/min per Admin
         RateLimiter::for('admin-search', fn (Request $request) => Limit::perMinute(60)->by('admin-search|'.$request->user()?->id));
+        // "Email the payee" (2026-11-28): its OWN counter. A plain throttle:6,1 shares one counter with every other
+        // unnamed throttle of the same user, so the clerk's saves / submits would use it up.
+        RateLimiter::for('email-payee', fn (Request $request) => Limit::perMinute(6)->by('email-payee|'.$request->user()?->id));
         RateLimiter::for('superadmin', fn (Request $request) => Limit::perMinute(60)->by('superadmin|'.$request->user()?->id));
 
         // Everything else in the API: 120 requests per minute per user (or IP for guests)

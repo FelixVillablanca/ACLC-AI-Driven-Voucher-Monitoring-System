@@ -53,7 +53,14 @@ export function ApproveDialog({ voucher, initialRemarks, onDone, onCancel, onCon
       <p className="text-body text-foreground">
         {formatMoney(voucher.amount)} to {voucher.payee_name ?? 'the payee'} will be marked approved at Level 1.
         {forward
-          ? ` Because ${reasons.map((r) => STEP2_REASON_TEXT[r]).join(' and ')}, it will be forwarded to ${supervisorNames(sups)} (Supervisor / Manager) for final approval.`
+          ? ` It will be forwarded to ${supervisorNames(sups)} (Supervisor / Manager) for the final approval: every voucher needs it.${
+              reasons.filter((r) => r !== 'every_voucher').length
+                ? ` It’s marked for them because ${reasons
+                    .filter((r) => r !== 'every_voucher')
+                    .map((r) => STEP2_REASON_TEXT[r])
+                    .join(' and ')}.`
+                : ''
+            }`
           : ' Your approval is final: it doesn’t need the Supervisor.'}
       </p>
       {forward && sups.length === 0 && (

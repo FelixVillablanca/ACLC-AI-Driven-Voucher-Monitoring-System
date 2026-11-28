@@ -1,5 +1,8 @@
 import { z } from 'zod'
 
+/** The Company select's "No company yet" choice (sent to the server as company_id: null). */
+export const NO_COMPANY = 'none'
+
 /**
  * Browser-side rules for "Create admin account" (instant feedback).
  * The backend (StoreAdminRequest.php) checks again, including "this email is already taken".
@@ -15,10 +18,11 @@ export const createAdminSchema = z.object({
     .min(1, 'Enter the email name (the part before @).')
     .max(64, 'The email name can be at most 64 characters.')
     .regex(/^[a-z0-9]+([._-][a-z0-9]+)*$/i, 'Use only letters, numbers and . _ - (no spaces or @).'),
-  company_id: z.coerce
-    .number({ error: 'Choose the company this Admin will run.' })
-    .int()
-    .positive('Choose the company this Admin will run.'),
+  // a company id, or NO_COMPANY ("No company yet", since 2026-11-28: they get one later, e.g. in + Add company)
+  company_id: z.preprocess(
+    (v) => (v === NO_COMPANY || v === '' || v == null ? null : Number(v)),
+    z.number({ error: 'Choose a company, or “No company yet”.' }).int().positive('Choose a company, or “No company yet”.').nullable(),
+  ),
   personal_email: z
     .string()
     .trim()

@@ -35,10 +35,12 @@ use App\Http\Controllers\Api\V1\SuperAdmin\CompanyController as SuperAdminCompan
 use App\Http\Controllers\Api\V1\SuperAdmin\DashboardController as SuperAdminDashboardController;
 use App\Http\Controllers\Api\V1\SuperAdmin\FailedJobController;
 use App\Http\Controllers\Api\V1\SuperAdmin\GlobalSettingsController;
+use App\Http\Controllers\Api\V1\SuperAdmin\PlaceController;
 use App\Http\Controllers\Api\V1\SuperAdmin\SecurityAlertController;
 use App\Http\Controllers\Api\V1\SuperAdmin\SystemHealthController;
 use App\Http\Controllers\Api\V1\Support\SupportController;
 use App\Http\Controllers\Api\V1\TwoFactorLoginController;
+use App\Http\Controllers\Api\V1\Vouchers\ChequeController;
 use App\Http\Controllers\Api\V1\Vouchers\VoucherController;
 use Illuminate\Support\Facades\Route;
 
@@ -109,7 +111,7 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
         });
 
         // ADMIN area: system setup only (no vouchers / money). role:admin -> others get 403.
-        Route::prefix('admin')->name('admin.')->middleware('role:admin')->group(function () {
+        Route::prefix('admin')->name('admin.')->middleware(['role:admin', 'admin.company'])->group(function () {
             Route::get('/dashboard', AdminDashboardController::class)->name('dashboard');
             Route::get('/lookups/companies', [LookupController::class, 'companies'])->name('lookups.companies');
             // Top-bar search: the Admin's own users + departments only
@@ -122,6 +124,7 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
             Route::patch('/users/{user}', [AdminUserController::class, 'update'])->whereNumber('user')->middleware('throttle:30,1')->name('users.update');
             Route::post('/users/{user}/deactivate', [AdminUserController::class, 'deactivate'])->whereNumber('user')->middleware('throttle:30,1')->name('users.deactivate');
             Route::post('/users/{user}/reactivate', [AdminUserController::class, 'reactivate'])->whereNumber('user')->middleware('throttle:30,1')->name('users.reactivate');
+            Route::get('/users/{user}/other-companies', [AdminUserController::class, 'otherCompanies'])->whereNumber('user')->name('users.other-companies'); // Deactivate dialog
             Route::post('/users/{user}/password', [AdminUserController::class, 'password'])->whereNumber('user')->middleware('throttle:10,1')->name('users.password');
             // Quick actions (2026-11-22): always the Admin's own company
             Route::get('/lookups/people', [LookupController::class, 'people'])->name('lookups.people');
@@ -129,6 +132,12 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
             Route::post('/departments', [AdminDepartmentController::class, 'store'])->middleware('throttle:30,1')->name('departments.store');
             Route::get('/departments/{department}', [AdminDepartmentController::class, 'show'])->whereNumber('department')->name('departments.show');
             Route::get('/departments/{department}/members', [AdminDepartmentController::class, 'members'])->whereNumber('department')->name('departments.members');
+            // People in a department (side panel, 2026-11-28): add (as member / head), make head, remove
+            Route::get('/departments/{department}/candidates', [AdminDepartmentController::class, 'candidates'])->whereNumber('department')->name('departments.candidates');
+            Route::post('/departments/{department}/people', [AdminDepartmentController::class, 'addPeople'])->whereNumber('department')->middleware('throttle:30,1')->name('departments.people.add');
+            Route::delete('/departments/{department}/people/{user}', [AdminDepartmentController::class, 'removePerson'])->whereNumber('department')->whereNumber('user')->middleware('throttle:30,1')->name('departments.people.remove');
+            Route::post('/departments/{department}/head', [AdminDepartmentController::class, 'setHead'])->whereNumber('department')->middleware('throttle:30,1')->name('departments.head.set');
+            Route::delete('/departments/{department}/head', [AdminDepartmentController::class, 'clearHead'])->whereNumber('department')->middleware('throttle:30,1')->name('departments.head.clear');
             Route::patch('/departments/{department}', [AdminDepartmentController::class, 'update'])->whereNumber('department')->middleware('throttle:30,1')->name('departments.update');
             Route::post('/departments/{department}/deactivate', [AdminDepartmentController::class, 'deactivate'])->whereNumber('department')->middleware('throttle:30,1')->name('departments.deactivate');
             Route::post('/departments/{department}/reactivate', [AdminDepartmentController::class, 'reactivate'])->whereNumber('department')->middleware('throttle:30,1')->name('departments.reactivate');
@@ -162,9 +171,9 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
             Route::prefix('admins')->name('admins.')->controller(SuperAdminAdminController::class)->group(function () {
                 Route::get('/', 'index')->name('index');
                 Route::get('/form-defaults', 'formDefaults')->name('form-defaults');
+                Route::get('/company-options', 'companyOptions')->name('company-options'); // "Assign to a company" picker
                 Route::get('/export', 'export')->name('export');
-                Route::post('/', 'store')->middleware('throttle:20,1')->name('store'); // + Add company
-                Route::post('/', 'store')->name('store');
+                Route::post('/', 'store')->middleware('throttle:20,1')->name('store'); // + Add admin: 20 saves a minute
                 Route::post('/bulk', 'bulk')->name('bulk');
                 Route::whereNumber('user')->group(function () {
                     Route::get('/{user}', 'show')->name('show');
@@ -177,6 +186,7 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
                     Route::post('/{user}/deactivate', 'deactivate')->name('deactivate');
                     Route::post('/{user}/reactivate', 'reactivate')->name('reactivate');
                     Route::post('/{user}/promote', 'promote')->name('promote');
+                    Route::post('/{user}/company', 'assignCompany')->middleware('throttle:20,1')->name('company'); // Assign to a company
                 });
             });
 
@@ -215,14 +225,20 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
             Route::prefix('companies')->name('companies.')->controller(SuperAdminCompanyController::class)->group(function () {
                 Route::get('/', 'index')->name('index');
                 Route::get('/export', 'export')->name('export');
+                Route::get('/unassigned-admins', 'unassignedAdmins')->name('unassigned-admins'); // + Add company: Admin picker
                 Route::post('/', 'store')->middleware('throttle:20,1')->name('store'); // + Add company
                 Route::get('/{company}', 'show')->whereNumber('company')->name('show');
                 Route::get('/{company}/departments', 'departments')->whereNumber('company')->name('departments');
                 Route::get('/{company}/users', 'users')->whereNumber('company')->name('users');
                 Route::get('/{company}/history', 'history')->whereNumber('company')->name('history');
+                Route::post('/{company}/admin', 'assignAdmin')->whereNumber('company')->middleware('throttle:20,1')->name('assign-admin'); // C8: Admin in charge
                 Route::post('/{company}/suspend', 'suspend')->whereNumber('company')->name('suspend');
                 Route::post('/{company}/reactivate', 'reactivate')->whereNumber('company')->name('reactivate');
             });
+
+            // Map pin address search for + Add company (OpenStreetMap; the server keeps its 1-a-second rule)
+            Route::get('/places/search', [PlaceController::class, 'search'])->middleware('throttle:30,1')->name('places.search');
+            Route::get('/places/reverse', [PlaceController::class, 'reverse'])->middleware('throttle:30,1')->name('places.reverse');
 
             // Database backups: "Run a database backup now?" (Framer TKziMjHUe)
             Route::get('/backups/overview', [BackupController::class, 'overview'])->name('backups.overview');
@@ -265,11 +281,29 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
                 Route::post('/', 'store')->middleware('throttle:60,1')->name('store');
                 Route::get('/{voucher}', 'show')->whereNumber('voucher')->name('show');
                 Route::get('/{voucher}/pdf', 'pdf')->whereNumber('voucher')->middleware('throttle:30,1')->name('pdf');
+                // after the final approval (2026-11-28): the payment PDF by method, and "Email the payee" with it attached
+                Route::get('/{voucher}/payment-pdf', 'paymentPdf')->whereNumber('voucher')->middleware('throttle:30,1')->name('payment-pdf');
+                Route::post('/{voucher}/email-payee', 'emailPayee')->whereNumber('voucher')->middleware('throttle:email-payee')->name('email-payee');
                 Route::patch('/{voucher}', 'update')->whereNumber('voucher')->middleware('throttle:60,1')->name('update');
                 Route::post('/{voucher}/submit', 'submit')->whereNumber('voucher')->middleware('throttle:30,1')->name('submit');
                 Route::post('/{voucher}/cancel', 'cancel')->whereNumber('voucher')->middleware('throttle:30,1')->name('cancel');
                 Route::delete('/{voucher}', 'destroy')->whereNumber('voucher')->middleware('throttle:30,1')->name('destroy');
                 Route::post('/drafts/delete', 'destroyMany')->middleware('throttle:10,1')->name('drafts.delete');
+                // cheque register (2026-11-29): the cheques of one approved cheque voucher, and recording one
+                Route::get('/{voucher}/cheques', [ChequeController::class, 'forVoucher'])->whereNumber('voucher')->name('cheques.index');
+                Route::post('/{voucher}/cheques', [ChequeController::class, 'store'])->whereNumber('voucher')->middleware('throttle:30,1')->name('cheques.store');
+            });
+
+        // CHEQUE REGISTER (2026-11-29): clerks see their own vouchers' cheques and move them along; officers and
+        // supervisors see the whole company's register, read-only
+        Route::prefix('cheques')->name('cheques.')->controller(ChequeController::class)
+            ->middleware(['role:accounting_clerk,accounting_officer,supervisor_manager', 'company'])->group(function () {
+                Route::get('/', 'index')->name('index');
+                Route::middleware('role:accounting_clerk')->group(function () {
+                    Route::post('/{cheque}/release', 'release')->whereNumber('cheque')->middleware('throttle:30,1')->name('release');
+                    Route::post('/{cheque}/clear', 'clear')->whereNumber('cheque')->middleware('throttle:30,1')->name('clear');
+                    Route::post('/{cheque}/cancel', 'cancel')->whereNumber('cheque')->middleware('throttle:30,1')->name('cancel');
+                });
             });
 
         // PAYEES (2026-11-26): the company's payee list, kept by its clerks (Framer jbj8yIDz9 / GZb92vr4M / UKm7GrwEZ)

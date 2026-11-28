@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use App\Domain\Identity\Queries\UnassignedAdmins;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -31,6 +32,8 @@ class UserResource extends JsonResource
             'profile_photo' => $this->profile_photo,
             'last_login_at' => $this->last_login_at?->toIso8601String(),
             'company' => CompanySummaryResource::make($this->whenLoaded('company')),
+            // "No company yet" Admins: when the account is removed unless given a company (2026-11-28)
+            'company_deadline' => UnassignedAdmins::deadlineFor($this->resource)?->toIso8601String(),
             'department' => $this->whenLoaded('department', fn () => $this->department ? [
                 'id' => $this->department->id,
                 'name' => $this->department->name,

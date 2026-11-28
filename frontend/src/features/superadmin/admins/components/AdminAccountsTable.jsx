@@ -2,7 +2,7 @@ import { Ban, Check, KeyRound, Minus, RotateCw, SearchX, ShieldCheck, Users } fr
 import EmptyState from '@/components/common/EmptyState'
 import ErrorState from '@/components/common/ErrorState'
 import Pill from '@/components/common/Pill'
-import { formatInitials, plural } from '@/lib/formatters'
+import { formatInitials, formatTimeLeft, plural } from '@/lib/formatters'
 import { cn } from '@/lib/utils'
 import { dateText, invitationExpiryText, lastSignInText, rolePill, statusPill, twoFactorLook } from '../utils'
 import AdminRowMenu from './AdminRowMenu'
@@ -205,8 +205,21 @@ function AccountRow({ account, checked, onToggle, onAction, seatsLeft }) {
       <span role="cell">
         {twoStep.pill ? <Pill tone={twoStep.pill}>{twoStep.text}</Pill> : <span className="text-caption">{twoStep.text}</span>}
       </span>
-      <span role="cell">
+      <span role="cell" className="flex flex-col items-start gap-1">
         <Pill tone={status.tone}>{status.text}</Pill>
+        {account.company_deadline &&
+          (account.actions.assign_company ? (
+            <button
+              type="button"
+              onClick={() => onAction('assign_company', account)}
+              title="No company yet: the account is removed unless given one. Click to assign a company."
+              className="text-caption rounded text-left text-warning underline-offset-2 outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring/50"
+            >
+              No company · removed {formatTimeLeft(account.company_deadline)} · Assign
+            </button>
+          ) : (
+            <span className="text-caption text-warning">No company · removed {formatTimeLeft(account.company_deadline)}</span>
+          ))}
       </span>
       <span role="cell" className="text-body">
         {lastSignInText(account)}

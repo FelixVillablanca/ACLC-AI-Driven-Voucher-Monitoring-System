@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\ClearsLiveCounts;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -12,6 +13,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  */
 class BudgetChangeRequest extends Model
 {
+    use ClearsLiveCounts; // changes renew the cached sidebar / dashboard numbers (LiveCounts)
+
     protected $fillable = [
         'company_id', 'budget_allocation_id', 'current_budget', 'requested_budget', 'current_alert_pct',
         'requested_alert_pct', 'reason', 'status', 'requested_by', 'decided_by', 'decided_at', 'decision_note',

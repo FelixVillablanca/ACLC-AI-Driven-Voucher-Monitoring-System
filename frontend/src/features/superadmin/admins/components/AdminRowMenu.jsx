@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Ban, CircleUserRound, KeyRound, Mail, MailX, MoreHorizontal, Pencil, RotateCcw, ShieldCheck, Star } from 'lucide-react'
+import { Ban, Building2, CircleUserRound, KeyRound, Mail, MailX, MoreHorizontal, Pencil, RotateCcw, ShieldCheck, Star } from 'lucide-react'
 import { plural } from '@/lib/formatters'
 import { cn } from '@/lib/utils'
 
@@ -21,6 +21,7 @@ export default function AdminRowMenu({ account, seatsLeft, onChoose }) {
 
   const items = [
     { key: 'profile', label: 'View profile', icon: CircleUserRound, show: true },
+    { key: 'assign_company', label: 'Assign to a company', icon: Building2, show: a.assign_company },
     { key: 'edit', label: 'Edit details', icon: Pencil, show: a.edit },
     { key: 'resend_invitation', label: 'Resend invitation', icon: Mail, show: a.resend_invitation },
     { key: 'reset_password', label: 'Send password reset', icon: KeyRound, show: a.reset_password },

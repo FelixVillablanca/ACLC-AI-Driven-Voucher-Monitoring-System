@@ -32,7 +32,7 @@ class SuperAdminAdminsListTest extends TestCase
             'company_id' => $apex->id, 'last_login_at' => now()->subMinutes(5), 'personal_email' => 'john@gmail.com']);
         User::factory()->admin()->create(['first_name' => 'Liza', 'last_name' => 'Santos', 'last_login_at' => now()->subDay(), 'two_factor_confirmed_at' => now(), 'two_factor_secret' => 'X']);
         User::factory()->admin()->pending()->create(['first_name' => 'Carlo', 'last_name' => 'Reyes', 'last_login_at' => null, 'personal_email' => 'c@gmail.com']);
-        User::factory()->admin()->inactive()->create(['first_name' => 'Mark', 'last_name' => 'Tan', 'last_login_at' => now()->subDays(11)]);
+        User::factory()->admin()->inactive()->create(['first_name' => 'Mark', 'last_name' => 'Tan', 'company_id' => $apex->id, 'last_login_at' => now()->subDays(11)]); // has a company, so it can be reactivated
         User::factory()->create(['first_name' => 'Maria']); // a clerk: never on this page
     }
 

@@ -184,10 +184,9 @@ class AdminQuickActionsTest extends TestCase
     {
         $loose = User::factory()->admin()->create(['company_id' => null]);
 
-        $this->actingAs($loose)->postJson('/api/v1/admin/departments', ['name' => 'HR', 'code' => 'HR'])
-            ->assertForbidden()->assertJsonPath('code', 'NO_ACTIVE_COMPANY');
-        $this->actingAs($loose)->postJson('/api/v1/admin/company-access', ['user_ids' => [1]])
-            ->assertForbidden()->assertJsonPath('code', 'NO_ACTIVE_COMPANY');
+        // since 2026-11-28 the whole console answers NO_COMPANY_YET before the actions' own NO_ACTIVE_COMPANY check
+        $this->actingAs($loose)->postJson('/api/v1/admin/departments', ['name' => 'HR', 'code' => 'HR'])->assertForbidden()->assertJsonPath('code', 'NO_COMPANY_YET');
+        $this->actingAs($loose)->postJson('/api/v1/admin/company-access', ['user_ids' => [1]])->assertForbidden()->assertJsonPath('code', 'NO_COMPANY_YET');
     }
 
     public function test_guests_are_401_and_other_roles_403(): void

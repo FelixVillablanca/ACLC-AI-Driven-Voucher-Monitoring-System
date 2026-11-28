@@ -130,3 +130,18 @@ export async function exportAdmins({ format, accounts, view, search, ids, column
   })
   return saveDownload(response, `admin-list.${format}`)
 }
+
+/**
+ * "Assign to a company" (2026-11-28): companies nobody (active) runs yet, A–Z.
+ * Returns [{ id, name, type, address, users_count }].
+ */
+export async function listCompaniesWithoutAdmin() {
+  const { data } = await apiClient.get('/superadmin/admins/company-options')
+  return data.data
+}
+
+/** An Admin with no company yet becomes the Admin of `companyId`. 422 = that company was taken meanwhile; 409 = not allowed. */
+export async function assignAdminCompany(id, companyId) {
+  const { data } = await apiClient.post(`/superadmin/admins/${id}/company`, { company_id: Number(companyId) })
+  return data.data
+}

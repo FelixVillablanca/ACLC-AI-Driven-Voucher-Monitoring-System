@@ -6,7 +6,7 @@ import EmptyState from '@/components/common/EmptyState'
 import ErrorState from '@/components/common/ErrorState'
 import Pill from '@/components/common/Pill'
 import { PATHS } from '@/lib/constants'
-import { formatInitials, formatTimeAgo, plural } from '@/lib/formatters'
+import { formatDate, formatInitials, formatTimeAgo, formatTimeLeft, plural } from '@/lib/formatters'
 import { cn } from '@/lib/utils'
 import { getAdminActivity } from '../api'
 import { useAdminDetail } from '../hooks/useAdminDetail'
@@ -105,7 +105,7 @@ function Panel({ accountId, onClose, onAction }) {
 
             <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto px-5 py-4">
               {tab === 'overview' && <Overview account={account} onAction={onAction} onShowActivity={() => setTab('activity')} />}
-              {tab === 'company' && <CompanyTab account={account} />}
+              {tab === 'company' && <CompanyTab account={account} onAction={onAction} />}
               {tab === 'activity' && <ActivityTab accountId={account.id} />}
             </div>
 
@@ -276,11 +276,32 @@ function TwoStepBox({ account, onAction }) {
   )
 }
 
-function CompanyTab({ account }) {
+function CompanyTab({ account, onAction }) {
   if (account.role === 'super_admin') {
     return <EmptyState title="All companies" description="Super Admins work outside every company: they run the whole platform." />
   }
-  if (!account.company) return <EmptyState title="No company" description="Edit their details to give them a company." />
+  if (!account.company)
+    return (
+      <div className="flex flex-col items-center gap-3">
+        <EmptyState
+          title="No company"
+          description={
+            account.company_deadline
+              ? `Give them a company to keep this account: otherwise it’s removed ${formatTimeLeft(account.company_deadline)} (${formatDate(account.company_deadline, 'MMM d, h:mm a')}).`
+              : 'Edit their details to give them a company.'
+          }
+        />
+        {account.actions?.assign_company && (
+          <button
+            type="button"
+            onClick={() => onAction('assign_company', account)}
+            className="text-auth-button flex h-[38px] items-center gap-1.5 rounded-lg bg-primary px-3.5 text-primary-foreground outline-none hover:bg-primary/90 focus-visible:ring-3 focus-visible:ring-ring/50"
+          >
+            Assign to a company
+          </button>
+        )}
+      </div>
+    )
   return (
     <Section title="Manages 1 company">
       <div className="flex items-center gap-3 rounded-[10px] border px-3.5 py-3">

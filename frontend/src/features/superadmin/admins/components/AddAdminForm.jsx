@@ -7,11 +7,12 @@ import FieldShell, { inputClass } from '@/components/common/FieldShell'
 import { applyFieldErrors } from '@/lib/apiError'
 import { ROLES } from '@/lib/constants'
 import { createAdmin } from '../api'
-import { createAdminSchema } from '../schemas'
+import { createAdminSchema, NO_COMPANY } from '../schemas'
 
 /**
  * The "Create admin account" form (Framer TkIHF89oH, changed 2026-11-20 at the user's request):
- *   - ONE company per Admin (they become that company's System Administrator)
+ *   - ONE company per Admin (they become that company's System Administrator), or "No company yet"
+ *     (2026-11-28): they get one later in + Add company or Edit details, and see a waiting page until then
  *   - a PERSONAL email instead of a temporary password: the new Admin gets a one-time
  *     "set your password" link there, and chooses the password themselves
  * Errors: wrong fields -> red text under the field (zod now, server 422 after saving);
@@ -21,7 +22,8 @@ export default function AddAdminForm({ defaults, forCompany = null, onCancel, on
   const [formError, setFormError] = useState(null)
   // Pre-chosen company (?for=) if it's in the list (active, not suspended); else the only one, if there's just one
   const preset = defaults.companies.some((c) => c.id === forCompany) ? forCompany : null
-  const startCompany = preset ?? (defaults.companies.length === 1 ? defaults.companies[0].id : '')
+  // not required (2026-11-28): without a ?for= company the form starts on "No company yet"
+  const startCompany = preset ?? NO_COMPANY
   const {
     register,
     control,
@@ -42,6 +44,7 @@ export default function AddAdminForm({ defaults, forCompany = null, onCancel, on
     name: ['email_username', 'company_id', 'personal_email'],
   })
   const company = defaults.companies.find((c) => c.id === Number(companyId))
+  const noCompany = companyId === NO_COMPANY
 
   const onSubmit = async (values) => {
     setFormError(null)
@@ -96,17 +99,18 @@ export default function AddAdminForm({ defaults, forCompany = null, onCancel, on
           <FieldShell
             id="company_id"
             label="Company"
-            required
             error={errors.company_id?.message}
             hint={
               company
                 ? `${company.admins_count === 0 ? 'No Admin yet' : `Already has ${company.admins_count} Admin${company.admins_count === 1 ? '' : 's'}`}`
-                : 'The one company this Admin will run'
+                : noCompany
+                  ? 'Optional. Give them one within 24 hours, e.g. when you add a company'
+                  : 'The one company this Admin will run'
             }
           >
             <div className="relative">
               <select {...fieldProps('company_id')} {...register('company_id')} className={`${inputClass} appearance-none pr-9`}>
-                <option value="">Choose a company</option>
+                <option value={NO_COMPANY}>No company yet</option>
                 {defaults.companies.map((c) => (
                   <option key={c.id} value={c.id}>
                     {c.admins_count === 0 ? `${c.name} (no Admin yet)` : c.name}
@@ -148,10 +152,21 @@ export default function AddAdminForm({ defaults, forCompany = null, onCancel, on
           </p>
         </div>
 
-        <div className="flex flex-col gap-0.5 rounded-[10px] bg-warning-soft px-3.5 py-3">
-          <p className="text-badge text-warning">This gives full setup access to {company ? company.name : 'the company you choose'}</p>
-          <p className="text-caption">The action is saved in the audit log, and the other Super Admins are notified.</p>
-        </div>
+        {noCompany ? (
+          <div className="flex flex-col gap-0.5 rounded-[10px] bg-muted px-3.5 py-3">
+            <p className="text-badge">No company: the account is removed after 24 hours unless you give it one</p>
+            <p className="text-caption">
+              Give them a company in + Add company or Edit details on the Admins tab. Until then they only see a “No company yet” page and
+              their own account settings. You’re warned 3 hours before; then the account is deleted (or deactivated, if they already signed
+              in) and they get an email. Saved in the audit log; the other Super Admins are notified.
+            </p>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-0.5 rounded-[10px] bg-warning-soft px-3.5 py-3">
+            <p className="text-badge text-warning">This gives full setup access to {company ? company.name : 'the company you choose'}</p>
+            <p className="text-caption">The action is saved in the audit log, and the other Super Admins are notified.</p>
+          </div>
+        )}
 
         {formError && (
           <div role="alert" className="flex items-start gap-2.5 rounded-[10px] border border-danger/20 bg-danger-soft p-3">

@@ -62,3 +62,18 @@ export async function setUserPassword(id, password) {
   const { data } = await apiClient.post(`/admin/users/${id}/password`, { password })
   return data.data
 }
+
+/**
+ * The Deactivate dialog (2026-11-28): the other companies this person works in, and whether they can be removed from
+ * your company only. Returns { companies: [{ id, name }], homeAccess }.
+ */
+export async function getOtherCompanies(id) {
+  const { data } = await apiClient.get(`/admin/users/${id}/other-companies`)
+  return { companies: data.data, homeAccess: data.meta.home_access }
+}
+
+/** "Only remove them from your company": the same as Remove access on the Company access page; the account stays active. */
+export async function removeFromYourCompany(id, reason) {
+  const { data } = await apiClient.post(`/admin/company-access/${id}/revoke`, { reason: reason || null })
+  return data.data
+}

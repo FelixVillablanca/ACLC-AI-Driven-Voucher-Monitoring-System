@@ -9,11 +9,12 @@ use App\Models\Voucher;
 use Illuminate\Support\Carbon;
 
 /**
- * THE ROUTING RULE (Global settings → Approval rules), read live when Accounting approves:
- * a voucher needs the Supervisor / Manager (step 2) when
- *   - its total is at or above the high-value threshold, or
- *   - it is AI-flagged and "Send AI-flagged vouchers to step 2" is on.
- * Otherwise Accounting's approval is final. Also: the review SLA (hours) and its warning level (75%).
+ * THE ROUTING RULE, read when Accounting approves. Since 2026-11-28 (user decision) EVERY voucher needs the
+ * Supervisor / Manager's final approval (step 2): Accounting's approval is never final. step2Reasons() always starts
+ * with 'every_voucher', followed by labels that tell the Supervisor what to look at:
+ *   - 'high_value': its total is at or above the high-value threshold (Global settings)
+ *   - 'ai_flagged': the automatic check flagged it
+ * Also: the review SLA (hours) and its warning level (75%).
  */
 final class ApprovalRoute
 {
@@ -42,14 +43,17 @@ final class ApprovalRoute
         return now()->subMinutes((int) round($this->slaHours() * 60 * self::NEAR_SLA_SHARE));
     }
 
-    /** @return list<string> why step 2 is needed: 'high_value', 'ai_flagged' (empty = Accounting decides) */
+    /** Every voucher goes to the Supervisor for the final approval (user decision 2026-11-28). */
+    public const EVERY_VOUCHER = 'every_voucher';
+
+    /** @return list<string> 'every_voucher' + labels: 'high_value', 'ai_flagged' (never empty since 2026-11-28) */
     public function step2Reasons(Voucher $voucher): array
     {
-        $reasons = [];
+        $reasons = [self::EVERY_VOUCHER];
         if (bccomp((string) $voucher->amount, $this->threshold(), 2) >= 0) {
             $reasons[] = 'high_value';
         }
-        if ($voucher->ai_anomaly_flag && $this->aiFlaggedNeedsStep2()) {
+        if ($voucher->ai_anomaly_flag) {
             $reasons[] = 'ai_flagged';
         }
 

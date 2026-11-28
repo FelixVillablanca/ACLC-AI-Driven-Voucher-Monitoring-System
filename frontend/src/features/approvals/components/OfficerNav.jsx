@@ -1,5 +1,15 @@
 import { useLocation } from 'react-router-dom'
-import { CircleHelp, FileBarChart, LayoutDashboard, ListChecks, PieChart, TrendingUp, TriangleAlert, UserCheck } from 'lucide-react'
+import {
+  CircleHelp,
+  FileBarChart,
+  LayoutDashboard,
+  ListChecks,
+  NotebookTabs,
+  PieChart,
+  TrendingUp,
+  TriangleAlert,
+  UserCheck,
+} from 'lucide-react'
 import SidebarNav from '@/components/layout/SidebarNav'
 import { PATHS } from '@/lib/constants'
 import { useOfficerSummary } from '../hooks/useOfficerSummary'
@@ -59,6 +69,7 @@ export default function OfficerNav({ onNavigate }) {
           icon: TrendingUp,
           active: pathname === PATHS.OFFICER_FORECASTS || pathname.startsWith(`${PATHS.OFFICER_FORECASTS}/`),
         },
+        { to: PATHS.OFFICER_CHEQUES, label: 'Cheques', icon: NotebookTabs, active: pathname === PATHS.OFFICER_CHEQUES },
       ],
     },
     {

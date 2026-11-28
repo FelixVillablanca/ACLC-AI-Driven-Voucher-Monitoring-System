@@ -17,7 +17,8 @@ import { announceAccessChanged } from '../utils'
 /**
  * "Invite from other companies" (?invite=people, 2026-11-22). Search clerks, officers and supervisors
  * of OTHER companies and invite them to work in yours; they accept or decline. Before they join you
- * only see their name, role and home company (privacy rule), so the search is by name or company.
+ * only see their name, role, home company and department (privacy rule; department added 2026-11-28), so the search is
+ * by name, company or department.
  */
 export default function InvitePeopleModal() {
   const [params, setParams] = useSearchParams()
@@ -94,7 +95,7 @@ function Window({ onClose }) {
             onChange={(e) => setText(e.target.value)}
             autoFocus
             maxLength={100}
-            placeholder="Search by name or company"
+            placeholder="Search by name, company or department"
             className="text-body h-full min-w-0 flex-1 bg-transparent outline-none placeholder:text-muted-foreground [&::-webkit-search-cancel-button]:hidden"
           />
           {text && (
@@ -110,7 +111,8 @@ function Window({ onClose }) {
         </label>
 
         <p className="text-caption flex items-center gap-1.5">
-          <Lock className="size-3" aria-hidden="true" /> You only see their name, role and company until they join {companyName}.
+          <Lock className="size-3" aria-hidden="true" /> You only see their name, role, company and department until they join {companyName}
+          .
         </p>
 
         <div className="min-h-[240px] flex-1 overflow-y-auto rounded-xl border">
@@ -154,6 +156,7 @@ function Window({ onClose }) {
                         <span className="text-caption flex flex-wrap items-center gap-x-1.5">
                           {ROLE_SHORT_LABELS[p.role] ?? p.role} ·
                           <Building2 className="size-3" aria-hidden="true" /> {p.home_company}
+                          {p.department && <span>· {p.department}</span>}
                           {p.previously_declined && <span className="text-warning">· declined or removed before</span>}
                         </span>
                       </span>

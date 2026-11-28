@@ -21,7 +21,7 @@ class AccountInvitationMail extends Mailable
     public function __construct(
         public User $user,
         public string $link,
-        public string $companyName,
+        public ?string $companyName, // null = an Admin with no company yet
         public int $expiresInHours,
     ) {}
 

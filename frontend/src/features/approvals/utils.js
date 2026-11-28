@@ -35,6 +35,7 @@ export function waitedText(since, now = new Date()) {
 }
 
 export const STEP2_REASON_TEXT = {
+  every_voucher: 'every voucher needs the Supervisor’s final approval',
   high_value: 'the total is at or above the high-value amount',
   ai_flagged: 'it is flagged by the automatic check',
 }

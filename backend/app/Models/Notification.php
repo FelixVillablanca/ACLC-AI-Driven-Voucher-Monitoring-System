@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Domain\Notifications\NotificationType;
+use App\Support\LiveCounts;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -18,12 +19,27 @@ class Notification extends Model
 {
     protected $fillable = ['recipient_id', 'title', 'message', 'voucher_id', 'is_read', 'type'];
 
+    /** A new, read or deleted notification = that person's cached bell count is out of date (LiveCounts). */
+    protected static function booted(): void
+    {
+        $clear = fn (self $n) => LiveCounts::userChanged($n->recipient_id);
+
+        static::saved($clear);
+        static::deleted($clear);
+    }
+
     protected function casts(): array
     {
         return [
             'is_read' => 'boolean',
             'type' => NotificationType::class,
         ];
+    }
+
+    /** The voucher it's about (the final-approval notice offers the payment PDF / Email the payee, 2026-11-28). */
+    public function voucher(): BelongsTo
+    {
+        return $this->belongsTo(Voucher::class);
     }
 
     public function recipient(): BelongsTo

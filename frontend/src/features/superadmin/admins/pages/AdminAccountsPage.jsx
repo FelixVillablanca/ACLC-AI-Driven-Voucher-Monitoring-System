@@ -8,6 +8,7 @@ import AdminAccountsTable from '../components/AdminAccountsTable'
 import AdminAccountsToolbar from '../components/AdminAccountsToolbar'
 import AdminProfilePanel from '../components/AdminProfilePanel'
 import AdminSummaryCards from '../components/AdminSummaryCards'
+import AssignCompanyDialog from '../components/AssignCompanyDialog'
 import BulkActionDialog from '../components/BulkActionDialog'
 import CancelInviteDialog from '../components/CancelInviteDialog'
 import DeactivateAccountDialog from '../components/DeactivateAccountDialog'
@@ -29,6 +30,7 @@ const DIALOGS = {
   require_two_factor: RequireTwoFactorDialog,
   deactivate: DeactivateAccountDialog,
   reactivate: ReactivateAccountDialog,
+  assign_company: AssignCompanyDialog,
 }
 
 /**

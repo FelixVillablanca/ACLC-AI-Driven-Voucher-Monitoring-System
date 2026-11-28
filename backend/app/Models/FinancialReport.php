@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\ClearsLiveCounts;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -12,6 +13,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  */
 class FinancialReport extends Model
 {
+    use ClearsLiveCounts; // changes renew the cached sidebar / dashboard numbers (LiveCounts)
+
     protected $fillable = [
         'company_id', 'department_id', 'report_type', 'title', 'period_start', 'period_end', 'total_vouchers', 'total_amount',
         'approved_count', 'rejected_count', 'anomalies_flag', 'figures', 'includes', 'ai_summary', 'summary_status',

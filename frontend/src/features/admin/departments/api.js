@@ -54,3 +54,42 @@ export async function setDepartmentActive(id, active, reason) {
   const { data } = await apiClient.post(`/admin/departments/${id}/${active ? 'reactivate' : 'deactivate'}`, { reason: reason || null })
   return data.data
 }
+
+// ------------------------------------------------------------------ people in a department (2026-11-28)
+
+/**
+ * "Add people" picker: active users of your company not in this department yet (at most 50, A–Z).
+ * Returns { people: [{ id, full_name, email, role, department: { id, name } | null, heads_department }], companyUsers }.
+ */
+export async function listDepartmentCandidates(id, search = '') {
+  const { data } = await apiClient.get(`/admin/departments/${id}/candidates`, { params: search ? { search } : {} })
+  return { people: data.data, companyUsers: data.meta.company_users }
+}
+
+/** Adds people as members; `headId` (optional) becomes the head. 409 DEPARTMENT_HAS_HEAD unless `replaceHead`. */
+export async function addDepartmentPeople(id, { userIds, headId = null, replaceHead = false }) {
+  const { data } = await apiClient.post(`/admin/departments/${id}/people`, {
+    user_ids: userIds,
+    head_user_id: headId,
+    replace_head: replaceHead,
+  })
+  return { department: data.data, added: data.meta.added, moved: data.meta.moved, head: data.meta.head }
+}
+
+/** Makes one person the department's head (they join it if needed). 409 DEPARTMENT_HAS_HEAD unless `replaceHead`. */
+export async function setDepartmentHead(id, userId, replaceHead = false) {
+  const { data } = await apiClient.post(`/admin/departments/${id}/head`, { user_id: userId, replace_head: replaceHead })
+  return data.data
+}
+
+/** The department has no head any more (the person stays a member). */
+export async function clearDepartmentHead(id) {
+  const { data } = await apiClient.delete(`/admin/departments/${id}/head`)
+  return data.data
+}
+
+/** Takes a person out of the department (they have no department after). */
+export async function removeFromDepartment(id, userId) {
+  const { data } = await apiClient.delete(`/admin/departments/${id}/people/${userId}`)
+  return data.data
+}

@@ -34,7 +34,7 @@ class CreateAdmin
     ) {}
 
     /**
-     * @param  array{first_name: string, last_name: string, email: string, personal_email: string, company_id: int}  $data
+     * @param  array{first_name: string, last_name: string, email: string, personal_email: string, company_id: ?int}  $data
      * @return array{admin: User, invitation_sent: bool}
      */
     public function handle(array $data, User $superAdmin, ?string $ip = null, ?string $userAgent = null): array
@@ -56,7 +56,7 @@ class CreateAdmin
             'personal_email' => $data['personal_email'],
             'password' => Str::password(40), // unknown to everyone; replaced when they use the link
             'role' => 'admin',
-            'company_id' => $data['company_id'],
+            'company_id' => $data['company_id'] ?? null, // null = "No company yet" (since 2026-11-28)
             'department_id' => null,
             'is_active' => true,
             'access_status' => 'pending', // becomes "accepted" when they set their password
@@ -98,7 +98,9 @@ class CreateAdmin
                 'recipient_id' => $id,
                 'type' => 'user_changed',
                 'title' => 'Admin account created',
-                'message' => "{$admin->full_name} ({$admin->email}) was made Admin of {$admin->company->name} by {$superAdmin->full_name}.",
+                'message' => $admin->company
+                    ? "{$admin->full_name} ({$admin->email}) was made Admin of {$admin->company->name} by {$superAdmin->full_name}."
+                    : "{$superAdmin->full_name} created an Admin account for {$admin->full_name} ({$admin->email}). It has no company yet.",
             ]));
 
         return $admin;

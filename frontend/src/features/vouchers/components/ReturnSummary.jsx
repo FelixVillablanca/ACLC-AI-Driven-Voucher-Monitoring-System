@@ -87,15 +87,15 @@ function ApprovalRoute({ voucher, totalCents }) {
   const r = voucher.returned
   const officer = r?.step === 1 && r.by ? `${r.by} · Level 1` : 'Accounting Officer · Level 1'
 
-  let supervisor = 'Level 2 · when the approval rules require it'
+  // since 2026-11-28 every voucher needs the Supervisor's final approval
+  let supervisor = 'Level 2 · final approval (every voucher)'
   if (rules) {
     const thresholdCents = Math.round(Number(rules.high_value_threshold) * 100)
-    const aiRule = rules.ai_flagged_needs_step2
-    if (totalCents >= thresholdCents) supervisor = `Level 2 · needed: total is ${formatMoney(rules.high_value_threshold)} or more`
-    else if (aiRule && voucher.ai_flagged) supervisor = 'Level 2 · needed: flagged by the AI check'
-    else supervisor = `Level 2 · only if ${formatMoney(rules.high_value_threshold)} or more${aiRule ? ' or AI-flagged' : ''}`
+    if (totalCents >= thresholdCents)
+      supervisor = `Level 2 · final approval · high value (${formatMoney(rules.high_value_threshold)} or more)`
+    else if (voucher.ai_flagged) supervisor = 'Level 2 · final approval · flagged by the automatic check'
   } else if (!failed) {
-    supervisor = 'Level 2 · checking the rules…'
+    supervisor = 'Level 2 · final approval (every voucher)'
   }
 
   const steps = [

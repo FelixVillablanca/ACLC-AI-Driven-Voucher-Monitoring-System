@@ -51,6 +51,16 @@ export function formatTimeAgo(value, now = new Date()) {
   return format(date, date.getFullYear() === now.getFullYear() ? 'MMM d' : 'MMM d, yyyy')
 }
 
+/** Short "how long until": "in 40 min" / "in 5 h" / "in 2 days" / "any moment now" (past or under a minute) */
+export function formatTimeLeft(value, now = new Date()) {
+  if (!value) return null
+  const minutes = Math.floor((new Date(value) - now) / 60000)
+  if (minutes < 1) return 'any moment now'
+  if (minutes < 60) return `in ${minutes} min`
+  const hours = Math.floor(minutes / 60)
+  return hours < 48 ? `in ${hours} h` : `in ${Math.floor(hours / 24)} days`
+}
+
 /** Which day: "today" / "yesterday" / "on Nov 10" (e.g. "Added today") */
 export function formatDayAgo(value) {
   if (!value) return null

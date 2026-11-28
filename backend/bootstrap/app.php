@@ -4,11 +4,13 @@ use App\Exceptions\ApiErrorRenderer;
 use App\Http\Middleware\AssignRequestId;
 use App\Http\Middleware\EnforceIdleTimeout;
 use App\Http\Middleware\EnsureAccountInGoodStanding;
+use App\Http\Middleware\EnsureAdminHasCompany;
 use App\Http\Middleware\EnsureIdempotency;
 use App\Http\Middleware\EnsureUserHasRole;
 use App\Http\Middleware\ForceJsonResponse;
 use App\Http\Middleware\ResolveCompany;
 use App\Http\Middleware\SetSecurityHeaders;
+use App\Http\Middleware\ThrottlePerRoute;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -38,9 +40,12 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'role' => EnsureUserHasRole::class,
             'company' => ResolveCompany::class, // X-Company-ID must be a company the user has accepted access to
+            'admin.company' => EnsureAdminHasCompany::class, // an Admin with no company yet -> 403 NO_COMPANY_YET
             'account.standing' => EnsureAccountInGoodStanding::class, // deactivated / company suspended -> signed out now
             'idle.timeout' => EnforceIdleTimeout::class,              // Super Admins: signed out after 15 idle minutes
             'idempotent' => EnsureIdempotency::class,                 // same Idempotency-Key = same answer, the work done once
+            // throttle:N,1 counts per ROUTE + person (Laravel's own shares one counter across all routes; 2026-11-28)
+            'throttle' => ThrottlePerRoute::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

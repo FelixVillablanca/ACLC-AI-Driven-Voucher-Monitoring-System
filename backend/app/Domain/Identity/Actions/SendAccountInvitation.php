@@ -36,7 +36,7 @@ class SendAccountInvitation
 
         try {
             Mail::to($user->personal_email)->send(new AccountInvitationMail(
-                $user, $link, $user->company?->name ?? 'your company', $hours,
+                $user, $link, $user->company?->name, $hours,
             ));
         } catch (Throwable $e) {
             Log::error('Account invitation email failed', ['user_id' => $user->id, 'error' => $e->getMessage()]);

@@ -83,6 +83,7 @@ export const PATHS = Object.freeze({
   CLERK_DRAFTS: '/clerk/drafts',
   CLERK_RETURNED: '/clerk/returned',
   CLERK_PAYEES: '/clerk/payees',
+  CLERK_CHEQUES: '/clerk/cheques', // cheque register (2026-11-29): your vouchers' cheques; ?view=&q=&sort=&page=
   CLERK_HELP: '/clerk/help',
   CLERK_PROFILE: '/clerk/profile',
   CLERK_CHANGE_PASSWORD: '/clerk/change-password',
@@ -97,6 +98,7 @@ export const PATHS = Object.freeze({
   OFFICER_REPORTS: '/officer/reports', // /officer/reports/:id = one financial report (2026-11-27)
   OFFICER_FORECASTS: '/officer/forecasts', // /officer/forecasts/:departmentId = one department's forecast (2026-11-27)
   OFFICER_BUDGETS: '/officer/budgets', // /officer/budgets/:departmentId = one department's yearly budget (2026-11-27)
+  OFFICER_CHEQUES: '/officer/cheques', // the company's cheque register, read-only (2026-11-29)
   OFFICER_NOTIFICATIONS: '/officer/notifications',
   OFFICER_PROFILE: '/officer/profile',
   OFFICER_CHANGE_PASSWORD: '/officer/change-password',
@@ -111,6 +113,7 @@ export const PATHS = Object.freeze({
   SUPERVISOR_REPORTS: '/supervisor/reports', // /supervisor/reports/:id = one report + sign-off (Framer AaD8UZ08p / dcfDyyuKE)
   SUPERVISOR_FLAGGED: '/supervisor/flagged', // /supervisor/flagged/:id = investigate one flag (Framer ESBUdF0jl / lFqUUsfzi)
   SUPERVISOR_HELP: '/supervisor/help', // /supervisor/help/:slug = one guide (Framer cR3NPU8IK / mZNmzhDdX, 2026-11-27)
+  SUPERVISOR_CHEQUES: '/supervisor/cheques', // the company's cheque register, read-only (2026-11-29)
   SUPERVISOR_NOTIFICATIONS: '/supervisor/notifications',
   SUPERVISOR_PROFILE: '/supervisor/profile',
   SUPERVISOR_CHANGE_PASSWORD: '/supervisor/change-password',

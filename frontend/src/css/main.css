@@ -1,6 +1,8 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
+/* the company map (OpenStreetMap + Leaflet): Leaflet's own layout rules for the map, tiles and pin */
+@import "leaflet/dist/leaflet.css";
 
 /*
  * Design tokens = the Framer styles (see CLAUDE.md "Design tokens → code").

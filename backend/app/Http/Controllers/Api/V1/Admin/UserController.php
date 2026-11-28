@@ -7,6 +7,7 @@ use App\Domain\Identity\CompanyUsers\SetCompanyUserPassword;
 use App\Domain\Identity\CompanyUsers\SetCompanyUserStatus;
 use App\Domain\Identity\CompanyUsers\UpdateCompanyUser;
 use App\Domain\Identity\Queries\CompanyUserDirectory;
+use App\Domain\Identity\Queries\OtherCompanies;
 use App\Domain\Identity\Support\EmployeeIdGenerator;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\DepartmentStatusRequest;
@@ -72,6 +73,21 @@ class UserController extends Controller
     public function show(Request $request, int $user): CompanyUserResource
     {
         return CompanyUserResource::make($this->directory($request)->find($user));
+    }
+
+    /**
+     * GET /api/v1/admin/users/{user}/other-companies  (the Deactivate dialog, 2026-11-28)
+     * -> { data: [{ id, name }], meta: { home_access } }: the other companies they'd lose, and whether they can be removed from
+     * this company only (Remove access) instead.
+     */
+    public function otherCompanies(Request $request, int $user): JsonResponse
+    {
+        $person = $this->directory($request)->find($user);
+
+        return response()->json([
+            'data' => OtherCompanies::of($person)->map(fn ($c) => ['id' => $c->id, 'name' => $c->name])->values(),
+            'meta' => ['home_access' => OtherCompanies::hasHomeAccess($person)],
+        ]);
     }
 
     /** PATCH /api/v1/admin/users/{user} -> the person + meta.changed + meta.signed_out (true after a role change) */

@@ -228,7 +228,7 @@ class CreateUserTest extends TestCase
         $this->create()->assertForbidden()->assertJsonPath('code', 'COMPANY_SUSPENDED');
 
         $this->admin->forceFill(['company_id' => null])->save();
-        $this->create(['email_username' => 'other'])->assertForbidden()->assertJsonPath('code', 'NO_ACTIVE_COMPANY');
+        $this->create(['email_username' => 'other'])->assertForbidden()->assertJsonPath('code', 'NO_COMPANY_YET'); // no company at all: the console waits (2026-11-28)
 
         $this->assertSame(0, User::where('role', 'accounting_clerk')->count());
     }

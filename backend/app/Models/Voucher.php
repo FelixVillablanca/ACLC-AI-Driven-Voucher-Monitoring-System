@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\ClearsLiveCounts;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -13,6 +14,8 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
  */
 class Voucher extends Model
 {
+    use ClearsLiveCounts; // changes renew the cached sidebar / dashboard numbers (LiveCounts)
+
     protected $guarded = ['*'];
 
     protected function casts(): array

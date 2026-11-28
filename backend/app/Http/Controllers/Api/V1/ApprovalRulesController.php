@@ -21,6 +21,9 @@ class ApprovalRulesController extends Controller
             'high_value_threshold' => (string) $settings->get(SystemSettings::HIGH_VALUE_THRESHOLD, $default(SystemSettings::HIGH_VALUE_THRESHOLD)),
             'ai_flagged_needs_step2' => (bool) $settings->get(SystemSettings::AI_FLAGGED_NEEDS_STEP_2, $default(SystemSettings::AI_FLAGGED_NEEDS_STEP_2)),
             'review_sla_hours' => (int) $settings->value(SystemSettings::REVIEW_SLA_HOURS),
+            // user decision 2026-11-28: every voucher needs the Supervisor's final approval (the threshold and the
+            // AI-flagged rule only label vouchers now)
+            'every_voucher_to_supervisor' => true,
             // budget changes bigger than this wait for a Supervisor's sign-off (the Supervisor's help guides, 2026-11-27)
             'budget_signoff_above' => (string) $settings->value(SystemSettings::BUDGET_CHANGE_SIGNOFF_ABOVE),
             'submitting_live' => true,

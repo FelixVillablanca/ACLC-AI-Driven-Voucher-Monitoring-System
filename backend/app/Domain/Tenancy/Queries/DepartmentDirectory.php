@@ -2,6 +2,7 @@
 
 namespace App\Domain\Tenancy\Queries;
 
+use App\Domain\Identity\Queries\CompanyUserDirectory;
 use App\Models\Department;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
@@ -98,9 +99,43 @@ class DepartmentDirectory
     }
 
     /** One department of THIS company, or 404 (also for another company's id). */
+    /** One department with the same data as a list row (people count, head): the side panel. */
+    public function detail(int $id): Department
+    {
+        return $this->withRowData($this->base()->whereKey($this->find($id)->id))->firstOrFail();
+    }
+
     public function find(int $id): Department
     {
         return Department::where('company_id', $this->companyId)->findOrFail($id);
+    }
+
+    /**
+     * "Add people" picker (2026-11-28): active clerks / officers / supervisors of the company who aren't in this
+     * department yet, A–Z, at most 50, with their current department (they'd be moved) and whether they head it.
+     */
+    public function candidates(Department $department, ?string $search = null)
+    {
+        $like = $search ? '%'.addcslashes($search, '%_\\').'%' : null;
+
+        return User::query()
+            ->where('company_id', $this->companyId)
+            ->whereIn('role', CompanyUserDirectory::ROLES)
+            ->where('is_active', true)->where('access_status', '!=', 'rejected')
+            ->where(fn ($q) => $q->whereNull('department_id')->orWhere('department_id', '!=', $department->id))
+            ->when($like, fn ($q) => $q->where(fn ($q) => $q->whereRaw("CONCAT(first_name, ' ', last_name) LIKE ?", [$like])
+                ->orWhere('email', 'like', $like)->orWhere('employee_id', 'like', $like)))
+            ->with('department:id,name,head_user_id')
+            ->orderBy('first_name')->orderBy('last_name')->orderBy('id')
+            ->limit(50)
+            ->get();
+    }
+
+    /** How many active operational users the company has (no users = a department can't have a head). */
+    public function activeUsersCount(): int
+    {
+        return User::query()->where('company_id', $this->companyId)
+            ->whereIn('role', CompanyUserDirectory::ROLES)->where('is_active', true)->count();
     }
 
     /** The people in one department, A–Z, 20 a page (the side panel). */

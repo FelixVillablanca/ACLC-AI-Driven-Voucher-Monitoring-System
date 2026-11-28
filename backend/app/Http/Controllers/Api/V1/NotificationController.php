@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Notifications\ListNotificationsRequest;
 use App\Http\Resources\NotificationResource;
 use App\Models\Notification;
+use App\Support\LiveCounts;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -31,6 +32,7 @@ class NotificationController extends Controller
         $filter = $request->validated('filter', []);
 
         $notifications = Notification::for($user)
+            ->with('voucher:id,status,approved_at,created_by,payee_email') // the final-approval notice's buttons
             ->when($request->boolean('filter.unread'), fn ($q) => $q->unread())
             ->when($filter['category'] ?? null, fn ($q, $category) => $q->whereIn('type', NotificationType::valuesInCategory($category)))
             ->orderByDesc('created_at')
@@ -47,7 +49,9 @@ class NotificationController extends Controller
     public function unreadCount(Request $request): JsonResponse
     {
         return response()->json([
-            'data' => ['unread_count' => Notification::for($request->user())->unread()->count()],
+            // Cached per person, cleared by the Notification model (LiveCounts): every tab asks once a minute
+            'data' => ['unread_count' => LiveCounts::forUser('unread', $request->user()->id,
+                fn () => Notification::for($request->user())->unread()->count())],
         ]);
     }
 
@@ -61,6 +65,7 @@ class NotificationController extends Controller
     public function markAllRead(Request $request): Response
     {
         Notification::for($request->user())->unread()->update(['is_read' => true]);
+        LiveCounts::userChanged($request->user()->id); // a mass update fires no model events
 
         return response()->noContent();
     }

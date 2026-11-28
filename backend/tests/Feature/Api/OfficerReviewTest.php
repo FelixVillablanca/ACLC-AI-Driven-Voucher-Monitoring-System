@@ -100,21 +100,23 @@ class OfficerReviewTest extends TestCase
         $this->api('GET', '/officer/queue?filter[amount_min]=10&filter[amount_max]=5')->assertStatus(422);
     }
 
-    public function test_approve_is_final_below_the_threshold_and_forwarded_above_it(): void
+    public function test_every_approval_is_forwarded_to_the_supervisor(): void
     {
         $small = $this->submitted('9999.00');
         $big = $this->submitted('142500.00');
 
         $this->api('GET', "/officer/vouchers/{$big}")->assertOk()
             ->assertJsonPath('data.review.can_act', true)
-            ->assertJsonPath('data.review.step2_reasons', ['high_value'])
+            ->assertJsonPath('data.review.step2_reasons', ['every_voucher', 'high_value'])
             ->assertJsonPath('data.review.supervisors', ['Ana Reyes'])
             ->assertJsonPath('data.review.position.total', 2)
             ->assertJsonPath('data.clerk.name', 'Juan Dela Cruz');
 
+        // since 2026-11-28 even a small voucher goes on to the Supervisor: Accounting's approval is never final
         $this->api('POST', "/officer/vouchers/{$small}/approve")->assertOk()
-            ->assertJsonPath('data.status', 'approved')->assertJsonPath('data.forwarded', false)->assertJsonPath('data.next_id', $big);
-        $this->assertNotNull(DB::table('vouchers')->where('id', $small)->value('approved_at'));
+            ->assertJsonPath('data.status', 'under_review')->assertJsonPath('data.forwarded', true)->assertJsonPath('data.next_id', $big);
+        $this->assertNull(DB::table('vouchers')->where('id', $small)->value('approved_at'));
+        $this->assertDatabaseHas('notifications', ['recipient_id' => $this->supervisor->id, 'type' => 'voucher_pending', 'voucher_id' => $small]);
         $this->assertDatabaseHas('notifications', ['recipient_id' => $this->clerk->id, 'type' => 'voucher_approved', 'voucher_id' => $small]);
 
         $this->api('POST', "/officer/vouchers/{$big}/approve", ['remarks' => 'Checked the quotation.'])->assertOk()
@@ -177,8 +179,9 @@ class OfficerReviewTest extends TestCase
         $this->api('POST', '/officer/vouchers/bulk-approve', ['ids' => [$a, $flagged]])->assertStatus(409)->assertJsonPath('code', 'BULK_NOT_ALLOWED');
         $this->assertSame('pending', DB::table('vouchers')->where('id', $a)->value('status')); // nothing happened
 
-        $this->api('POST', '/officer/vouchers/bulk-approve', ['ids' => [$a, $b]])->assertOk()->assertJsonPath('data.approved', 2);
-        $this->assertSame(2, DB::table('vouchers')->whereIn('id', [$a, $b])->where('status', 'approved')->count());
+        $this->api('POST', '/officer/vouchers/bulk-approve', ['ids' => [$a, $b]])->assertOk()
+            ->assertJsonPath('data.approved', 0)->assertJsonPath('data.forwarded', 2); // none final at Level 1 (2026-11-28)
+        $this->assertSame(2, DB::table('vouchers')->whereIn('id', [$a, $b])->where('status', 'under_review')->count()); // on to the Supervisor
 
         $this->api('GET', '/officer/reviews')->assertOk()->assertJsonPath('meta.total', 2)->assertJsonPath('meta.today.approved', 2);
         $this->api('GET', '/officer/reviews?filter[action]=returned')->assertJsonPath('meta.total', 0);
@@ -212,6 +215,7 @@ class OfficerReviewTest extends TestCase
         $done = $this->submitted('500.00', ['payee_name' => 'PLDT']);
         $this->travel(2)->hours();
         $this->api('POST', "/officer/vouchers/{$done}/approve")->assertOk();
+        $this->api('POST', "/supervisor/vouchers/{$done}/approve", [], $this->supervisor)->assertOk(); // the final approval (every voucher, 2026-11-28)
         DB::table('budget_allocations')->insert([
             'company_id' => $this->apex->id, 'department_id' => $this->dept, 'fiscal_year' => now()->year, // yearly budgets (2026-11-27)
             'total_budget' => '10000.00', 'used_amount' => '9200.00', 'alert_threshold_pct' => 90, 'created_at' => now(), 'updated_at' => now(),

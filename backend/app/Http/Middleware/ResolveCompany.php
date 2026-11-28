@@ -4,6 +4,7 @@ namespace App\Http\Middleware;
 
 use App\Exceptions\ApiException;
 use App\Models\Company;
+use App\Support\LiveCounts;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -42,6 +43,14 @@ class ResolveCompany
 
         $request->attributes->set('company', $company);
 
-        return $next($request);
+        $response = $next($request);
+
+        // A successful change in this company (submit, approve, budget, report…) = the cached sidebar / dashboard
+        // numbers of everyone in it are out of date (LiveCounts, Phase 7 Step 2).
+        if (! $request->isMethodSafe() && $response->isSuccessful()) {
+            LiveCounts::companyChanged($company->id);
+        }
+
+        return $response;
     }
 }

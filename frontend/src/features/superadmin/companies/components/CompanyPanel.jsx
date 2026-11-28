@@ -12,6 +12,8 @@ import { listCompanyDepartments, listCompanyHistory, listCompanyUsers } from '..
 import { useCompanyDetail } from '../hooks/useCompanyDetail'
 import { companyInitials, companySubtitle, suspendedText, tileTone } from '../utils'
 import { StatusPill } from './CompanyCard'
+import AssignAdminSection from './AssignAdminSection'
+import CompanyLocationMap from './CompanyLocationMap'
 
 /**
  * Company side panel (C8, frame a17W5hpkA, 480px from the right): header with the logo tile, name,
@@ -114,7 +116,13 @@ function Panel({ companyId, onClose, onAction }) {
             </div>
 
             <div role="tabpanel" className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto px-6 py-5">
-              {tab === 'overview' && <Overview company={company} onSeeDepartments={() => setTab('departments')} />}
+              {tab === 'overview' && (
+                <Overview
+                  company={company}
+                  onSeeDepartments={() => setTab('departments')}
+                  onCreateAdmin={(c) => onAction('add-admin', c)}
+                />
+              )}
               {tab === 'departments' && <DepartmentsTab companyId={company.id} />}
               {tab === 'users' && <UsersTab companyId={company.id} />}
               {tab === 'history' && <HistoryTab companyId={company.id} />}
@@ -176,7 +184,7 @@ function Header({ company, onClose }) {
   )
 }
 
-function Overview({ company, onSeeDepartments }) {
+function Overview({ company, onSeeDepartments, onCreateAdmin }) {
   const largest = company.largest_departments ?? []
   return (
     <>
@@ -210,6 +218,16 @@ function Overview({ company, onSeeDepartments }) {
         <Fact label="On the platform since">{company.created_at ? formatDate(company.created_at, 'MMM d, yyyy') : '—'}</Fact>
         <Fact label="Last activity">{company.last_activity_at ? formatTimeAgo(company.last_activity_at) : 'None yet'}</Fact>
       </dl>
+
+      {/* nobody (active) runs it: give it an Admin who has no company yet (2026-11-28) */}
+      {(!company.admin || !company.admin.is_active) && <AssignAdminSection company={company} onCreateAdmin={onCreateAdmin} />}
+
+      {company.location && (
+        <section className="flex flex-col gap-1">
+          <h3 className="text-table-head mb-1 text-muted-foreground">Location</h3>
+          <CompanyLocationMap location={company.location} name={company.name} />
+        </section>
+      )}
 
       <section className="flex flex-col gap-1">
         <h3 className="text-table-head mb-1 text-muted-foreground">Largest departments</h3>

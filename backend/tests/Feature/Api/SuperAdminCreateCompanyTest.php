@@ -110,6 +110,52 @@ class SuperAdminCreateCompanyTest extends TestCase
         $this->assertSame(0, Company::count());
     }
 
+    public function test_the_map_pin_is_saved_and_shown_in_the_company_panel(): void
+    {
+        $id = $this->actingAs($this->owner)
+            ->postJson(self::URL, [
+                'name' => 'Bayview Logistics Corp.', 'type' => 'corporate',
+                'address' => 'Ortigas Center, Pasig City', 'latitude' => 14.5869791, 'longitude' => 121.0614106,
+                'place_id' => 'way/123456',
+            ])
+            ->assertCreated()
+            ->json('data.id');
+
+        $this->assertDatabaseHas('companies', ['id' => $id, 'latitude' => '14.5869791', 'longitude' => '121.0614106', 'place_id' => 'way/123456']);
+
+        $this->actingAs($this->owner)->getJson(self::URL."/{$id}")
+            ->assertOk()
+            ->assertJsonPath('data.location', ['latitude' => '14.5869791', 'longitude' => '121.0614106', 'place_id' => 'way/123456']);
+    }
+
+    public function test_a_pin_dropped_by_hand_needs_no_place_id_and_no_pin_means_no_location(): void
+    {
+        $hand = $this->actingAs($this->owner)
+            ->postJson(self::URL, ['name' => 'Greenline Foods', 'type' => 'corporate', 'latitude' => 10.3157, 'longitude' => 123.8854])
+            ->assertCreated()->json('data.id');
+        $this->assertDatabaseHas('companies', ['id' => $hand, 'place_id' => null]);
+
+        // a place ID without a pin is dropped
+        $none = $this->actingAs($this->owner)
+            ->postJson(self::URL, ['name' => 'Northfield Academy', 'type' => 'school', 'place_id' => 'ChIJabc'])
+            ->assertCreated()->json('data.id');
+        $this->assertDatabaseHas('companies', ['id' => $none, 'latitude' => null, 'place_id' => null]);
+        $this->actingAs($this->owner)->getJson(self::URL."/{$none}")->assertJsonPath('data.location', null);
+    }
+
+    public function test_half_a_pin_or_impossible_coordinates_are_422(): void
+    {
+        $this->actingAs($this->owner)
+            ->postJson(self::URL, ['name' => 'A Corp', 'type' => 'other', 'latitude' => 14.5])
+            ->assertUnprocessable()->assertJsonValidationErrors(['longitude']);
+
+        $this->actingAs($this->owner)
+            ->postJson(self::URL, ['name' => 'A Corp', 'type' => 'other', 'latitude' => 95, 'longitude' => 200, 'place_id' => 'bad id!'])
+            ->assertUnprocessable()->assertJsonValidationErrors(['latitude', 'longitude', 'place_id']);
+
+        $this->assertSame(0, Company::count());
+    }
+
     public function test_guest_is_401_and_admins_are_403(): void
     {
         $this->postJson(self::URL, ['name' => 'X Corp', 'type' => 'other'])->assertUnauthorized();

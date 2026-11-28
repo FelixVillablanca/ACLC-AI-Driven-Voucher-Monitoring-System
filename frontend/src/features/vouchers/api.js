@@ -73,3 +73,15 @@ export async function downloadVoucherPdf(id) {
   const response = await apiClient.get(`/vouchers/${id}/pdf`, { responseType: 'blob', validateStatus: () => true })
   return saveDownload(response, `voucher-${id}.pdf`)
 }
+
+/** The payment PDF of an approved voucher (cash slip / bank transfer advice / cheque slip, 2026-11-28). 409 before approval. */
+export async function downloadPaymentPdf(id) {
+  const response = await apiClient.get(`/vouchers/${id}/payment-pdf`, { responseType: 'blob', validateStatus: () => true })
+  return saveDownload(response, `voucher-${id}-payment.pdf`)
+}
+
+/** "Email the payee": the approval + the payment PDF to the payee's email. Returns { sent_to, sent_at }. 409 NO_PAYEE_EMAIL. */
+export async function emailPayee(id, note) {
+  const { data } = await apiClient.post(`/vouchers/${id}/email-payee`, { note: note || null })
+  return data.data
+}

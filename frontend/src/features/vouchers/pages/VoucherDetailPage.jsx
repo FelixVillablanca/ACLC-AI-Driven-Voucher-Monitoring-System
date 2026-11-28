@@ -6,10 +6,12 @@ import toast from 'react-hot-toast'
 import ConfirmDialog from '@/components/common/ConfirmDialog'
 import ErrorState from '@/components/common/ErrorState'
 import Pill from '@/components/common/Pill'
+import { VoucherChequeCard } from '@/features/cheques'
 import { PATHS } from '@/lib/constants'
 import { formatDate, formatMoney, formatTimeAgo } from '@/lib/formatters'
 import { useCompanyStore } from '@/stores/useCompanyStore'
 import { cancelVoucher, deleteDraft, downloadVoucherPdf, getVoucher, submitVoucher } from '../api'
+import PaymentActions from '../components/PaymentActions'
 import ReturnedBanner from '../components/ReturnedBanner'
 import { announceVouchersChanged, PAYMENT_LABELS, PRIORITY_LABELS, statusPill } from '../utils'
 
@@ -206,6 +208,14 @@ export default function VoucherDetailPage() {
           </div>
 
           {v.status === 'returned' && v.returned && <ReturnedBanner returned={v.returned} saved={v.returned.edited_since} />}
+          {v.status === 'approved' && (
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-success/30 bg-success-soft px-4 py-3">
+              <p className="text-body">
+                <span className="font-medium text-success">Final approval given.</span> Download the payment PDF, or email it to the payee.
+              </p>
+              <PaymentActions voucherId={v.id} canEmail={Boolean(v.payee_email)} />
+            </div>
+          )}
 
           {(v.status === 'pending' || v.status === 'under_review') && (
             <p className="text-body rounded-xl border border-dashed bg-muted px-4 py-3">
@@ -221,6 +231,8 @@ export default function VoucherDetailPage() {
 
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_320px]">
             <div className="flex flex-col gap-4">
+              {/* cheque register (2026-11-29): record the cheque, release it, mark it cleared */}
+              {v.status === 'approved' && v.payment_method === 'cheque' && <VoucherChequeCard voucher={v} />}
               <section className="overflow-hidden rounded-xl border bg-card">
                 <h2 className="text-card-title border-b px-4 py-3">Lines</h2>
                 {v.line_items.length === 0 ? (

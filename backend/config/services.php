@@ -35,6 +35,17 @@ return [
         ],
     ],
 
+    // OpenStreetMap address search (Nominatim) for the company map pin (2026-11-28). Free, no key; its rules:
+    // at most 1 request a second and an app name in the User-Agent (App\Domain\Platform\Geocoding\Nominatim).
+    // country_codes = where to search ("ph"; empty = the whole world). In production, a Nominatim-compatible
+    // host with a key (e.g. LocationIQ) can replace the URL if the free service is too slow.
+    'nominatim' => [
+        'url' => env('NOMINATIM_URL', 'https://nominatim.openstreetmap.org'),
+        'user_agent' => env('NOMINATIM_USER_AGENT', 'ADVMS-voucher-monitoring/1.0'),
+        'country_codes' => env('NOMINATIM_COUNTRY_CODES', 'ph'),
+        'timeout' => (int) env('NOMINATIM_TIMEOUT', 8),
+    ],
+
     // Python ML microservice (Phase 5). Empty URL = not set up yet; the System health check says so.
     'ml' => [
         'url' => env('ML_SERVICE_URL'),

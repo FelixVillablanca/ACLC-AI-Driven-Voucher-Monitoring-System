@@ -3,8 +3,8 @@
 namespace App\Domain\Vouchers\Support;
 
 /**
- * "12345.67" → "Twelve thousand three hundred forty-five pesos and 67/100", the line printed on a
- * Philippine voucher. Works on the DECIMAL string (never a float). Up to 999 billion.
+ * "12345.67" → "Twelve thousand three hundred forty-five pesos and 67/100", "5000.00" → "Five thousand pesos only":
+ * the line printed on a Philippine voucher. Works on the DECIMAL string (never a float). Up to 999 billion.
  */
 final class AmountInWords
 {
@@ -23,7 +23,11 @@ final class AmountInWords
 
         $words = $whole === '0' ? 'zero' : self::number($whole);
 
-        return ucfirst($words).' '.($whole === '1' ? 'peso' : 'pesos')." and {$cents}/100";
+        $pesos = ucfirst($words).' '.($whole === '1' ? 'peso' : 'pesos');
+
+        // Whole pesos: "… pesos only" (user request 2026-11-29: no "and 00/100"). "Only" closes the line so nothing
+        // can be added after it. With centavos the fraction stays, so the written amount still matches the figure.
+        return $cents === '00' ? "{$pesos} only" : "{$pesos} and {$cents}/100";
     }
 
     private static function number(string $digits): string

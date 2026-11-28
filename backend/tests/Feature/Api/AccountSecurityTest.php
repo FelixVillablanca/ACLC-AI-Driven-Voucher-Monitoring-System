@@ -188,7 +188,7 @@ class AccountSecurityTest extends TestCase
 
     public function test_other_roles_have_no_15_minute_idle_limit(): void
     {
-        $admin = User::factory()->admin()->create();
+        $admin = User::factory()->admin()->create(['company_id' => Company::factory()->create()->id]);
 
         $this->actingAs($admin)
             ->withHeader('Referer', 'http://localhost:5173') // a request from the React app (it has a session)

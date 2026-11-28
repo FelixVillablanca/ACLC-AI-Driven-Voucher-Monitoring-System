@@ -3,12 +3,15 @@
 namespace App\Http\Controllers\Api\V1\Vouchers;
 
 use App\Domain\Vouchers\Actions\DeleteVoucherDrafts;
+use App\Domain\Vouchers\Actions\EmailPayee;
 use App\Domain\Vouchers\Actions\SaveVoucherDraft;
 use App\Domain\Vouchers\Actions\TransitionVoucher;
 use App\Domain\Vouchers\Queries\ClerkVouchers;
+use App\Domain\Vouchers\Support\PaymentSlipPdf;
 use App\Domain\Vouchers\Support\VoucherPdf;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Vouchers\DeleteDraftsRequest;
+use App\Http\Requests\Vouchers\EmailPayeeRequest;
 use App\Http\Requests\Vouchers\ListVouchersRequest;
 use App\Http\Requests\Vouchers\SaveVoucherRequest;
 use App\Http\Resources\Vouchers\VoucherResource;
@@ -46,7 +49,7 @@ class VoucherController extends Controller
             'payee_types' => $named('payee_types'),
             // saved payees (2026-11-26): picking one fills type, payment and bank details
             'payees' => DB::table('payees')->where('company_id', $company->id)->where('is_active', true)->orderBy('name')->limit(2000)
-                ->get(['id', 'name', 'payee_type_id', 'tin', 'default_payment_method', 'bank_name', 'bank_account_number', 'bank_account_name']),
+                ->get(['id', 'name', 'payee_type_id', 'tin', 'email', 'default_payment_method', 'bank_name', 'bank_account_number', 'bank_account_name']),
             'departments' => DB::table('departments')->where('company_id', $company->id)->where('is_active', true)->orderBy('name')->get(['id', 'name', 'code']),
             'payment_methods' => SaveVoucherRequest::PAYMENT_METHODS,
             'priorities' => SaveVoucherRequest::PRIORITIES,
@@ -89,6 +92,26 @@ class VoucherController extends Controller
             'Content-Disposition' => 'attachment; filename="'.VoucherPdf::fileName($v).'"',
             'Cache-Control' => 'no-store',
         ]);
+    }
+
+    /** GET /vouchers/{id}/payment-pdf  The payment PDF (cash slip / bank transfer advice / cheque slip); approved only. */
+    public function paymentPdf(Request $request, int $voucher): Response
+    {
+        $v = $this->mine($request)->find($voucher);
+
+        return response(PaymentSlipPdf::render($v), 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="'.PaymentSlipPdf::fileName($v).'"',
+            'Cache-Control' => 'no-store',
+        ]);
+    }
+
+    /** POST /vouchers/{id}/email-payee { note? }  -> { data: { sent_to, sent_at } } */
+    public function emailPayee(EmailPayeeRequest $request, int $voucher, EmailPayee $email): JsonResponse
+    {
+        $v = $this->mine($request)->find($voucher);
+
+        return response()->json(['data' => $email->handle($v, $request->user(), $request->validated('note'), $request->ip())]);
     }
 
     public function update(SaveVoucherRequest $request, int $voucher, SaveVoucherDraft $save): VoucherResource

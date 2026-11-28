@@ -3,6 +3,7 @@
 namespace App\Http\Resources;
 
 use App\Domain\Identity\Actions\SendAccountInvitation;
+use App\Domain\Identity\Queries\UnassignedAdmins;
 use App\Domain\Identity\Support\AccountActions;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -32,6 +33,8 @@ class AdminAccountResource extends JsonResource
             'personal_email' => $this->personal_email,
             'role' => $this->role,
             'company' => $this->company?->name,
+            // "No company yet" Admins: when the account is removed unless given a company (2026-11-28)
+            'company_deadline' => UnassignedAdmins::deadlineFor($this->resource)?->toIso8601String(),
             'status' => $this->accountStatus(),
             'two_factor' => $this->twoFactorStatus(),
             'two_factor_setup_deadline' => $this->two_factor_setup_deadline?->toIso8601String(),

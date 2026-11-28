@@ -82,6 +82,32 @@ class BudgetsTest extends TestCase
         return $id;
     }
 
+    public function test_the_overview_shows_approved_spending_no_budget_covers(): void
+    {
+        // two final approvals in IT (no budget yet) and one with no department
+        foreach (['12000.00', '3000.00', '500.00'] as $amount) {
+            $id = $this->submitted($amount);
+            $this->api('POST', "/officer/vouchers/{$id}/approve")->assertOk();
+            $this->api('POST', "/supervisor/vouchers/{$id}/approve", ['remarks' => 'OK'], $this->supervisor)->assertOk();
+        }
+        DB::table('vouchers')->where('amount', '500.00')->update(['department_id' => null]);
+        $this->submitted('9999.00'); // still in review: not counted
+
+        $this->api('GET', '/supervisor/budgets', [], $this->supervisor)->assertOk()
+            ->assertJsonPath('data.unbudgeted.amount', '15500.00')
+            ->assertJsonPath('data.unbudgeted.count', 3)
+            ->assertJsonPath('data.unbudgeted.departments.0.name', 'IT & Systems')
+            ->assertJsonPath('data.unbudgeted.departments.0.amount', '15000.00')
+            ->assertJsonPath('data.unbudgeted.no_department', ['amount' => '500.00', 'count' => 1]);
+
+        // once IT has a budget, its spending is covered (and counted as used)
+        $this->allocate('100000.00');
+        $this->api('GET', '/supervisor/budgets', [], $this->supervisor)
+            ->assertJsonPath('data.unbudgeted.amount', '500.00')
+            ->assertJsonPath('data.unbudgeted.departments', [])
+            ->assertJsonPath('data.summary.used', '15000.00');
+    }
+
     public function test_allocate_and_list(): void
     {
         $id = $this->allocate('1500000', 90);
@@ -167,9 +193,11 @@ class BudgetsTest extends TestCase
         $second = $this->submitted('40000.00');
 
         $this->api('POST', "/officer/vouchers/{$first}/approve")->assertOk();
+        $this->api('POST', "/supervisor/vouchers/{$first}/approve", [], $this->supervisor)->assertOk(); // the final approval (every voucher, 2026-11-28)
         $this->assertDatabaseHas('budget_allocations', ['id' => $id, 'used_amount' => '45000.00', 'alert_sent_at' => null]);
 
-        $this->api('POST', "/officer/vouchers/{$second}/approve")->assertOk(); // 85% ≥ 80%
+        $this->api('POST', "/officer/vouchers/{$second}/approve")->assertOk();
+        $this->api('POST', "/supervisor/vouchers/{$second}/approve", [], $this->supervisor)->assertOk(); // the final approval (every voucher, 2026-11-28) // 85% ≥ 80%
         $this->assertDatabaseHas('budget_allocations', ['id' => $id, 'used_amount' => '85000.00']);
         $this->assertNotNull(BudgetAllocation::find($id)->alert_sent_at);
         $this->assertSame(1, DB::table('notifications')->where('recipient_id', $this->officer->id)->where('type', 'budget_alert')->count());
@@ -198,6 +226,7 @@ class BudgetsTest extends TestCase
     {
         $v = $this->submitted('20000.00');
         $this->api('POST', "/officer/vouchers/{$v}/approve")->assertOk();
+        $this->api('POST', "/supervisor/vouchers/{$v}/approve", [], $this->supervisor)->assertOk(); // the final approval (every voucher, 2026-11-28)
 
         $id = $this->allocate('100000.00');
         $this->assertDatabaseHas('budget_allocations', ['id' => $id, 'used_amount' => '20000.00']);

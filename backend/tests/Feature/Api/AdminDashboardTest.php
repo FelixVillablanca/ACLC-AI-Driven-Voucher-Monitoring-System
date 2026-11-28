@@ -87,12 +87,10 @@ class AdminDashboardTest extends TestCase
         Department::factory()->create();
         $admin = User::factory()->admin()->create(['company_id' => null]);
 
+        // since 2026-11-28: "No company yet" -> the console waits instead of showing an empty dashboard
         $this->actingAs($admin)
             ->getJson('/api/v1/admin/dashboard')
-            ->assertOk()
-            ->assertJsonPath('data.company', null)
-            ->assertJsonPath('data.companies.total', 0)
-            ->assertJsonPath('data.departments.total', 0);
+            ->assertForbidden()->assertJsonPath('code', 'NO_COMPANY_YET');
     }
 
     public function test_guests_get_401(): void

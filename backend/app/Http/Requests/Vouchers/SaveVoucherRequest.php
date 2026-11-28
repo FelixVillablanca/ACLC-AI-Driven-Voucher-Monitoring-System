@@ -36,6 +36,7 @@ class SaveVoucherRequest extends FormRequest
 
         $this->merge([
             'payee_name' => $trim($this->payee_name),
+            'payee_email' => is_string($this->payee_email) ? (mb_strtolower(trim($this->payee_email)) ?: null) : $this->payee_email,
             'description' => $trim($this->description),
             'purpose' => $trim($this->purpose),
             'reference_number' => $trim($this->reference_number),
@@ -62,6 +63,8 @@ class SaveVoucherRequest extends FormRequest
             'payee_type_id' => ['nullable', 'integer', $own('payee_types')],
             'department_id' => ['nullable', 'integer', Rule::exists('departments', 'id')->where('company_id', $companyId)->where('is_active', true)],
             'payee_name' => ['nullable', 'string', 'max:255'],
+            // optional (2026-11-28): "Email the payee" after the final approval sends the payment PDF here
+            'payee_email' => ['nullable', 'string', 'max:255', 'email:rfc'],
             // a saved payee of this company (2026-11-26); its name replaces payee_name when saving
             'payee_id' => ['nullable', 'integer', Rule::exists('payees', 'id')->where('company_id', $companyId)->where('is_active', true)],
             'description' => ['nullable', 'string', 'max:2000'],
@@ -91,6 +94,7 @@ class SaveVoucherRequest extends FormRequest
             'voucher_type_id.exists' => 'Choose a voucher type of this company.',
             'payee_type_id.exists' => 'Choose a payee type of this company.',
             'payee_id.exists' => 'This payee was deactivated or isn’t in this company. Choose another one.',
+            'payee_email.email' => 'Enter a valid email address, like accounts@supplier.ph.',
             'department_id.exists' => 'Choose an active department of this company.',
             'bank_account_number.regex' => 'Use numbers, spaces and dashes only.',
             'line_items.max' => 'A voucher can have at most 50 lines.',

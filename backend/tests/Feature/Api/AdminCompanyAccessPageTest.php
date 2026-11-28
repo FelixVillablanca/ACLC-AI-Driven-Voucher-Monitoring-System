@@ -41,11 +41,11 @@ class AdminCompanyAccessPageTest extends TestCase
         $this->north = Company::factory()->create(['name' => 'Northfield']);
         $this->admin = User::factory()->admin()->create(['first_name' => 'John', 'last_name' => 'Doe', 'company_id' => $this->apex->id]);
 
-        $this->ana = User::factory()->create(['first_name' => 'Ana', 'company_id' => $this->apex->id]);
+        $this->ana = User::factory()->create(['first_name' => 'Ana', 'last_name' => 'Cruz', 'email' => 'anacruz@Clerk.com', 'company_id' => $this->apex->id]);
         $this->ana->accessibleCompanies()->attach($this->apex->id, ['granted_status' => 'accepted', 'granted_by' => $this->admin->id]);
-        $this->ben = User::factory()->officer()->create(['first_name' => 'Ben', 'company_id' => $this->apex->id]);
+        $this->ben = User::factory()->officer()->create(['first_name' => 'Ben', 'last_name' => 'Tan', 'email' => 'bentan@Officer.com', 'company_id' => $this->apex->id]);
         $this->ben->accessibleCompanies()->attach($this->apex->id, ['granted_status' => 'denied']);
-        $this->cara = User::factory()->create(['first_name' => 'Cara', 'company_id' => $this->apex->id]);
+        $this->cara = User::factory()->create(['first_name' => 'Cara', 'last_name' => 'Lim', 'email' => 'caralim@Clerk.com', 'company_id' => $this->apex->id]);
         $this->guest = User::factory()->supervisor()->create(['first_name' => 'Gus', 'company_id' => $this->north->id]);
         $this->guest->accessibleCompanies()->attach($this->apex->id, ['granted_status' => 'accepted']);
 

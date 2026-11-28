@@ -34,7 +34,9 @@ export default function AdminCreatedPanel({ result, onCreateAnother, onDone }) {
           </span>
           <div>
             <p className="text-card-title">
-              {admin.full_name} is now Admin of {admin.company?.name}
+              {admin.company
+                ? `${admin.full_name} is now Admin of ${admin.company.name}`
+                : `${admin.full_name}’s Admin account was created`}
             </p>
             <p className="text-body text-muted-foreground">Shown as Pending until they set their password.</p>
           </div>
@@ -46,7 +48,10 @@ export default function AdminCreatedPanel({ result, onCreateAnother, onDone }) {
           <dt className="text-caption">Signs in as</dt>
           <dd className="text-body-strong break-all">{admin.email}</dd>
           <dt className="text-caption">Company</dt>
-          <dd className="text-body">{admin.company?.name}</dd>
+          <dd className="text-body">
+            {admin.company?.name ??
+              'No company yet: give them one within 24 hours (+ Add company or Edit details), or the account is removed'}
+          </dd>
         </dl>
 
         {sent ? (

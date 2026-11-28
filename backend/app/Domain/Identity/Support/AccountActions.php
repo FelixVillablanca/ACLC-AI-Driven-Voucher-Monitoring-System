@@ -19,7 +19,7 @@ class AccountActions
 {
     public const ACTIONS = [
         'edit', 'resend_invitation', 'cancel_invitation', 'reset_password',
-        'require_two_factor', 'make_super_admin', 'deactivate', 'reactivate',
+        'require_two_factor', 'make_super_admin', 'deactivate', 'reactivate', 'assign_company',
     ];
 
     /** "Signed in within the last 30 days" (A12 Make Super Admin checklist). */
@@ -105,7 +105,16 @@ class AccountActions
 
             'reactivate' => match (true) {
                 $target->is_active => 'The account is already active.',
+                $isAdmin && $target->company_id === null => 'Give them a company first (Edit details): an Admin with no company is removed automatically.',
                 $isSuper && self::seatsUsed() >= SuperAdminDashboardSummary::SUPER_ADMIN_SEATS => 'All Super Admin seats are taken.',
+                default => null,
+            },
+
+            // Admins tab "Assign to a company" (2026-11-28): only an active Admin with no company yet
+            'assign_company' => match (true) {
+                ! $isAdmin => 'Super Admins work outside every company.',
+                $target->company_id !== null => 'They already run a company. Use Edit details to move them.',
+                ! $target->is_active || $target->access_status === 'rejected' => 'Deactivated accounts can’t be given a company here. Use Edit details, then reactivate.',
                 default => null,
             },
 

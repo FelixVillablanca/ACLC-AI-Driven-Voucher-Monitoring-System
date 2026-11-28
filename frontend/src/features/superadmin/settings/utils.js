@@ -124,9 +124,8 @@ const rank = (v) => SENSITIVITIES.findIndex((s) => s.key === v)
 export function impactText({ key, from, to }) {
   switch (key) {
     case KEYS.THRESHOLD:
-      return Number(to) > Number(from)
-        ? `Vouchers from ${formatMoney(from)} up to just under ${formatMoney(to)} will only need step 1 (Accounting Officer). It applies to every voucher Accounting approves from now on, including ones already waiting.`
-        : `Vouchers from ${formatMoney(to)} and up will also need step 2 (Supervisor / Manager). It applies to every voucher Accounting approves from now on, including ones already waiting.`
+      // every voucher goes to step 2 since 2026-11-28; the threshold only labels vouchers "High value"
+      return `Vouchers of ${formatMoney(to)} or more will be marked “High value” for the Supervisor / Manager and in the review queues. Every voucher still needs their final approval.`
     case KEYS.BUDGET_SIGNOFF:
       return `Accounting Officers' budget edits bigger than ${formatMoney(to)} will wait for a Supervisor / Manager's sign-off; smaller ones apply at once.`
     case KEYS.AI_FLAGGED_STEP2:

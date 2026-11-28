@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\ClearsLiveCounts;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -13,6 +14,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  */
 class BudgetAllocation extends Model
 {
+    use ClearsLiveCounts; // changes renew the cached sidebar / dashboard numbers (LiveCounts)
+
     protected $fillable = [
         'company_id', 'department_id', 'fiscal_year', 'total_budget', 'used_amount', 'alert_threshold_pct',
         'alert_sent_at', 'created_by', 'updated_by',

@@ -1,5 +1,5 @@
 import { useLocation } from 'react-router-dom'
-import { CircleHelp, FilePen, FileText, LayoutDashboard, Plus, Undo2, Users } from 'lucide-react'
+import { CircleHelp, FilePen, FileText, LayoutDashboard, NotebookTabs, Plus, Undo2, Users } from 'lucide-react'
 import { PATHS } from '@/lib/constants'
 import SidebarNav from '@/components/layout/SidebarNav'
 import { useClerkDashboard } from '../hooks/useClerkDashboard'
@@ -51,6 +51,7 @@ export default function ClerkNav({ onNavigate }) {
       section: 'Reference',
       items: [
         { to: PATHS.CLERK_PAYEES, label: 'Payees', icon: Users, active: pathname === PATHS.CLERK_PAYEES },
+        { to: PATHS.CLERK_CHEQUES, label: 'Cheques', icon: NotebookTabs, active: pathname === PATHS.CLERK_CHEQUES },
         {
           to: PATHS.CLERK_HELP,
           label: 'Help & guides',

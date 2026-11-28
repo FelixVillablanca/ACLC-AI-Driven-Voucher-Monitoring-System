@@ -11,7 +11,6 @@ import { formatMoney } from '@/lib/formatters'
 
 const threshold = (rules) => (rules ? formatMoney(rules.high_value_threshold) : 'the high-value amount')
 const signoffAbove = (rules) => (rules?.budget_signoff_above ? formatMoney(rules.budget_signoff_above) : 'the sign-off amount')
-const flaggedGoesUp = (rules) => rules?.ai_flagged_needs_step2 !== false
 
 export const SUPERVISOR_CATEGORIES = [
   { key: 'approvals', label: 'Final approvals', blurb: 'Approve, return or reject at Level 2', icon: CheckSquare, tone: 'primary' },
@@ -95,13 +94,14 @@ export const SUPERVISOR_GUIDES = [
         blocks: [
           (rules) => ({
             list: [
-              `${threshold(rules)} or more: always needs your final approval.`,
-              flaggedGoesUp(rules)
-                ? 'Flagged by the automatic check: always needs your final approval, whatever the amount (unless Accounting cleared the flag as a false alarm).'
-                : 'Flagged vouchers don’t need an extra step right now (the Super Admin switched that setting off).',
+              'Every voucher Accounting approves comes to you: your approval is always the final one.',
+              `${threshold(rules)} or more: marked “High value”.`,
+              'Flagged by the automatic check: marked “Flagged” (unless Accounting cleared the flag as a false alarm).',
             ],
           }),
-          { p: 'Everything else is final at Level 1: Accounting’s approval releases it.' },
+          {
+            p: 'Once you approve, the clerk gets a notice with the payment PDF and can email the payee. For a cheque payment the clerk records the cheque afterwards; Cheques in your menu shows every cheque of the company (read-only).',
+          },
           {
             note: 'These rules come from the Super Admin’s Global settings and are read at the moment Accounting approves. A change doesn’t move vouchers that are already in your queue.',
             tone: 'info',
@@ -483,8 +483,8 @@ export const supervisorGuideTitle = (slug) => supervisorGuideBySlug(slug)?.title
 /** "Level 2 rules at a glance" (Framer cR3NPU8IK side card), from the live rules. */
 export function level2RulesAtAGlance(rules) {
   return [
-    `${threshold(rules)} or more → your approval is required`,
-    flaggedGoesUp(rules) ? 'Flagged → your approval is required' : 'Flagged → no extra step (setting off)',
+    'Every voucher → your final approval is required',
+    `${threshold(rules)} or more → marked “High value”`,
     'Approving a flagged voucher needs written remarks',
     `Budget changes over ${signoffAbove(rules)} → your sign-off`,
     'Company-wide monthly / quarterly reports → your sign-off',

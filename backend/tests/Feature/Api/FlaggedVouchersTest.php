@@ -113,7 +113,7 @@ class FlaggedVouchersTest extends TestCase
         $this->assertStringContainsString('average month', $inv->json('data.summary'));
 
         // flagged + "AI-flagged → step 2" (on by default): the review page says it goes to the Supervisor
-        $this->api('GET', "/officer/vouchers/{$id}")->assertJsonPath('data.review.step2_reasons', ['high_value', 'ai_flagged']);
+        $this->api('GET', "/officer/vouchers/{$id}")->assertJsonPath('data.review.step2_reasons', ['every_voucher', 'high_value', 'ai_flagged']);
     }
 
     public function test_possible_duplicate_and_normal_vouchers(): void
@@ -154,7 +154,8 @@ class FlaggedVouchersTest extends TestCase
         $this->assertDatabaseHas('audit_logs', ['action' => 'voucher_flag_cleared', 'record_id' => $id]);
 
         $this->api('POST', "/officer/vouchers/{$id}/normal")->assertStatus(409)->assertJsonPath('code', 'FLAG_ALREADY_REVIEWED');
-        $this->api('GET', "/officer/vouchers/{$id}")->assertJsonPath('data.review.step2_reasons', []); // no Supervisor because of the flag
+        // no "Flagged" label any more; it still goes to the Supervisor like every voucher (2026-11-28)
+        $this->api('GET', "/officer/vouchers/{$id}")->assertJsonPath('data.review.step2_reasons', ['every_voucher']);
         $this->api('GET', '/officer/flagged')->assertJsonCount(0, 'data')->assertJsonPath('meta.stats.cleared', 1);
     }
 

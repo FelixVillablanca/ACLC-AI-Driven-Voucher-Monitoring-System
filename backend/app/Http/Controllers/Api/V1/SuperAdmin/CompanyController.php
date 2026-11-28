@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers\Api\V1\SuperAdmin;
 
+use App\Domain\Identity\Queries\UnassignedAdmins;
 use App\Domain\Security\Support\OwnerActivity;
+use App\Domain\Tenancy\Actions\AssignCompanyAdmin;
 use App\Domain\Tenancy\Actions\CreateCompany;
 use App\Domain\Tenancy\Actions\ReactivateCompany;
 use App\Domain\Tenancy\Actions\SuspendCompany;
@@ -10,6 +12,7 @@ use App\Domain\Tenancy\Queries\CompanyDirectory;
 use App\Domain\Tenancy\Queries\CompanyProfile;
 use App\Domain\Tenancy\Support\CompanyExport;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\SuperAdmin\AssignCompanyAdminRequest;
 use App\Http\Requests\SuperAdmin\CompanyPanelPageRequest;
 use App\Http\Requests\SuperAdmin\ExportCompaniesRequest;
 use App\Http\Requests\SuperAdmin\ListCompaniesRequest;
@@ -19,9 +22,11 @@ use App\Http\Requests\SuperAdmin\SuspendCompanyRequest;
 use App\Http\Resources\CompanyCardResource;
 use App\Http\Resources\CompanyDetailResource;
 use App\Http\Resources\CompanyMemberResource;
+use App\Http\Resources\UnassignedAdminResource;
 use App\Models\Company;
 use App\Models\Department;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Response;
 use Illuminate\Support\Carbon;
@@ -96,6 +101,14 @@ class CompanyController extends Controller
         return CompanyDetailResource::make($row)->withProfile($profile->overview($company));
     }
 
+    /** POST /api/v1/superadmin/companies/{company}/admin { admin_id }  (C8 Overview "Admin in charge") → the panel's data again */
+    public function assignAdmin(AssignCompanyAdminRequest $request, Company $company, AssignCompanyAdmin $assign, CompanyProfile $profile): CompanyDetailResource
+    {
+        $assign->handle($company, (int) $request->validated('admin_id'), $request->user(), $request->ip());
+
+        return $this->show($company->fresh(), $profile);
+    }
+
     /** GET /api/v1/superadmin/companies/{company}/departments  (C8 Departments tab, biggest first) */
     public function departments(Company $company, CompanyProfile $profile): JsonResponse
     {
@@ -142,6 +155,14 @@ class CompanyController extends Controller
     }
 
     /** POST /api/v1/superadmin/companies -> 201 with the new company's card (it has no Admin yet) */
+    /** GET /api/v1/superadmin/companies/unassigned-admins?search=  Admins with no company yet (the + Add company picker). */
+    public function unassignedAdmins(Request $request, UnassignedAdmins $admins): AnonymousResourceCollection
+    {
+        $search = is_string($request->query('search')) ? mb_substr(trim($request->query('search')), 0, 100) : '';
+
+        return UnassignedAdminResource::collection($admins->list($search === '' ? null : $search));
+    }
+
     public function store(StoreCompanyRequest $request, CreateCompany $create): JsonResponse
     {
         $company = $create->handle($request->validated(), $request->user(), $request->ip());

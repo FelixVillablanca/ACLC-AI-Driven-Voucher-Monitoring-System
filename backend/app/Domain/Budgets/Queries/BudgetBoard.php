@@ -21,6 +21,8 @@ use Illuminate\Support\Facades\DB;
  *                                a pending sign-off request and the change history
  *   alertCount()                 the sidebar's "N alert(s)": this fiscal year's budgets at or over their alert %
  * "Pending" = vouchers still in review (pending + under_review): not spent yet, but on their way.
+ * "Unbudgeted" (2026-11-28) = approved spending in that fiscal year that no budget covers: departments with no budget
+ *   for the year, and vouchers with no department. It isn't lost: a budget allocated later starts with it (usedFor).
  */
 class BudgetBoard
 {
@@ -74,6 +76,7 @@ class BudgetBoard
                 'over_alert_first' => $over->first() ? ['name' => $over->first()['department']['name'], 'used_pct' => $over->first()['budget']['used_pct']] : null,
             ],
             'rows' => $rows->all(),
+            'unbudgeted' => $this->unbudgeted($year, $budgets->keys()->all()),
             'can_allocate' => $rows->contains(fn ($r) => ! $r['budget'] && $r['department']['is_active']),
             'signoff_above' => $this->signoffAbove(),
         ];
@@ -128,6 +131,40 @@ class BudgetBoard
     {
         return BudgetAllocation::query()->where('company_id', $this->company->id)->where('fiscal_year', FiscalYear::current($this->company))
             ->where('total_budget', '>', 0)->whereRaw('used_amount * 100 >= total_budget * alert_threshold_pct')->count();
+    }
+
+    /**
+     * Approved spending of the fiscal year that no budget covers.
+     *
+     * @param  list<int>  $budgetedDepartments
+     * @return array{amount: string, count: int, departments: list<array{id: int, name: string, amount: string, count: int}>, no_department: array{amount: string, count: int}}
+     */
+    private function unbudgeted(int $year, array $budgetedDepartments): array
+    {
+        [$from, $to] = FiscalYear::range($this->company, $year);
+        $rows = DB::table('vouchers as v')
+            ->leftJoin('departments as d', 'd.id', '=', 'v.department_id')
+            ->where('v.company_id', $this->company->id)->where('v.status', S::Approved->value)
+            ->whereBetween('v.approved_at', [$from, $to])
+            ->where(fn ($q) => $q->whereNull('v.department_id')
+                ->when($budgetedDepartments !== [], fn ($q) => $q->orWhereNotIn('v.department_id', $budgetedDepartments),
+                    fn ($q) => $q->orWhereNotNull('v.department_id')))
+            ->groupBy('v.department_id', 'd.name')
+            ->selectRaw('v.department_id, d.name, COALESCE(SUM(v.amount), 0) as amount, COUNT(*) as n')
+            ->get();
+
+        $none = $rows->firstWhere('department_id', null);
+        $departments = $rows->whereNotNull('department_id')
+            ->map(fn ($r) => ['id' => (int) $r->department_id, 'name' => (string) $r->name, 'amount' => number_format((float) $r->amount, 2, '.', ''), 'count' => (int) $r->n])
+            ->sortByDesc(fn ($r) => (float) $r['amount'])->values()->all();
+        $total = $rows->reduce(fn ($c, $r) => bcadd($c, (string) $r->amount, 2), '0.00');
+
+        return [
+            'amount' => $total,
+            'count' => (int) $rows->sum('n'),
+            'departments' => $departments,
+            'no_department' => ['amount' => $none ? number_format((float) $none->amount, 2, '.', '') : '0.00', 'count' => $none ? (int) $none->n : 0],
+        ];
     }
 
     private function budgets(int $year)

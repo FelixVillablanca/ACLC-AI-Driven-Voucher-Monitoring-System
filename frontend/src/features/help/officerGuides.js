@@ -10,7 +10,6 @@ import { formatMoney } from '@/lib/formatters'
  */
 
 const threshold = (rules) => (rules ? formatMoney(rules.high_value_threshold) : 'the high-value amount')
-const flaggedGoesUp = (rules) => rules?.ai_flagged_needs_step2 !== false
 const sla = (rules) => (rules?.review_sla_hours ? `${rules.review_sla_hours} hours` : 'the review time set by the Super Admin')
 
 export const OFFICER_CATEGORIES = [
@@ -120,15 +119,13 @@ export const OFFICER_GUIDES = [
         blocks: [
           (rules) => ({
             list: [
-              `A voucher of ${threshold(rules)} or more needs the Supervisor / Manager after you approve it.`,
-              flaggedGoesUp(rules)
-                ? 'A voucher the automatic check flagged also needs the Supervisor, whatever the amount (unless you marked the flag a false alarm).'
-                : 'Flagged vouchers don’t need the Supervisor because of the flag (the Super Admin turned that rule off).',
-              'Everything else is final when you approve it.',
+              'Every voucher you approve goes on to the Supervisor / Manager for the final approval: yours is never the last step.',
+              `Vouchers of ${threshold(rules)} or more are marked “High value” for them.`,
+              'Vouchers the automatic check flagged are marked “Flagged” (unless you marked the flag a false alarm).',
             ],
           }),
           {
-            p: 'The rule is read at the moment you approve, from the Super Admin’s Global settings. The Approve window tells you before you confirm whether your approval is final or the voucher goes on to the Supervisor, and why.',
+            p: 'The Approve window tells you who the Supervisor is before you confirm. Rejecting is still final at your step.',
           },
         ],
       },
@@ -402,8 +399,8 @@ export const officerGuideTitle = (slug) => officerGuideBySlug(slug)?.title
 /** "Review rules at a glance" (Framer ylRPv8gjJ side card), from the live rules. */
 export function reviewRulesAtAGlance(rules) {
   return [
-    `${threshold(rules)} or more → needs Supervisor approval`,
-    flaggedGoesUp(rules) ? 'Flagged → always goes to Level 2' : 'Flagged → no extra step (setting off)',
+    'Every voucher → Supervisor gives the final approval',
+    `${threshold(rules)} or more → marked “High value”`,
     'Return needs what to fix + remarks',
     'Reject needs a reason + remarks',
     `Review within ${sla(rules)} (warning only)`,

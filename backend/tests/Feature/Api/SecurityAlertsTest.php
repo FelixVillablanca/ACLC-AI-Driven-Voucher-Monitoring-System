@@ -3,6 +3,7 @@
 namespace Tests\Feature\Api;
 
 use App\Mail\PasswordResetMail;
+use App\Models\Company;
 use App\Models\Notification;
 use App\Models\SecurityAlert;
 use App\Models\User;
@@ -47,6 +48,7 @@ class SecurityAlertsTest extends TestCase
         $this->otherOwner = User::factory()->superAdmin()->create(['first_name' => 'Ana', 'last_name' => 'Cruz']);
         $this->admin = User::factory()->admin()->create([
             'first_name' => 'John', 'last_name' => 'Doe', 'email' => 'johndoe@Administrator.com', 'personal_email' => 'john@gmail.com',
+            'company_id' => Company::factory()->create()->id, // an Admin with no company can't be reactivated (2026-11-28)
         ]);
     }
 

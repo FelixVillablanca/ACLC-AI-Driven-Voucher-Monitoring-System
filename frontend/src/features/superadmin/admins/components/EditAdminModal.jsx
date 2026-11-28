@@ -126,7 +126,8 @@ function EditForm({ account, companies, onClose }) {
     setBusy(true)
     setFormError(null)
     try {
-      const result = await updateAdmin(account.id, { ...values, company_id: Number(values.company_id) })
+      // "" = still no company (only allowed while they have none)
+      const result = await updateAdmin(account.id, { ...values, company_id: values.company_id === '' ? null : Number(values.company_id) })
       announceAdminsChanged()
       if (result.changed.length === 0) toast('Nothing to save: no changes')
       else
@@ -191,7 +192,13 @@ function EditForm({ account, companies, onClose }) {
           )}
         </div>
 
-        <FieldShell id="edit-company" label="Company they manage" required error={errors.company_id}>
+        <FieldShell
+          id="edit-company"
+          label="Company they manage"
+          required={!!account.company}
+          error={errors.company_id}
+          hint={account.company ? undefined : 'They have no company yet. Choose one to give it to them, or leave it.'}
+        >
           <select
             id="edit-company"
             value={values.company_id}
@@ -199,7 +206,11 @@ function EditForm({ account, companies, onClose }) {
             aria-invalid={!!errors.company_id}
             className={inputClass}
           >
-            {!values.company_id && <option value="">Choose a company…</option>}
+            {!account.company ? (
+              <option value="">No company yet</option>
+            ) : (
+              !values.company_id && <option value="">Choose a company…</option>
+            )}
             {options.map((c) => (
               <option key={c.id} value={c.id}>
                 {c.name}

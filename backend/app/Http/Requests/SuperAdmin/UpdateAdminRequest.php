@@ -19,7 +19,8 @@ class UpdateAdminRequest extends StoreAdminRequest
             ...parent::rules(),
             'personal_email' => ['nullable', 'string', 'max:255', 'email:rfc'],
             'company_id' => [
-                'required', 'integer',
+                // an Admin with no company yet may stay without one; once they have one it can be changed, not removed
+                $this->route('user')?->company_id === null ? 'nullable' : 'required', 'integer',
                 // Their CURRENT company stays allowed even if suspended now; a new one must be active
                 Rule::exists('companies', 'id')->where(fn ($q) => $q->where('id', $this->route('user')?->company_id)
                     ->orWhere(fn ($q) => $q->where('is_active', true)->whereNull('suspended_at'))),
@@ -53,7 +54,7 @@ class UpdateAdminRequest extends StoreAdminRequest
             'first_name' => $this->validated('first_name'),
             'last_name' => $this->validated('last_name'),
             'email' => $this->email(),
-            'company_id' => (int) $this->validated('company_id'),
+            'company_id' => $this->validated('company_id') === null ? null : (int) $this->validated('company_id'),
             'personal_email' => $this->validated('personal_email') ?: null,
         ];
     }

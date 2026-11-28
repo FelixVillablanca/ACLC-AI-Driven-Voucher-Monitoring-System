@@ -43,7 +43,7 @@ export default function HowFlagsWorkDialog({ stats, onClose }) {
           <p className="text-body">
             A voucher is flagged at a score of <b>{stats ? Number(stats.threshold).toFixed(2) : '0.60'}</b> or more (sensitivity:{' '}
             {SENSITIVITY[stats?.sensitivity] ?? 'Balanced'}, set by the platform owner). A flag is not a rejection: you decide. Flagged
-            vouchers also need the Supervisor’s final approval when that rule is on.
+            vouchers get the Supervisor’s final approval like every voucher, marked “Flagged” for them.
           </p>
         </div>
         <p className="text-caption">

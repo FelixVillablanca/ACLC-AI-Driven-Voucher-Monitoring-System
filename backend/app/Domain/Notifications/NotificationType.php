@@ -33,6 +33,9 @@ enum NotificationType: string
     // Clerk drafts (added 2026-11-25): "your draft will be deleted in 3 days" / "old drafts were deleted"
     case DraftExpiry = 'draft_expiry';
 
+    // Cheque register (added 2026-11-29): "a cheque goes stale in 30 days" / "a cheque was marked stale"
+    case ChequeStale = 'cheque_stale';
+
     // Help & guides (added 2026-11-26): a clerk's "Contact support" message, to their company's Admin
     case SupportRequest = 'support_request';
 
@@ -45,7 +48,7 @@ enum NotificationType: string
     public function category(): string
     {
         return match ($this) {
-            self::VoucherApproved, self::VoucherRejected, self::VoucherPending, self::VoucherReturned, self::DraftExpiry => 'vouchers',
+            self::VoucherApproved, self::VoucherRejected, self::VoucherPending, self::VoucherReturned, self::DraftExpiry, self::ChequeStale => 'vouchers',
             self::AnomalyFlagged => 'ai',
             self::BudgetAlert, self::BudgetChange => 'budgets',
             self::SecurityAlert => 'security',
